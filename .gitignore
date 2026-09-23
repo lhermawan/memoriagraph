@@ -1,0 +1,7 @@
+.env
+neo4j_data/
+neo4j_logs/
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
