@@ -1,7 +1,67 @@
-.env
-neo4j_data/
-neo4j_logs/
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Local vector embeddings cache & large models
+.vector_cache.pkl
+*.onnx
+*.bin
+
+# Database backups & production dump files
+backups/*.json
+!backups/.gitkeep
+
+# Event logs & runtime state
+logs/*
+!logs/.gitkeep
+events/*
+!events/.gitkeep
+
+# IDEs & OS artifacts
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 .DS_Store
-node_modules/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/

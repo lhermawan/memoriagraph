@@ -1,0 +1,10 @@
+{
+  "$schema": "https://glama.ai/mcp/schema/v1",
+  "name": "memoriagraph",
+  "displayName": "MemoriaGraph 3.0",
+  "description": "Biomimetic cognitive substrate and long-term memory engine for AI coding assistants and SRE systems.",
+  "author": "Maskii",
+  "homepage": "https://github.com/maskii/memoriagraph",
+  "license": "Apache-2.0",
+  "categories": ["memory", "developer-tools", "ai-agents", "database"]
+}

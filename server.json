@@ -1,0 +1,84 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/server.json",
+  "name": "memoriagraph",
+  "title": "MemoriaGraph 3.0",
+  "description": "The Biomimetic Cognitive Substrate & Architectural Triad for AI Pair Programmers. Provides 4-Way Hybrid Recall, Dynamic Belief Revision, Anti-Slop Semantic Sanitization, and Git Blast-Radius Mapping backed by Neo4j.",
+  "version": "3.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maskii/memoriagraph"
+  },
+  "command": "python",
+  "args": [
+    "/opt/memoriagraph/server.py"
+  ],
+  "env": {
+    "NEO4J_URI": "bolt://127.0.0.1:7687",
+    "NEO4J_USER": "neo4j",
+    "NEO4J_PASSWORD": "maskiisecret"
+  },
+  "capabilities": {
+    "tools": {
+      "list": true
+    },
+    "logging": {}
+  },
+  "tools": [
+    {
+      "name": "retain",
+      "description": "Biomimetic unified ingestion gateway for episodes, heuristics, or observations into specific memory banks."
+    },
+    {
+      "name": "recall",
+      "description": "4-Way Hybrid Search (BM25 + Multi-hop Graph + Temporal + Int8 Dense Vector) with Reciprocal Rank Fusion."
+    },
+    {
+      "name": "reflect",
+      "description": "Synthesizes cross-episode lessons, extracts heuristics, and manages belief confidence."
+    },
+    {
+      "name": "query_dss",
+      "description": "Decision Support System query for historical precedents, tradeoff rationales, and past incident outcomes."
+    },
+    {
+      "name": "list_cognitive_beliefs",
+      "description": "Retrieves active beliefs, heuristics, and crystallized patterns ranked by confidence score."
+    },
+    {
+      "name": "reinforce_belief_tool",
+      "description": "Strengthens a cognitive belief upon positive confirmation using logarithmic dampening."
+    },
+    {
+      "name": "challenge_belief_tool",
+      "description": "Weakens a cognitive belief upon unexpected failure using a resilient hysteresis formula."
+    },
+    {
+      "name": "record_code_action",
+      "description": "Codebase-Memory anchor that maps git blast-radius, modified modules, and touched functions into Neo4j."
+    },
+    {
+      "name": "get_cognitive_dashboard",
+      "description": "Retrieves cognitive metrics, exploration pipelines, and decision constraint frequencies."
+    },
+    {
+      "name": "get_context",
+      "description": "Retrieves comprehensive contextual graph around entities, decisions, and problem constraints."
+    },
+    {
+      "name": "record_cognitive_episode",
+      "description": "Records full multi-attempt problem-solving trajectories into Neo4j."
+    },
+    {
+      "name": "log_event",
+      "description": "Appends an immutable audit event to the monthly append-only event stream."
+    },
+    {
+      "name": "add_entity",
+      "description": "Adds or updates an individual domain entity node with properties and memory bank assignment."
+    },
+    {
+      "name": "add_relation",
+      "description": "Creates typed directional relationships between knowledge graph entities."
+    }
+  ]
+}

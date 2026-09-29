@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "memoriagraph"
+version = "3.0.0"
+description = "The Biomimetic Cognitive Substrate & Architectural Triad for Autonomous AI Agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Maskii", email = "commander@maskii.dev" }
+]
+maintainers = [
+    { name = "Friday", email = "friday@vm-maskii.local" }
+]
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "neo4j",
+    "cognitive-memory",
+    "hindsight",
+    "anti-slop",
+    "codebase-memory",
+    "hybrid-recall",
+    "fastembed",
+    "zero-cost"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Database :: Front-Ends"
+]
+
+dependencies = [
+    "mcp>=1.0.0",
+    "neo4j>=5.15.0",
+    "python-dotenv>=1.0.0",
+    "fastembed>=0.4.0",
+    "numpy>=1.24.0",
+    "pydantic>=2.0.0",
+    "psutil>=5.9.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.3.0",
+    "mypy>=1.8.0"
+]
+
+[project.scripts]
+memoria = "cli:main"
+memoriagraph = "cli:main"
+memoriagraph-server = "server:main"
+
+[tool.setuptools]
+py-modules = ["cli"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
