@@ -419,6 +419,8 @@ Connect from multiple remote devices securely without opening public ports using
 
 ## 📚 Documentation
 
+- [Panduan Pelatihan & Adopsi Instansi (Bahasa Indonesia)](docs/PANDUAN_PELATIHAN_INSTANSI.md)
+- [Institutional Training Guide (English)](docs/training-guide.md)
 - [Architecture](docs/architecture.md)
 - [Hybrid Recall](docs/hybrid-recall.md)
 - [Belief Revision](docs/belief-revision.md)
