@@ -19,8 +19,8 @@ Semua perangkat terhubung melalui jaringan privat **Tailscale Mesh**:
 | Node | Alamat / Port | Peran & Spesifikasi | Akses & Status |
 | :--- | :--- | :--- | :--- |
 | **`vm-maskii`** | `100.79.34.4` | **AI Hub & Core Brain** (KVM VM, 32GB RAM, Ubuntu 24.04). Menjalankan Neo4j, n8n (`:5678`), AI-SRE Daemon (`:3400`), dan Antigravity. | SSH Ed25519, Docker |
-| **`lucky`** | `157.10.157.25:2277` (`100.117.89.44`) | **Production Node** (14 PM2 processes, Node.js backend & web services). | SSH Ed25519, SRE Watchdog 15-menit |
-| **`atcs`** | `157.10.157.90:5522` (`100.92.217.6`) | **Bare-metal Hypervisor** (Dell PowerEdge R740, 1.5TB RAM, Dual Xeon Gold, KVM). | SSH Ed25519, Host VM-Maskii & Zids-VM |
+| **`lucky`** | `[REDACTED_IP]:2277` (`100.117.89.44`) | **Production Node** (14 PM2 processes, Node.js backend & web services). | SSH Ed25519, SRE Watchdog 15-menit |
+| **`atcs`** | `[REDACTED_IP]:5522` (`100.92.217.6`) | **Bare-metal Hypervisor** (Dell PowerEdge R740, 1.5TB RAM, Dual Xeon Gold, KVM). | SSH Ed25519, Host VM-Maskii & Zids-VM |
 | **PC Rumah** | `desktop-t4aqss1` (`100.123.163.72`) | **Workstation Pribadi**: Ryzen 5 5500 (6C/12T), NVIDIA RTX 3050 6GB GDDR6, 16GB RAM, ViewSonic 24" IPS 144Hz. | Target Friday Holographic HUD |
 
 ---
@@ -58,7 +58,7 @@ Friday memiliki memori jangka panjang berbasis Neo4j Graph Database di `vm-maski
   1. **Eksperimen 1: Strix AI Security** (Setup Kali Docker sandbox di `vm-maskii`, integrasi Gemini Flash API via Google AI Studio, dan webhook reporting ke n8n).
   2. **Eksperimen 2: Zero-Cost YouTube Clipper** (Pipeline kampanye TryBuzzer di n8n: `yt-dlp` audio/sub $\to$ Gemini Flash hook extraction $\to$ `ffmpeg` 9:16 vertical crop).
   3. **Riset 3: Kimi K3** (Evaluasi coding & reasoning model Moonshot AI K3 di `kimi.ai`).
-  *Catatan: Automated WhatsApp reminder aktif jam 08:00 WIB (01:00 UTC) via `send_reminder.js` ke 085735544336.*
+  *Catatan: Automated WhatsApp reminder aktif jam 08:00 WIB (01:00 UTC) via `send_reminder.js` ke [REDACTED_PHONE].*
 
 ---
 
