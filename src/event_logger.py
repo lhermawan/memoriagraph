@@ -3,6 +3,7 @@ MemoriaGraph 2.0 - Event Logger Engine
 Menyimpan event mentah ke append-only JSONL stream dan memproyeksikannya ke Neo4j.
 """
 import datetime
+from datetime import timezone
 import json
 import os
 import uuid
@@ -32,7 +33,7 @@ VALID_EVENT_TYPES = {
 }
 
 def get_event_logfile() -> str:
-    month_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m")
+    month_str = datetime.datetime.now(timezone.utc).strftime("%Y-%m")
     return os.path.join(EVENTS_DIR, f"{month_str}.jsonl")
 
 def log_raw_event(
@@ -61,8 +62,8 @@ def log_raw_event(
     final_epistemic = verified_class if verified_class in VALID_EPISTEMIC_CLASSES else epistemic_class.upper()
     final_conf = min(confidence, ground_conf)
 
-    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
-    event_id = f"EVT-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    now_iso = datetime.datetime.now(timezone.utc).isoformat()
+    event_id = f"EVT-{datetime.datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
 
     event_payload = {
         "event_id": event_id,

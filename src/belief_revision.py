@@ -5,6 +5,7 @@ Mengelola status epistemik: CANDIDATE -> OBSERVED -> HIGH_CONFIDENCE (atau CONTE
 """
 
 import datetime
+from datetime import timezone
 import math
 import sys
 import uuid
@@ -110,7 +111,7 @@ def reinforce_belief(
     Memperkuat keyakinan / heuristik berdasarkan bukti sukses baru.
     Menerapkan logarithmic dampening dan mengkristalisasikan menjadi Pattern jika matang.
     """
-    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+    now_iso = datetime.datetime.now(timezone.utc).isoformat()
     
     with driver.session() as s:
         # Cari node Reflection atau Pattern berdasarkan ID atau kemiripan teks
@@ -193,7 +194,7 @@ def challenge_belief(
     Menantang keyakinan / heuristik akibat terjadinya kegagalan (counter-evidence).
     Menerapkan Hysteresis: penalti terkontrol tanpa destruksi prematur.
     """
-    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+    now_iso = datetime.datetime.now(timezone.utc).isoformat()
 
     with driver.session() as s:
         find_query = """
@@ -269,7 +270,7 @@ def crystallize_pattern(
     Mengkristalisasikan Reflection yang telah terbukti berulang kali menjadi reusable Pattern node.
     """
     pat_id = f"PAT-{uuid.uuid4().hex[:8]}"
-    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+    now_iso = datetime.datetime.now(timezone.utc).isoformat()
     
     with driver.session() as s:
         # Cek apakah sudah pernah dikristalisasikan

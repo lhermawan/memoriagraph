@@ -3,6 +3,7 @@ MemoriaGraph 2.0 - Cognitive Episode Manager
 Membangun dan menghubungkan struktur kognitif lengkap (Problem, Hypothesis, Attempt, Decision, Outcome, Reflection).
 """
 import datetime
+from datetime import timezone
 import os
 import uuid
 from typing import Any
@@ -43,8 +44,8 @@ class EpisodeManager:
         trigger: str = "manual"
     ) -> dict[str, Any]:
         """Membuat episode kognitif baru."""
-        ep_id = f"EP-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
-        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+        ep_id = f"EP-{datetime.datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
+        now_iso = datetime.datetime.now(timezone.utc).isoformat()
 
         ep_data = clean_cognitive_payload({
             "id": ep_id,
@@ -92,7 +93,7 @@ class EpisodeManager:
     ) -> str:
         """Menambahkan problem yang dipecahkan dalam episode."""
         prob_id = f"PROB-{uuid.uuid4().hex[:8]}"
-        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+        now_iso = datetime.datetime.now(timezone.utc).isoformat()
         
         data = clean_cognitive_payload({
             "id": prob_id,
@@ -134,7 +135,7 @@ class EpisodeManager:
         Mendukung siklus non-linear: jika attempt > 1, otomatis menghubungkan ke attempt sebelumnya.
         """
         att_id = f"ATT-{episode_id}-{attempt_number}"
-        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+        now_iso = datetime.datetime.now(timezone.utc).isoformat()
         
         data = clean_cognitive_payload({
             "id": att_id,
@@ -194,7 +195,7 @@ class EpisodeManager:
         Decision -> Weighted By Constraints & Considered Options.
         """
         dec_id = f"DEC-{uuid.uuid4().hex[:8]}"
-        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+        now_iso = datetime.datetime.now(timezone.utc).isoformat()
 
         data = clean_cognitive_payload({
             "id": dec_id,
@@ -261,7 +262,7 @@ class EpisodeManager:
         """
         Menyelesaikan episode: mencatat Outcome dan Reflection.
         """
-        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+        now_iso = datetime.datetime.now(timezone.utc).isoformat()
         out_id = f"OUT-{uuid.uuid4().hex[:8]}"
         refl_id = f"REFL-{uuid.uuid4().hex[:8]}"
 
@@ -344,7 +345,7 @@ class EpisodeManager:
         Merekam Exploration Arc:
         Curiosity -> Experiment -> Prototype -> Project.
         """
-        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+        now_iso = datetime.datetime.now(timezone.utc).isoformat()
         cur_id = f"CUR-{uuid.uuid4().hex[:8]}"
         exp_id = f"EXP-{uuid.uuid4().hex[:8]}"
         proto_id = f"PROTO-{uuid.uuid4().hex[:8]}"

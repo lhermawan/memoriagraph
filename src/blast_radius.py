@@ -5,6 +5,7 @@ dan memproyeksikannya ke node :Action di graph kognitif.
 """
 
 import datetime
+from datetime import timezone
 import os
 import subprocess
 import uuid
@@ -129,7 +130,7 @@ def analyze_git_blast_radius(repo_path: str = "/home/maskii/Private-key", base_r
         "affected_areas": list(affected_areas),
         "blast_severity": severity,
         "risk_assessment": risk,
-        "timestamp": datetime.datetime.now(datetime.UTC).isoformat()
+        "timestamp": datetime.datetime.now(timezone.utc).isoformat()
     }
 
 def record_code_action_with_blast_radius(
@@ -143,7 +144,7 @@ def record_code_action_with_blast_radius(
     """
     analysis = analyze_git_blast_radius(repo_path, base_ref=base_ref)
     act_id = f"ACT-{uuid.uuid4().hex[:8]}"
-    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+    now_iso = datetime.datetime.now(timezone.utc).isoformat()
 
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     with driver.session() as s:
