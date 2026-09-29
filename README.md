@@ -1,7 +1,6 @@
 <div align="center">
 
 # 🧠 MemoriaGraph 3.0
-### The Biomimetic Cognitive Substrate & Architectural Triad for AI Agents
 
 [![Version](https://img.shields.io/badge/version-3.0.0-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-brightgreen.svg?style=for-the-badge)](https://www.python.org/)
@@ -10,124 +9,147 @@
 [![Embeddings](https://img.shields.io/badge/FastEmbed-Quantized%20Int8%20ONNX-blueviolet.svg?style=for-the-badge)](https://github.com/qdrant/fastembed)
 [![License](https://img.shields.io/badge/license-Apache--2.0-red.svg?style=for-the-badge)](LICENSE)
 
-*A zero-cost, persistent long-term memory engine combining Graph Theory, Reciprocal Rank Fusion, Dynamic Belief Calibration, and AST Reality Anchoring.*
+*A persistent memory engine for AI agents combining graph-based knowledge, hybrid retrieval, belief revision, and codebase-aware context.*
 
-[Architecture](#-architectural-triad) • [Benchmarks](#-benchmarks--latency-profile) • [MCP Tools](#-mcp-tools-reference) • [Quickstart](#-quickstart--installation) • [Client Setup](#-mcp-client-configuration)
+[What is it?](#-what-is-memoriagraph) • [Features](#-features) • [Quickstart](#-quickstart) • [MCP Tools](#-mcp-integration) • [CLI](#-cli)
+</div>
 
 ---
 
-</div>
+## 🧠 What is MemoriaGraph?
 
-## 🌟 Executive Overview
+MemoriaGraph is a persistent long-term memory system for AI agents and SRE workflows.
+
+It turns operational events, decisions, debugging attempts, observations, and code changes into structured knowledge that can later be recalled. 
+
+```mermaid
+flowchart LR
+    A["📥 Observe<br/>Agent & SRE Events"]
+    B["🛡️ Sanitize<br/>Remove Secrets & Noise"]
+    C["🧠 Remember<br/>Build Structured Memory"]
+    D["⚓ Verify<br/>Anchor to Codebase"]
+    E["⚡ Recall<br/>Find Relevant Context"]
+    F["🔮 Visualize<br/>Explore Knowledge Graph"]
+
+    A --> B --> C
+    D --> C
+    C --> E --> F
+```
+
+---
+
+## 🎯 Why MemoriaGraph?
 
 Autonomous AI coding agents and Site Reliability Engineering (SRE) systems struggle with three fundamental failure modes:
-1. **Amnesia & Flat Context**: Traditional vector RAG flattens complex engineering trade-offs, causal incident timelines, and multi-attempt debugging cycles into isolated text chunks.
-2. **Context Degradation & Slop**: LLMs pollute their own memory with circular pleasantries, ungrounded speculation, hallucinated metrics, and redundant comments.
-3. **Ghost Edits & Drift**: Agents lose touch with actual repository ASTs and git commit blast radii, repeating flawed refactorings.
 
-**MemoriaGraph 3.0** solves this by unifying three foundational engineering paradigms into an **Architectural Triad**:
-- **Hindsight** (Memory Substrate): Dual-layer episodic-semantic consolidation, non-linear trial-and-error modeling, and dynamic belief revision with mathematical hysteresis.
-- **Anti-Slop** (Immune System): Deterministic pre-ingestion regex sanitization, boilerplate fluff stripping, and an Epistemic Grounding Gate.
-- **Codebase-Memory** (Reality Anchor): Direct git diff inspections, affected function tracking, and blast-radius graph nodes mapping actual filesystem state.
+### 1. Amnesia & Flat Context
+Traditional vector retrieval can flatten complex engineering history, decisions, constraints, and debugging attempts into isolated text chunks.
+
+### 2. Context Degradation
+AI-generated memory can contain noise, redundant text, unsupported claims, or irrelevant conversational content. 
+
+### 3. Codebase Drift
+Historical memory can become disconnected from the actual repository state. Agents lose touch with actual repository ASTs and git commit blast radii.
+
+MemoriaGraph addresses these through its Architectural Triad.
 
 ---
 
 ## 🏛️ Architectural Triad
 
+### 🧠 Hindsight — Memory Substrate
+Persistent episodic and semantic memory with dynamic belief revision and pattern crystallization.
+
+### 🛡️ Anti-Slop — Immune System
+Sanitizes secrets, removes low-value content, and applies an epistemic/semantic quality gate before information enters long-term memory.
+
+### ⚓ Codebase-Memory — Reality Anchor
+Connects memory to Git changes, affected functions, AST-level changes, and blast-radius information.
+
 ```mermaid
 flowchart TD
-    subgraph INGESTION ["🛡️ LAYER 1: IMMUNE SYSTEM (Anti-Slop & Sanitizer)"]
-        RawInput["Raw Agent Input / SRE Telemetry"] --> SecretSanitizer["Regex & Shannon Entropy Redactor\n(strip keys, tokens, passwords)"]
-        SecretSanitizer --> SemanticGate["Semantic Quality Gate\n(strip fluff, verify exit codes & PM2 telemetry)"]
-        SemanticGate --> BankRouter["Biomimetic Bank Router\n(infra-sre, ai-hud, research, csirt, general)"]
+    subgraph INGESTION ["🛡️ Input Sanitization"]
+        RawInput["Raw Agent Input / SRE Telemetry"] --> SecretSanitizer["Secret Sanitizer\n(Regex + entropy-based redaction)"]
+        SecretSanitizer --> SemanticGate["Semantic Quality Gate\n(Fluff removal & validation)"]
+        SemanticGate --> BankRouter["Bank Router\n(Domain routing)"]
     end
 
-    subgraph SUBSTRATE ["🧠 LAYER 2: MEMORY SUBSTRATE (Hindsight & Neo4j)"]
-        BankRouter --> Neo4jGraph[("Neo4j Knowledge Graph\n(Episodes, Decisions, Attempts, Constraints)")]
-        Neo4jGraph --> BeliefEngine["Dynamic Belief Revision\n(Logarithmic Dampening & Hysteresis)"]
-        BeliefEngine --> PatternCrystallizer["Pattern Crystallization\n(CANDIDATE ➔ OBSERVED ➔ HIGH_CONFIDENCE)"]
+    subgraph SUBSTRATE ["🧠 Memory & Knowledge"]
+        BankRouter --> Neo4jGraph[("Neo4j Knowledge Graph")]
+        Neo4jGraph --> BeliefEngine["Dynamic Belief Revision"]
+        BeliefEngine --> PatternCrystallizer["Pattern Crystallization"]
         PatternCrystallizer --> Neo4jGraph
     end
 
-    subgraph REALITY ["⚓ LAYER 3: REALITY ANCHOR (Codebase-Memory)"]
+    subgraph REALITY ["⚓ Reality Anchor"]
         GitWatch["Git Blast-Radius Watcher"] --> ActionMapper["AST & Function Change Mapper"]
         ActionMapper --> Neo4jGraph
     end
 
-    subgraph RECALL ["⚡ LAYER 4: 4-WAY HYBRID RECALL ENGINE"]
-        Query["Recall Query"] --> BM25["1. BM25 Lucene Fulltext\n(cognitive_fulltext_idx)"]
-        Query --> GraphHop["2. Multi-hop Graph Traversal\n(Cypher 2-hop neighbor expansion)"]
-        Query --> Temporal["3. Temporal Decay Window\n(Exponential timestamp weighting)"]
-        Query --> DenseVec["4. Quantized Int8 Dense Vector\n(FastEmbed ONNX bge-small-en-v1.5)"]
+    subgraph RECALL ["⚡ Hybrid Recall"]
+        Query["Recall Query"] --> BM25["1. BM25 Lucene Fulltext"]
+        Query --> GraphHop["2. Multi-hop Graph Traversal"]
+        Query --> Temporal["3. Temporal Decay Window"]
+        Query --> DenseVec["4. Quantized Int8 Dense Vector"]
         
-        BM25 --> RRF["Reciprocal Rank Fusion (RRF, k=60)"]
+        BM25 --> RRF["Reciprocal Rank Fusion (RRF)"]
         GraphHop --> RRF
         Temporal --> RRF
         DenseVec --> RRF
-        RRF --> RankedResults["Ranked Context (<150ms, 100% Accuracy)"]
+        RRF --> RankedResults["Ranked Context"]
     end
 
-    subgraph HUD ["🔮 LAYER 5: 3D HOLOGRAPHIC GRAPH BRIDGE"]
-        Neo4jGraph --> GraphExporter["Visualizer JSON Endpoint (:3400)"]
-        GraphExporter --> WebGLHUD["Friday Holographic HUD (Three.js WebGL)\n(PC Rumah 144Hz Arc Reactor)"]
+    subgraph HUD ["🔮 Visualization"]
+        Neo4jGraph --> GraphExporter["Visualizer JSON Endpoint"]
+        GraphExporter --> WebGLHUD["Friday Holographic HUD (Three.js WebGL)"]
     end
 ```
 
 ---
 
-## 📊 Benchmarks & Latency Profile
+## 🧩 Core Concepts
 
-Benchmarked on `vm-maskii` (32GB RAM, Ubuntu 24.04, Neo4j Community Docker, FastEmbed Int8 ONNX):
+### Anti-Slop
+An immune system that performs deterministic pre-ingestion regex sanitization, boilerplate fluff stripping, and an Epistemic Grounding Gate to prevent AI pleasantries and speculation from contaminating long-term memory.
 
-| Operation | Implementation | V2.0 Baseline | V3.0 Production | Speedup / Gain |
-| :--- | :--- | :--- | :--- | :--- |
-| **Hybrid Recall (Top-5)** | 4-Way Fusion (BM25 + Graph + Time + Int8) | 1,420 ms | **138 ms** | **10.2x Faster** |
-| **Dense Vector Similarity** | FastEmbed ONNX Int8 + NumPy Dot Product | 85 ms | **0.85 ms** | **100x Faster** |
-| **Belief Revision (Update)** | Logarithmic Dampening & Hysteresis | 120 ms | **12 ms** | **10x Faster** |
-| **Anti-Slop Quality Gate** | Epistemic Grounding & Regex Filter | N/A | **0.22 ms** | **Instant** |
-| **DSS Precedent Query** | Keyword + Traversal + Tradeoffs | 95 ms | **14 ms** | **6.7x Faster** |
-| **3D Graph HUD Export** | Biomimetic Bank Partitioned JSON | N/A | **37 ms** | **Real-time 60fps** |
-| **Retrieval Accuracy** | Complex SRE & Decision Queries | 64% | **100%** | **+36% Gain** |
+### Memory Banks
+Domain-oriented routing partitions memory into specific domains: `infra-sre`, `ai-hud`, `research`, `csirt`, and `general`.
 
----
+### Belief Revision
+Beliefs can be reinforced or challenged based on evidence. Beliefs dynamically evolve using logarithmic dampening (for reinforcement) and hysteresis (for resilience against failure). The pattern crystallization process moves beliefs from `CANDIDATE` ➔ `OBSERVED` ➔ `HIGH_CONFIDENCE`.
 
-## 🛠️ MCP Tools Reference
+### Reality Anchor
+Codebase-Memory connects memory directly to Git diff inspections, affected function tracking, and blast-radius graph nodes mapping the actual filesystem state.
 
-MemoriaGraph exposes **14 production MCP tools** compatible with any Model Context Protocol host:
+### Hybrid Recall
+A 4-way hybrid search engine blending four signals:
 
-### 1. Unified Biomimetic Facade API
-* **`retain`**: Unified entrypoint for capturing episodes, heuristics, patterns, or domain observations with automatic anti-slop cleaning and bank routing.
-  * *Parameters:* `content` (str), `bank` (str), `kind` (str: episode|heuristic|observation|pattern), `metadata` (dict)
-* **`recall`**: 4-Way Hybrid Search blending BM25, graph multi-hop, temporal decay, and Int8 dense vectors via Reciprocal Rank Fusion ($k=60$).
-  * *Parameters:* `query` (str), `bank` (optional str), `limit` (int, default 5), `threshold` (float)
-* **`reflect`**: Cognitive synthesis tool extracting lessons learned and updating belief confidence across historical episodes.
-  * *Parameters:* `topic` (str), `bank` (optional str), `auto_crystallize` (bool)
+| Signal       | Purpose                             |
+| ------------ | ----------------------------------- |
+| BM25         | Keyword / lexical relevance         |
+| Graph        | Relationships and connected context |
+| Temporal     | Time-based relevance                |
+| Dense Vector | Semantic similarity                 |
 
-### 2. Cognitive Evolution & Decision Support
-* **`query_dss`**: Queries historical decision precedents, constraint trade-offs, and past outcomes for high-impact advisory.
-  * *Parameters:* `situation_description` (str), `category` (optional str), `context` (optional str)
-* **`list_cognitive_beliefs`**: Lists active beliefs and heuristics ranked by confidence score ($0.0 - 1.0$) and cognitive status.
-  * *Parameters:* `status_filter` (optional str: CANDIDATE|OBSERVED|HIGH_CONFIDENCE), `limit` (int)
-* **`reinforce_belief_tool`**: Strengthens a belief upon successful outcome using logarithmic dampening.
-  * *Parameters:* `belief_id` (str), `evidence_summary` (str)
-* **`challenge_belief_tool`**: Weakens a belief upon unexpected failure using resilient hysteresis.
-  * *Parameters:* `belief_id` (str), `counter_evidence_summary` (str)
-* **`get_cognitive_dashboard`**: Aggregates high-level cognitive telemetry, exploration pipelines, and decision constraint frequencies.
-
-### 3. Reality Anchor & Codebase Mapping
-* **`record_code_action`**: Maps git diffs, changed files, touched functions, and blast radii to an `:Action` node in Neo4j.
-  * *Parameters:* `repo_path` (str), `action_description` (str), `commit_hash` (optional str), `affected_bank` (str)
-
-### 4. Graph & Event Stream Primitives
-* **`record_cognitive_episode`**: Ingests detailed multi-attempt problem-solving arcs into the graph.
-* **`log_event`**: Appends an immutable audit record to the append-only monthly JSONL event stream.
-* **`add_entity`**: Adds or updates a domain entity with properties and memory bank assignment.
-* **`add_relation`**: Creates typed directional relationships between knowledge graph entities.
-* **`get_context`**: Traverses comprehensive subgraphs surrounding specific entities or constraints.
+These rankings are combined using Reciprocal Rank Fusion (RRF, k=60).
 
 ---
 
-## 🚀 Quickstart & Installation
+## ✨ Features
+
+* 🧠 Persistent Knowledge Graph (Neo4j)
+* 🛡️ Secret & Noise Sanitization
+* 🔄 Dynamic Belief Revision
+* ⚓ Git / AST Reality Anchoring
+* ⚡ Four-Way Hybrid Recall
+* 🔌 MCP Server (14 Production Tools)
+* 💻 Standalone CLI
+* 🔮 3D Graph Visualization (Friday Holographic HUD)
+* 📊 Benchmarking & Cognitive Telemetry
+
+---
+
+## 🚀 Quickstart
 
 ### 1. System Requirements
 - Linux (Ubuntu 22.04 / 24.04 recommended) or macOS
@@ -175,53 +197,46 @@ python -c "from src.schema_init import init_schema; init_schema()"
 python benchmark_v3.py
 ```
 
+*What happens next?* You can use the `memoria` CLI to interact with your graph or connect your preferred AI agent via MCP.
+
 ---
 
-## 🔌 MCP Client Configuration
+## 🔌 MCP Integration
 
-### Claude Desktop (`claude_desktop_config.json`)
-```json
-{
-  "mcpServers": {
-    "memoriagraph": {
-      "command": "/opt/memoriagraph/venv/bin/python",
-      "args": ["/opt/memoriagraph/server.py"],
-      "env": {
-        "NEO4J_URI": "bolt://127.0.0.1:7687",
-        "NEO4J_USER": "neo4j",
-        "NEO4J_PASSWORD": "your_secure_password"
-      }
-    }
-  }
-}
-```
+MemoriaGraph exposes **14 production MCP tools** compatible with any Model Context Protocol host:
 
-### Antigravity CLI / AGY
-Add to `~/.gemini/antigravity-cli/mcp/memoriagraph.json` or configure natively:
-```json
-{
-  "serverName": "memoriagraph",
-  "command": "/opt/memoriagraph/venv/bin/python",
-  "args": ["/opt/memoriagraph/server.py"],
-  "env": {
-    "NEO4J_URI": "bolt://127.0.0.1:7687",
-    "NEO4J_USER": "neo4j",
-    "NEO4J_PASSWORD": "your_secure_password"
-  }
-}
-```
+| Capability       | Tools                         | Purpose                        |
+| ---------------- | ----------------------------- | ------------------------------ |
+| Memory           | `retain`, `recall`, `reflect` | Store and retrieve knowledge   |
+| Decision Support | `query_dss`                   | Historical precedents          |
+| Beliefs          | `list_cognitive_beliefs`, `reinforce_belief_tool`, `challenge_belief_tool`, `get_cognitive_dashboard` | Confidence evolution           |
+| Codebase         | `record_code_action`          | Connect memory to code changes |
+| Graph            | `add_entity`, `add_relation`, `get_context` | Graph operations               |
+| Events           | `record_cognitive_episode`, `log_event` | Operational history            |
 
-### Cursor (`.cursor/mcp.json`)
-```json
-{
-  "mcpServers": {
-    "memoriagraph": {
-      "command": "/opt/memoriagraph/venv/bin/python",
-      "args": ["/opt/memoriagraph/server.py"]
-    }
-  }
-}
-```
+### Detailed API Reference
+
+#### 1. Unified Biomimetic Facade API
+* **`retain`**: Unified entrypoint for capturing episodes, heuristics, patterns, or domain observations with automatic anti-slop cleaning and bank routing.
+* **`recall`**: 4-Way Hybrid Search blending BM25, graph multi-hop, temporal decay, and Int8 dense vectors via Reciprocal Rank Fusion.
+* **`reflect`**: Cognitive synthesis tool extracting lessons learned and updating belief confidence across historical episodes.
+
+#### 2. Cognitive Evolution & Decision Support
+* **`query_dss`**: Queries historical decision precedents, constraint trade-offs, and past outcomes for high-impact advisory.
+* **`list_cognitive_beliefs`**: Lists active beliefs and heuristics ranked by confidence score ($0.0 - 1.0$) and cognitive status.
+* **`reinforce_belief_tool`**: Strengthens a belief upon successful outcome using logarithmic dampening.
+* **`challenge_belief_tool`**: Weakens a belief upon unexpected failure using resilient hysteresis.
+* **`get_cognitive_dashboard`**: Aggregates high-level cognitive telemetry, exploration pipelines, and decision constraint frequencies.
+
+#### 3. Reality Anchor & Codebase Mapping
+* **`record_code_action`**: Maps git diffs, changed files, touched functions, and blast radii to an `:Action` node in Neo4j.
+
+#### 4. Graph & Event Stream Primitives
+* **`record_cognitive_episode`**: Ingests detailed multi-attempt problem-solving arcs into the graph.
+* **`log_event`**: Appends an immutable audit record to the append-only monthly JSONL event stream.
+* **`add_entity`**: Adds or updates a domain entity with properties and memory bank assignment.
+* **`add_relation`**: Creates typed directional relationships between knowledge graph entities.
+* **`get_context`**: Traverses comprehensive subgraphs surrounding specific entities or constraints.
 
 ---
 
@@ -248,107 +263,116 @@ memoria benchmark
 
 ---
 
-## 📂 Repository Layout
+## 📊 Benchmarks
+
+*Note: Retrieval accuracy reflects the project's internal benchmark suite and should not be interpreted as universal retrieval accuracy.*
+
+Benchmarked on `vm-maskii` (32GB RAM, Ubuntu 24.04, Neo4j Community Docker, FastEmbed Int8 ONNX):
+
+| Operation | Implementation | V2.0 Baseline | V3.0 Production | Speedup / Gain |
+| :--- | :--- | :--- | :--- | :--- |
+| **Hybrid Recall (Top-5)** | 4-Way Fusion (BM25 + Graph + Time + Int8) | 1,420 ms | **138 ms** | **10.2x Faster** |
+| **Dense Vector Similarity** | FastEmbed ONNX Int8 + NumPy Dot Product | 85 ms | **0.85 ms** | **100x Faster** |
+| **Belief Revision (Update)** | Logarithmic Dampening & Hysteresis | 120 ms | **12 ms** | **10x Faster** |
+| **Anti-Slop Quality Gate** | Epistemic Grounding & Regex Filter | N/A | **0.22 ms** | **Instant** |
+| **DSS Precedent Query** | Keyword + Traversal + Tradeoffs | 95 ms | **14 ms** | **6.7x Faster** |
+| **3D Graph HUD Export** | Biomimetic Bank Partitioned JSON | N/A | **37 ms** | **Real-time 60fps*** |
+| **Retrieval Accuracy** | Complex SRE & Decision Queries | 64% | **100%** | **+36% Gain** |
+
+*( * 37ms JSON export latency facilitates a 60 FPS rendering target in the visualization layer. )*
+
+---
+
+## 🔮 Friday Holographic HUD
+
+The visualization layer consumes the graph visualization endpoint and renders the knowledge graph using Three.js/WebGL.
+
+```text
+Neo4j
+  ↓
+Graph Exporter
+  ↓
+Visualizer JSON API
+  ↓
+Friday Holographic HUD
+  ↓
+Three.js / WebGL
+```
+
+---
+
+## 📂 Repository Structure
 
 ```text
 /opt/memoriagraph/
-├── .github/workflows/         # Automated CI/CD & benchmark suites
-│   ├── ci.yml                 # Lint, test, and typecheck automation
-│   └── benchmark.yml          # Latency and drift tracking
+├── .github/workflows/         # CI/CD automation & benchmark suites
 ├── backups/                   # Neo4j JSON snapshot backups (.gitignored)
-├── docs/                      # Deep-dive architecture specifications
+├── docs/                      # Technical deep-dives
 │   ├── architecture.md        # Architectural Triad specification
 │   ├── hybrid-recall.md       # RRF & FastEmbed Int8 math
-│   └── belief-revision.md     # Hysteresis & logarithmic dampening formulas
-├── events/                    # Append-only monthly audit event logs
-├── scripts/                   # Setup and utility automation scripts
+│   └── belief-revision.md     # Hysteresis & dampening formulas
+├── events/                    # Append-only audit event logs
+├── scripts/                   # Setup automation scripts
 ├── src/                       # Core python substrate modules
-│   ├── belief_revision.py     # Logarithmic dampening & hysteresis calibration
+│   ├── belief_revision.py     # Dampening & hysteresis calibration
 │   ├── blast_radius.py        # Codebase-Memory git inspector
-│   ├── dss_engine.py          # Decision Support System query engine
+│   ├── dss_engine.py          # Decision Support System
 │   ├── episode_manager.py     # Multi-attempt problem-solving arcs
-│   ├── event_logger.py        # Append-only JSONL logger
-│   ├── graph_visualizer.py    # 3D Holographic HUD WebGL exporter
-│   ├── hybrid_recall.py       # 4-Way RRF search engine (BM25 + Graph + Time + Int8)
-│   ├── sanitizer.py           # Pre-ingestion secret & token redactor
-│   ├── schema_init.py         # Neo4j constraints & fulltext search indexes
-│   └── semantic_sanitizer.py  # Anti-slop quality gate & fluff stripper
+│   ├── event_logger.py        # JSONL logger
+│   ├── graph_visualizer.py    # JSON exporter for HUD
+│   ├── hybrid_recall.py       # 4-Way RRF search engine
+│   ├── sanitizer.py           # Pre-ingestion redactor
+│   ├── schema_init.py         # Neo4j constraints & indexes
+│   └── semantic_sanitizer.py  # Anti-slop quality gate
 ├── tests/                     # Automated test suites
-│   ├── test_belief_revision.py
-│   ├── test_hybrid_recall.py
-│   ├── test_memory_banks.py
-│   └── test_semantic_sanitizer.py
 ├── benchmark_v3.py            # Latency and retrieval accuracy benchmark
-├── cli.py                     # Standalone CLI interface (`memoria`)
+├── cli.py                     # Standalone CLI (`memoria`)
 ├── server.py                  # Standard MCP stdio JSON-RPC server
 ├── server.json                # MCP specification manifest
-├── glama.json                 # MCP registry manifest
-├── pyproject.toml             # PEP 621 packaging metadata
-├── requirements.txt           # Production locked dependencies
-├── requirements-dev.txt       # Development & test dependencies
-├── LICENSE                    # Apache 2.0 License
-├── SECURITY.md                # Zero-trust secret policy & vulnerability reporting
-├── CONTRIBUTING.md            # Contributor guidelines
-├── CODE_OF_CONDUCT.md         # Community standard
+├── pyproject.toml             # Python packaging metadata
 └── README.md                  # Master documentation (this file)
 ```
 
 ---
 
-## 🔒 Security & Anti-Slop Guarantees
+## 🔒 Security
+
+Security measures and anti-slop design principles:
 
 * **Zero-Secret Ingestion**: All tokens, private keys, passwords, and high-entropy strings are automatically sanitized before any Cypher query is executed.
 * **Network Isolation**: By default, the graph database binds exclusively to `127.0.0.1` (localhost). Exposing Neo4j directly to the public internet (`0.0.0.0`) is strictly discouraged.
-* **Zero Fluff**: The Semantic Quality Gate ensures AI pleasantries, speculative claims, and redundant comments do not contaminate long-term memory.
+* **Zero Fluff**: The Semantic Quality Gate filters out AI pleasantries, speculative claims, and redundant comments.
 
 ---
 
-## 🌐 Network Deployment: Localhost vs. Optional Tailscale Mesh
+## 🌐 Deployment
 
-MemoriaGraph supports two deployment modes based on your workflow:
+MemoriaGraph supports two deployment modes:
 
 ### Mode 1: Localhost (Default — Single Machine)
-If your AI client (Cursor, Claude Desktop, Antigravity) runs on the same machine or VM as your Neo4j container:
-- Connect directly to `bolt://127.0.0.1:7687`.
-- Zero configuration required. Ready out-of-the-box.
+Connect directly to `bolt://127.0.0.1:7687`. Zero configuration required.
 
-### Mode 2: Multi-Node Mesh with Tailscale (Optional — Cross-Device & Remote AI Servers)
-If you want to host MemoriaGraph on a dedicated home server, homelab, or cloud VM and connect from multiple remote devices (e.g. laptop, home battlestation, or secondary servers) without opening public ports:
+### Mode 2: Multi-Node Mesh with Tailscale (Optional)
+Connect from multiple remote devices securely without opening public ports using a WireGuard mesh VPN.
 
-> [!TIP]
-> **Why Tailscale?** [Tailscale](https://tailscale.com) creates a secure WireGuard mesh VPN between your devices. It assigns private IPs (`100.x.y.z`) with end-to-end encryption and NAT traversal, so you never need to expose port 7687 to `0.0.0.0`.
+1. **Install Tailscale** on your Host Server (where Neo4j runs).
+2. **Retrieve your Server's Private Mesh IP**: `tailscale ip -4` (e.g., `100.x.y.z`).
+3. **Bind Neo4j** to your Tailscale IP:
+   ```bash
+   docker run -d \
+     --name memoriagraph-neo4j \
+     --restart unless-stopped \
+     -p 127.0.0.1:7687:7687 \
+     -p 100.x.y.z:7687:7687 \
+     -e NEO4J_AUTH=neo4j/your_secure_password \
+     -v /var/lib/neo4j/data:/data \
+     neo4j:5.26-community
+   ```
+4. **Connect Remote Clients**: Update client configuration to use `bolt://100.x.y.z:7687`.
 
-#### Step 1: Install Tailscale on your Host Server (where Neo4j runs)
-```bash
-# On Linux (Ubuntu/Debian)
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up
-```
+#### Client Configurations
 
-#### Step 2: Retrieve your Server's Private Mesh IP
-```bash
-tailscale ip -4
-# Example output: 100.x.y.z
-```
-
-#### Step 3: Bind Neo4j to your Tailscale IP (Hardened Setup)
-When running your Docker container, explicitly bind port 7687 to your server's Tailscale IPv4 address:
-```bash
-# Replace 100.x.y.z with your host server's Tailscale IP
-docker run -d \
-  --name memoriagraph-neo4j \
-  --restart unless-stopped \
-  -p 127.0.0.1:7687:7687 \
-  -p 100.x.y.z:7687:7687 \
-  -e NEO4J_AUTH=neo4j/your_secure_password \
-  -e NEO4J_PLUGINS='["apoc"]' \
-  -v /var/lib/neo4j/data:/data \
-  neo4j:5.26-community
-```
-
-#### Step 4: Connect Remote Clients
-Install Tailscale on your client device ([tailscale.com/download](https://tailscale.com/download)) and log into the same Tailnet.
-Update your client configuration (e.g., `claude_desktop_config.json` or `.env`):
+**Claude Desktop** (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
@@ -364,7 +388,44 @@ Update your client configuration (e.g., `claude_desktop_config.json` or `.env`):
   }
 }
 ```
-Now all MCP tool calls and graph queries travel over an encrypted peer-to-peer tunnel with zero exposure to the public internet!
+
+**Antigravity CLI / AGY** (`~/.gemini/antigravity-cli/mcp/memoriagraph.json`):
+```json
+{
+  "serverName": "memoriagraph",
+  "command": "/opt/memoriagraph/venv/bin/python",
+  "args": ["/opt/memoriagraph/server.py"],
+  "env": {
+    "NEO4J_URI": "bolt://100.x.y.z:7687",
+    "NEO4J_USER": "neo4j",
+    "NEO4J_PASSWORD": "your_secure_password"
+  }
+}
+```
+
+**Cursor** (`.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "memoriagraph": {
+      "command": "/opt/memoriagraph/venv/bin/python",
+      "args": ["/opt/memoriagraph/server.py"]
+    }
+  }
+}
+```
+
+---
+
+## 📚 Documentation
+
+- [Architecture](docs/architecture.md)
+- [Hybrid Recall](docs/hybrid-recall.md)
+- [Belief Revision](docs/belief-revision.md)
+- [Security](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+
+*(Note: Additional MCP tools reference is covered in the [MCP Integration](#-mcp-integration) section.)*
 
 ---
 
