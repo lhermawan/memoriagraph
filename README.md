@@ -307,5 +307,5 @@ memoria benchmark
 
 Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for more details.
 
-**Author & Commander:** [Maskii](https://github.com/maskii)  
+**Author & Commander:** [Maskii](https://github.com/lhermawan)  
 **AI Co-Architect:** Friday (F.R.I.D.A.Y. - Antigravity AI-SRE)
