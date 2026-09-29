@@ -6,7 +6,7 @@
   "version": "3.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/maskii/memoriagraph"
+    "url": "https://github.com/lhermawan/memoriagraph"
   },
   "command": "python",
   "args": [
@@ -15,7 +15,7 @@
   "env": {
     "NEO4J_URI": "bolt://127.0.0.1:7687",
     "NEO4J_USER": "neo4j",
-    "NEO4J_PASSWORD": "maskiisecret"
+    "NEO4J_PASSWORD": "your_secure_password"
   },
   "capabilities": {
     "tools": {

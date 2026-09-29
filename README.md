@@ -3,7 +3,7 @@
 # 🧠 MemoriaGraph 3.0
 ### The Biomimetic Cognitive Substrate & Architectural Triad for AI Agents
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg?style=for-the-badge)](https://github.com/maskii/memoriagraph)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-brightgreen.svg?style=for-the-badge)](https://www.python.org/)
 [![Protocol](https://img.shields.io/badge/MCP-Standard%202.2-orange.svg?style=for-the-badge)](https://modelcontextprotocol.io/)
 [![Database](https://img.shields.io/badge/Neo4j-Graph%20Engine-008CC1.svg?style=for-the-badge&logo=neo4j)](https://neo4j.com/)
@@ -142,7 +142,7 @@ docker run -d \
   --restart unless-stopped \
   -p 127.0.0.1:7474:7474 \
   -p 127.0.0.1:7687:7687 \
-  -e NEO4J_AUTH=neo4j/maskiisecret \
+  -e NEO4J_AUTH=neo4j/your_secure_password \
   -e NEO4J_PLUGINS='["apoc"]' \
   -v /var/lib/neo4j/data:/data \
   neo4j:5.26-community
@@ -151,7 +151,7 @@ docker run -d \
 ### 3. Install MemoriaGraph
 ```bash
 # Clone the repository
-git clone https://github.com/maskii/memoriagraph.git /opt/memoriagraph
+git clone https://github.com/lhermawan/memoriagraph.git /opt/memoriagraph
 cd /opt/memoriagraph
 
 # Create virtual environment
@@ -189,7 +189,7 @@ python benchmark_v3.py
       "env": {
         "NEO4J_URI": "bolt://127.0.0.1:7687",
         "NEO4J_USER": "neo4j",
-        "NEO4J_PASSWORD": "maskiisecret"
+        "NEO4J_PASSWORD": "your_secure_password"
       }
     }
   }
@@ -206,7 +206,7 @@ Add to `~/.gemini/antigravity-cli/mcp/memoriagraph.json` or configure natively:
   "env": {
     "NEO4J_URI": "bolt://127.0.0.1:7687",
     "NEO4J_USER": "neo4j",
-    "NEO4J_PASSWORD": "maskiisecret"
+    "NEO4J_PASSWORD": "your_secure_password"
   }
 }
 ```
@@ -298,8 +298,73 @@ memoria benchmark
 ## 🔒 Security & Anti-Slop Guarantees
 
 * **Zero-Secret Ingestion**: All tokens, private keys, passwords, and high-entropy strings are automatically sanitized before any Cypher query is executed.
-* **Network Isolation**: The graph database is bound to `127.0.0.1` and private Tailscale WireGuard mesh (`100.79.34.4`). Public exposure to `0.0.0.0` is strictly forbidden.
+* **Network Isolation**: By default, the graph database binds exclusively to `127.0.0.1` (localhost). Exposing Neo4j directly to the public internet (`0.0.0.0`) is strictly discouraged.
 * **Zero Fluff**: The Semantic Quality Gate ensures AI pleasantries, speculative claims, and redundant comments do not contaminate long-term memory.
+
+---
+
+## 🌐 Network Deployment: Localhost vs. Optional Tailscale Mesh
+
+MemoriaGraph supports two deployment modes based on your workflow:
+
+### Mode 1: Localhost (Default — Single Machine)
+If your AI client (Cursor, Claude Desktop, Antigravity) runs on the same machine or VM as your Neo4j container:
+- Connect directly to `bolt://127.0.0.1:7687`.
+- Zero configuration required. Ready out-of-the-box.
+
+### Mode 2: Multi-Node Mesh with Tailscale (Optional — Cross-Device & Remote AI Servers)
+If you want to host MemoriaGraph on a dedicated home server, homelab, or cloud VM and connect from multiple remote devices (e.g. laptop, home battlestation, or secondary servers) without opening public ports:
+
+> [!TIP]
+> **Why Tailscale?** [Tailscale](https://tailscale.com) creates a secure WireGuard mesh VPN between your devices. It assigns private IPs (`100.x.y.z`) with end-to-end encryption and NAT traversal, so you never need to expose port 7687 to `0.0.0.0`.
+
+#### Step 1: Install Tailscale on your Host Server (where Neo4j runs)
+```bash
+# On Linux (Ubuntu/Debian)
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+```
+
+#### Step 2: Retrieve your Server's Private Mesh IP
+```bash
+tailscale ip -4
+# Example output: 100.x.y.z
+```
+
+#### Step 3: Bind Neo4j to your Tailscale IP (Hardened Setup)
+When running your Docker container, explicitly bind port 7687 to your server's Tailscale IPv4 address:
+```bash
+# Replace 100.x.y.z with your host server's Tailscale IP
+docker run -d \
+  --name memoriagraph-neo4j \
+  --restart unless-stopped \
+  -p 127.0.0.1:7687:7687 \
+  -p 100.x.y.z:7687:7687 \
+  -e NEO4J_AUTH=neo4j/your_secure_password \
+  -e NEO4J_PLUGINS='["apoc"]' \
+  -v /var/lib/neo4j/data:/data \
+  neo4j:5.26-community
+```
+
+#### Step 4: Connect Remote Clients
+Install Tailscale on your client device ([tailscale.com/download](https://tailscale.com/download)) and log into the same Tailnet.
+Update your client configuration (e.g., `claude_desktop_config.json` or `.env`):
+```json
+{
+  "mcpServers": {
+    "memoriagraph": {
+      "command": "/opt/memoriagraph/venv/bin/python",
+      "args": ["/opt/memoriagraph/server.py"],
+      "env": {
+        "NEO4J_URI": "bolt://100.x.y.z:7687",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "your_secure_password"
+      }
+    }
+  }
+}
+```
+Now all MCP tool calls and graph queries travel over an encrypted peer-to-peer tunnel with zero exposure to the public internet!
 
 ---
 
@@ -307,5 +372,5 @@ memoria benchmark
 
 Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for more details.
 
-**Author & Commander:** [Maskii](https://github.com/lhermawan)  
+**Author & Commander:** [Maskii (Lucky Hermawan)](https://github.com/lhermawan)  
 **AI Co-Architect:** Friday (F.R.I.D.A.Y. - Antigravity AI-SRE)

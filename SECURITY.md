@@ -12,8 +12,8 @@ MemoriaGraph is designed as a persistent cognitive memory substrate for autonomo
    - High-Entropy Strings: Tokens with Shannon entropy $> 4.2$ are automatically quarantined.
 
 2. **Network & Storage Isolation**:
-   - Neo4j database runs in a container bound to localhost (`127.0.0.1:7687`) or strictly within the private Tailscale WireGuard mesh (`100.79.34.4`).
-   - The graph database is NEVER exposed to public `0.0.0.0` interfaces.
+   - By default, Neo4j runs in a container bound to localhost (`127.0.0.1:7687`), or optionally restricted to a private VPN/Tailscale WireGuard mesh IP (e.g. `100.x.y.z`) for secure multi-node architectures.
+   - The graph database should NEVER be exposed to public `0.0.0.0` interfaces.
    - All backups and event stream logs are sanitized prior to disk storage.
 
 3. **Semantic Anti-Slop Immune System**:
