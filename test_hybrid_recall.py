@@ -8,11 +8,12 @@ Menguji akurasi dan latensi pencarian pada kata-kata kunci sulit:
 5. 'solusi memory leak pm2 restart' (conceptual problem-solving)
 """
 
-import time
 import sys
+import time
 
 sys.path.insert(0, "/opt/memoriagraph")
 from src.hybrid_recall import HybridRecallEngine
+
 
 def run_benchmarks():
     print("=" * 70)

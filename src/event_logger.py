@@ -2,15 +2,17 @@
 MemoriaGraph 2.0 - Event Logger Engine
 Menyimpan event mentah ke append-only JSONL stream dan memproyeksikannya ke Neo4j.
 """
-import os
-import json
-import uuid
 import datetime
-from typing import Dict, Any, Optional
+import json
+import os
+import uuid
+from typing import Any
+
 import dotenv
 from neo4j import GraphDatabase
+
 from src.sanitizer import sanitize_data
-from src.semantic_sanitizer import strip_conversational_fluff, classify_epistemic_grounding
+from src.semantic_sanitizer import classify_epistemic_grounding, strip_conversational_fluff
 
 dotenv.load_dotenv("/opt/memoriagraph/.env")
 
@@ -30,20 +32,20 @@ VALID_EVENT_TYPES = {
 }
 
 def get_event_logfile() -> str:
-    month_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m")
+    month_str = datetime.datetime.now(datetime.UTC).strftime("%Y-%m")
     return os.path.join(EVENTS_DIR, f"{month_str}.jsonl")
 
 def log_raw_event(
     event_type: str,
     description: str,
     context: str = "general",
-    episode_id: Optional[str] = None,
+    episode_id: str | None = None,
     source: str = "system",
     confidence: float = 1.0,
     epistemic_class: str = "FACT",
-    metadata: Optional[Dict[str, Any]] = None,
+    metadata: dict[str, Any] | None = None,
     sync_to_graph: bool = True
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Mencatat event ke file stream lokal dan sinkronisasi ke Neo4j.
     Dilengkapi Anti-Slop: Pembersihan basa-basi dan verifikasi grounding empiris.
@@ -59,8 +61,8 @@ def log_raw_event(
     final_epistemic = verified_class if verified_class in VALID_EPISTEMIC_CLASSES else epistemic_class.upper()
     final_conf = min(confidence, ground_conf)
 
-    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    event_id = f"EVT-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
+    event_id = f"EVT-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
 
     event_payload = {
         "event_id": event_id,
@@ -89,7 +91,7 @@ def log_raw_event(
 
     return sanitized_event
 
-def _project_event_to_graph(event: Dict[str, Any]):
+def _project_event_to_graph(event: dict[str, Any]):
     """Proyeksikan event ke node Neo4j dengan label epistemik ganda."""
     try:
         driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))

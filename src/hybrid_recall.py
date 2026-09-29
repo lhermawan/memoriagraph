@@ -8,14 +8,13 @@ Mengintegrasikan:
 Dilebur menggunakan Reciprocal Rank Fusion (RRF, k=60).
 """
 
-import os
-import sys
-import re
-import math
-import pickle
 import datetime
-import time
-from typing import Dict, Any, List, Optional, Tuple
+import os
+import pickle
+import re
+import sys
+from typing import Any
+
 import dotenv
 import numpy as np
 from neo4j import GraphDatabase
@@ -68,9 +67,9 @@ class HybridRecallEngine:
     def __init__(self, k_rrf: int = 60, auto_sync_vectors: bool = True):
         self.k_rrf = k_rrf
         self.driver = get_driver()
-        self.vector_cache: Dict[str, Any] = {} # node_id -> {title, labels, summary, vec, ...}
-        self.matrix_node_ids: List[str] = []
-        self.vector_matrix: Optional[np.ndarray] = None
+        self.vector_cache: dict[str, Any] = {} # node_id -> {title, labels, summary, vec, ...}
+        self.matrix_node_ids: list[str] = []
+        self.vector_matrix: np.ndarray | None = None
         
         self._load_vector_cache()
         if auto_sync_vectors and (not self.vector_cache or len(self.vector_cache) < 100):
@@ -170,7 +169,7 @@ class HybridRecallEngine:
         self._rebuild_matrix()
         print(f"✅ [HybridRecall] Vector cache tersinkronisasi ({len(self.vector_cache)} node aktif).", file=sys.stderr)
 
-    def _channel_bm25(self, session, lucene_query: str, limit: int = 25, bank_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _channel_bm25(self, session, lucene_query: str, limit: int = 25, bank_id: str | None = None) -> list[dict[str, Any]]:
         """Jalur 1: BM25 Fulltext Search via Neo4j cognitive_fulltext_idx dengan Memory Bank filter."""
         cypher = """
         CALL db.index.fulltext.queryNodes("cognitive_fulltext_idx", $q) YIELD node, score
@@ -193,7 +192,7 @@ class HybridRecallEngine:
             print(f"⚠️ BM25 Channel error: {e}", file=sys.stderr)
             return []
 
-    def _channel_graph_traversal(self, session, seed_node_ids: List[str], limit: int = 25, bank_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _channel_graph_traversal(self, session, seed_node_ids: list[str], limit: int = 25, bank_id: str | None = None) -> list[dict[str, Any]]:
         """Jalur 2: Multi-Hop Graph Traversal dari node unggulan BM25 dengan Memory Bank filter."""
         if not seed_node_ids:
             return []
@@ -222,7 +221,7 @@ class HybridRecallEngine:
             print(f"⚠️ Graph Traversal Channel error: {e}", file=sys.stderr)
             return []
 
-    def _channel_temporal(self, session, raw_query: str, limit: int = 25, bank_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _channel_temporal(self, session, raw_query: str, limit: int = 25, bank_id: str | None = None) -> list[dict[str, Any]]:
         """Jalur 3: Temporal Window Scoring berdasarkan petunjuk waktu dengan Memory Bank filter."""
         q_lower = raw_query.lower()
         now = datetime.datetime.now()
@@ -289,7 +288,7 @@ class HybridRecallEngine:
             print(f"⚠️ Temporal Channel error: {e}", file=sys.stderr)
             return []
 
-    def _channel_vector(self, query_text: str, limit: int = 25, bank_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _channel_vector(self, query_text: str, limit: int = 25, bank_id: str | None = None) -> list[dict[str, Any]]:
         """Jalur 4: Dense Vector Semantic Similarity via FastEmbed Int8 Lokal + Cache (<8ms) dengan Memory Bank filter."""
         embedder = get_embed_model()
         if not embedder or self.vector_matrix is None or len(self.matrix_node_ids) == 0:
@@ -327,7 +326,7 @@ class HybridRecallEngine:
             print(f"⚠️ Vector Channel error: {e}", file=sys.stderr)
             return []
 
-    def recall(self, query: str, limit: int = 10, bank_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def recall(self, query: str, limit: int = 10, bank_id: str | None = None) -> list[dict[str, Any]]:
         """
         Eksekusi 4-Way Hybrid Recall dengan Reciprocal Rank Fusion (RRF) & Context Isolation (Memory Bank).
         RRF_Score(d) = sum_{m in M} (1 / (k + rank_m(d)))
@@ -351,9 +350,9 @@ class HybridRecallEngine:
             # ==========================================
             # RECIPROCAL RANK FUSION (RRF)
             # ==========================================
-            rrf_scores: Dict[str, float] = {}
-            node_data_map: Dict[str, Dict[str, Any]] = {}
-            channel_hits: Dict[str, List[str]] = {}
+            rrf_scores: dict[str, float] = {}
+            node_data_map: dict[str, dict[str, Any]] = {}
+            channel_hits: dict[str, list[str]] = {}
             
             channels = [
                 ("BM25", bm25_results),

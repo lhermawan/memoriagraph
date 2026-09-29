@@ -6,24 +6,28 @@ Menguji:
 3. Transisi status (CANDIDATE -> OBSERVED -> HIGH_CONFIDENCE -> CONTESTED)
 4. Otomasi kristalisasi Reflection menjadi Pattern
 """
-import sys
-import uuid
 import os
+import uuid
+
 import dotenv
 from neo4j import GraphDatabase
 
 dotenv.load_dotenv("/opt/memoriagraph/.env")
 
 from src.belief_revision import (
-    calculate_reinforced_score,
     calculate_challenged_score,
-    reinforce_belief,
+    calculate_reinforced_score,
     challenge_belief,
-    list_beliefs
+    list_beliefs,
+    reinforce_belief,
 )
 
+
 def run_tests():
-    driver = GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "maskiisecret"))
+    neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
+    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
+    neo4j_password = os.getenv("NEO4J_PASSWORD", "maskiisecret")
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
     print("=" * 60)
     print("🧪 MEMORIAGRAPH 3.0: BELIEF REVISION & EVIDENCE TEST SUITE")
     print("=" * 60)
@@ -136,6 +140,9 @@ def run_tests():
     print("\n" + "=" * 60)
     print("🎉 SEMUA TEST FASE 3 (DYNAMIC BELIEF REVISION) LULUS 100%!")
     print("=" * 60)
+
+def test_belief_revision():
+    run_tests()
 
 if __name__ == "__main__":
     run_tests()

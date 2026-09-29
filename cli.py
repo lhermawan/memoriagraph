@@ -3,10 +3,10 @@
 MemoriaGraph 3.0 - Command Line Interface (CLI)
 Pusat kendali kognitif mandiri untuk Cognitive Dashboard, DSS, Beliefs, dan Hybrid Recall.
 """
-import sys
-import os
 import argparse
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -14,11 +14,13 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 import dotenv
+
 dotenv.load_dotenv(BASE_DIR / ".env")
 
 from neo4j import GraphDatabase
-from src.dss_engine import query_personal_dss, get_cognitive_metrics
+
 from src.belief_revision import list_beliefs
+from src.dss_engine import get_cognitive_metrics, query_personal_dss
 from src.hybrid_recall import HybridRecallEngine
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
@@ -111,8 +113,8 @@ def cmd_dss(situation: str, category: str = None):
 
     if lessons:
         print("\n📖 \033[1;37mRefleksi & Insight:\033[0m")
-        for l in lessons:
-            print(f"  • {l}")
+        for lesson in lessons:
+            print(f"  • {lesson}")
 
     print("\n⚠️ \033[0;90m" + res.get("disclaimer", "") + "\033[0m\n")
 

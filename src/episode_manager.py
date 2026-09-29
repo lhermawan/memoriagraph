@@ -2,16 +2,21 @@
 MemoriaGraph 2.0 - Cognitive Episode Manager
 Membangun dan menghubungkan struktur kognitif lengkap (Problem, Hypothesis, Attempt, Decision, Outcome, Reflection).
 """
+import datetime
 import os
 import uuid
-import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 import dotenv
 from neo4j import GraphDatabase
-from src.sanitizer import sanitize_data
-from src.semantic_sanitizer import clean_cognitive_payload, strip_conversational_fluff, distill_actionable_heuristic
+
+from src.belief_revision import challenge_belief, list_beliefs, reinforce_belief
 from src.event_logger import log_raw_event
-from src.belief_revision import reinforce_belief, challenge_belief, list_beliefs
+from src.sanitizer import sanitize_data
+from src.semantic_sanitizer import (
+    clean_cognitive_payload,
+    strip_conversational_fluff,
+)
 
 dotenv.load_dotenv("/opt/memoriagraph/.env")
 
@@ -36,10 +41,10 @@ class EpisodeManager:
         objective: str = "",
         context: str = "infrastructure",
         trigger: str = "manual"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Membuat episode kognitif baru."""
-        ep_id = f"EP-{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
-        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        ep_id = f"EP-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
+        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
 
         ep_data = clean_cognitive_payload({
             "id": ep_id,
@@ -87,7 +92,7 @@ class EpisodeManager:
     ) -> str:
         """Menambahkan problem yang dipecahkan dalam episode."""
         prob_id = f"PROB-{uuid.uuid4().hex[:8]}"
-        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
         
         data = clean_cognitive_payload({
             "id": prob_id,
@@ -129,7 +134,7 @@ class EpisodeManager:
         Mendukung siklus non-linear: jika attempt > 1, otomatis menghubungkan ke attempt sebelumnya.
         """
         att_id = f"ATT-{episode_id}-{attempt_number}"
-        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
         
         data = clean_cognitive_payload({
             "id": att_id,
@@ -181,15 +186,15 @@ class EpisodeManager:
         episode_id: str,
         choice: str,
         rationale: str,
-        constraints: Optional[List[Dict[str, Any]]] = None,
-        options_considered: Optional[List[str]] = None
+        constraints: list[dict[str, Any]] | None = None,
+        options_considered: list[str] | None = None
     ) -> str:
         """
         Mencatat sub-graph keputusan penting:
         Decision -> Weighted By Constraints & Considered Options.
         """
         dec_id = f"DEC-{uuid.uuid4().hex[:8]}"
-        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
 
         data = clean_cognitive_payload({
             "id": dec_id,
@@ -252,11 +257,11 @@ class EpisodeManager:
         time_to_result_sec: int = 0,
         reflection_lesson: str = "",
         heuristic: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Menyelesaikan episode: mencatat Outcome dan Reflection.
         """
-        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
         out_id = f"OUT-{uuid.uuid4().hex[:8]}"
         refl_id = f"REFL-{uuid.uuid4().hex[:8]}"
 
@@ -316,15 +321,15 @@ class EpisodeManager:
         )
         return data
 
-    def reinforce_heuristic(self, identifier: str, details: str = "", episode_id: Optional[str] = None) -> Dict[str, Any]:
+    def reinforce_heuristic(self, identifier: str, details: str = "", episode_id: str | None = None) -> dict[str, Any]:
         """Pembaruan keyakinan eksplisit: memperkuat heuristik dengan bukti sukses baru."""
         return reinforce_belief(self.driver, identifier=identifier, details=details, episode_id=episode_id)
 
-    def challenge_heuristic(self, identifier: str, reason: str = "", episode_id: Optional[str] = None) -> Dict[str, Any]:
+    def challenge_heuristic(self, identifier: str, reason: str = "", episode_id: str | None = None) -> dict[str, Any]:
         """Pembaruan keyakinan eksplisit: menantang heuristik dengan counter-evidence."""
         return challenge_belief(self.driver, identifier=identifier, failure_reason=reason, episode_id=episode_id)
 
-    def get_beliefs(self, status_filter: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
+    def get_beliefs(self, status_filter: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
         """Mengambil rangkuman heuristik dan keyakinan aktif."""
         return list_beliefs(self.driver, status_filter=status_filter, limit=limit)
 
@@ -333,13 +338,13 @@ class EpisodeManager:
         curiosity_topic: str,
         experiment_summary: str,
         prototype_name: str,
-        project_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+        project_name: str | None = None
+    ) -> dict[str, Any]:
         """
         Merekam Exploration Arc:
         Curiosity -> Experiment -> Prototype -> Project.
         """
-        now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        now_iso = datetime.datetime.now(datetime.UTC).isoformat()
         cur_id = f"CUR-{uuid.uuid4().hex[:8]}"
         exp_id = f"EXP-{uuid.uuid4().hex[:8]}"
         proto_id = f"PROTO-{uuid.uuid4().hex[:8]}"

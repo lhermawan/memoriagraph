@@ -6,21 +6,21 @@ Menguji:
 3. Transisi status (CANDIDATE -> OBSERVED -> HIGH_CONFIDENCE -> CONTESTED)
 4. Otomasi kristalisasi Reflection menjadi Pattern
 """
-import sys
 import uuid
-import os
+
 import dotenv
 from neo4j import GraphDatabase
 
 dotenv.load_dotenv("/opt/memoriagraph/.env")
 
 from src.belief_revision import (
-    calculate_reinforced_score,
     calculate_challenged_score,
-    reinforce_belief,
+    calculate_reinforced_score,
     challenge_belief,
-    list_beliefs
+    list_beliefs,
+    reinforce_belief,
 )
+
 
 def run_tests():
     driver = GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "maskiisecret"))

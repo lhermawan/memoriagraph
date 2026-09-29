@@ -2,18 +2,19 @@
 MemoriaGraph 2.0 - Model Context Protocol (MCP) Server
 Menyediakan tool kognitif tingkat lanjut: Episode Recording, Event Logging, Personal DSS, dan Cognitive Metrics.
 """
-from mcp.server.mcpserver import MCPServer
-from neo4j import GraphDatabase
+import json
 import os
 import sys
-import json
-from dotenv import load_dotenv
 
-from src.sanitizer import sanitize_data
-from src.event_logger import log_raw_event
+from dotenv import load_dotenv
+from mcp.server.mcpserver import MCPServer
+from neo4j import GraphDatabase
+
+from src.dss_engine import get_cognitive_metrics, query_personal_dss
 from src.episode_manager import EpisodeManager
-from src.dss_engine import query_personal_dss, get_cognitive_metrics
+from src.event_logger import log_raw_event
 from src.hybrid_recall import HybridRecallEngine
+from src.sanitizer import sanitize_data
 
 # Load environment variables
 load_dotenv("/opt/memoriagraph/.env")
@@ -173,8 +174,8 @@ def query_dss(situation: str, category: str = "", context: str = "") -> str:
                 lines.append(f"  - {h}")
         if lessons:
             lines.append("\n📖 **Refleksi & Insight:**")
-            for l in lessons:
-                lines.append(f"  - {l}")
+            for lesson in lessons:
+                lines.append(f"  - {lesson}")
 
         lines.append(f"\n⚠️ *Catatan: {res['disclaimer']}*")
         return "\n".join(lines)
@@ -300,7 +301,7 @@ def add_relation(source_name: str, target_name: str, relationship: str) -> str:
     with driver.session() as session:
         result = session.run(query, source=source_name, target=target_name)
         if result.peek() is None:
-             return f"Error: Gagal membuat relasi. Pastikan entitas sudah dibuat sebelumnya."
+             return "Error: Gagal membuat relasi. Pastikan entitas sudah dibuat sebelumnya."
         return f"Berhasil: Relasi [{source_name}] --({relationship})--> [{target_name}] telah dicatat."
 
 # ==========================================
@@ -323,8 +324,8 @@ def retain(
     if not driver:
         return "Error: Database Neo4j offline."
 
-    from src.semantic_sanitizer import strip_conversational_fluff
     from src.episode_manager import EpisodeManager
+    from src.semantic_sanitizer import strip_conversational_fluff
 
     bank = bank_id.strip().lower() if bank_id else "general"
     clean_content = strip_conversational_fluff(content)
@@ -432,7 +433,7 @@ def reflect(
         """
         top_patterns = s.run(cypher, bank=target_bank).data()
 
-    lines = [f"🪞 **MEMORIAGRAPH REFLECT: Solusi & Pola Berpikir Masa Lalu**", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"]
+    lines = ["🪞 **MEMORIAGRAPH REFLECT: Solusi & Pola Berpikir Masa Lalu**", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"]
     if target_bank:
         lines.append(f"📁 **Memory Bank Terisolasi:** `{target_bank}`")
 
@@ -457,8 +458,8 @@ def reflect(
 
     if lessons:
         lines.append("\n📖 **Pelajaran Berharga:**")
-        for l in lessons:
-            lines.append(f"  • {l}")
+        for lesson in lessons:
+            lines.append(f"  • {lesson}")
 
     lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)

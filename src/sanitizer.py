@@ -3,7 +3,7 @@ MemoriaGraph 2.0 - Secret Sanitizer Engine
 Melindungi graph memory dari kebocoran token, private key, dan kredensial rahasia.
 """
 import re
-from typing import Any, Dict, List, Union
+from typing import Any
 
 SECRET_PATTERNS = [
     # Private Keys (PEM / OpenSSH)

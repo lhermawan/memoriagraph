@@ -4,12 +4,12 @@ Menganalisis dampak perubahan kode/skrip secara otomatis dari git diff/status
 dan memproyeksikannya ke node :Action di graph kognitif.
 """
 
-import os
-import sys
-import subprocess
 import datetime
+import os
+import subprocess
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 import dotenv
 from neo4j import GraphDatabase
 
@@ -19,7 +19,7 @@ NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "maskiisecret")
 
-def analyze_git_blast_radius(repo_path: str = "/home/maskii/Private-key", base_ref: Optional[str] = None) -> Dict[str, Any]:
+def analyze_git_blast_radius(repo_path: str = "/home/maskii/Private-key", base_ref: str | None = None) -> dict[str, Any]:
     """
     Menginspeksi git diff dan uncommitted changes di direktori target.
     Mengembalikan ringkasan file terdampak, blast radius severity, dan modul terkait.
@@ -129,21 +129,21 @@ def analyze_git_blast_radius(repo_path: str = "/home/maskii/Private-key", base_r
         "affected_areas": list(affected_areas),
         "blast_severity": severity,
         "risk_assessment": risk,
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat()
     }
 
 def record_code_action_with_blast_radius(
     episode_id: str,
     action_description: str,
     repo_path: str = "/home/maskii/Private-key",
-    base_ref: Optional[str] = None
-) -> Dict[str, Any]:
+    base_ref: str | None = None
+) -> dict[str, Any]:
     """
     Mencatat node :Action di Neo4j lengkap dengan metadata Blast-Radius Git.
     """
     analysis = analyze_git_blast_radius(repo_path, base_ref=base_ref)
     act_id = f"ACT-{uuid.uuid4().hex[:8]}"
-    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
 
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     with driver.session() as s:

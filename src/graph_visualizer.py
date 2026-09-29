@@ -10,9 +10,9 @@ Menyediakan pewarnaan cluster biomimetic bank:
 """
 
 import os
-import sys
+from typing import Any
+
 import dotenv
-from typing import Dict, Any, List, Optional
 from neo4j import GraphDatabase
 
 dotenv.load_dotenv("/opt/memoriagraph/.env")
@@ -43,7 +43,7 @@ LABEL_WEIGHTS = {
     "Outcome": 2,
 }
 
-def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: Optional[str] = None) -> Dict[str, Any]:
+def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = None) -> dict[str, Any]:
     """
     Mengambil data graf dari Neo4j dan memformatnya menjadi skema 3D Three.js.
     """
@@ -102,11 +102,11 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: Optional[str] =
 
     # Format links
     formatted_links = []
-    for l in raw_links:
+    for link in raw_links:
         formatted_links.append({
-            "source": l["source"],
-            "target": l["target"],
-            "type": l["type"]
+            "source": link["source"],
+            "target": link["target"],
+            "type": link["type"]
         })
 
     return {

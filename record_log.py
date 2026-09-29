@@ -2,13 +2,17 @@
 MemoriaGraph 2.0 - Record Log Bridge
 Menerima payload log dari AI-SRE hub, melakukan sanitasi rahasia, mencatat ke event stream, dan menghubungkan ke Neo4j.
 """
-import sys, json, os, dotenv
+import json
+import os
+import sys
+
+import dotenv
 from neo4j import GraphDatabase
 
 # Tambahkan src ke path
 sys.path.insert(0, "/opt/memoriagraph")
-from src.sanitizer import sanitize_data
 from src.event_logger import log_raw_event
+from src.sanitizer import sanitize_data
 
 dotenv.load_dotenv("/opt/memoriagraph/.env")
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")

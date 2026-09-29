@@ -72,8 +72,13 @@ where = ["."]
 include = ["src*"]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py311"
+exclude = ["venv", "backups", "events", "logs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501", "W291", "W293", "E402", "E712"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

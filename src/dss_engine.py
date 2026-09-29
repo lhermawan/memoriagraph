@@ -3,7 +3,8 @@ MemoriaGraph 2.0 - Personal Decision Support System (DSS) & Cognitive Analytics 
 Menyediakan pencarian bukti historis obyektif (Historical Retrieval & Evidence Matching).
 """
 import os
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 import dotenv
 from neo4j import GraphDatabase
 
@@ -18,9 +19,9 @@ def get_driver():
 
 def query_personal_dss(
     situation_description: str,
-    category: Optional[str] = None,
-    context: Optional[str] = None
-) -> Dict[str, Any]:
+    category: str | None = None,
+    context: str | None = None
+) -> dict[str, Any]:
     """
     Mencari kesamaan historis di MemoriaGraph dan menyajikan bukti keputusan masa lalu.
     Prioritas:
@@ -102,7 +103,6 @@ def query_personal_dss(
 
     driver.close()
 
-    total_matches = len(results)
     success_count = sum(1 for r in results if r.get("outcome") == "SUCCESS")
     failed_count = sum(1 for r in results if r.get("outcome") == "FAILED")
     partial_count = sum(1 for r in results if r.get("outcome") == "PARTIAL_SUCCESS")
@@ -147,7 +147,7 @@ def query_personal_dss(
         "disclaimer": disclaimer
     }
 
-def get_cognitive_metrics() -> Dict[str, Any]:
+def get_cognitive_metrics() -> dict[str, Any]:
     """
     Menghitung metrik kognitif observasional untuk evaluasi berkala (bulanan).
     """

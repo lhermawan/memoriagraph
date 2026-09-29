@@ -8,7 +8,8 @@ Mencegah memori kognitif tercemar oleh:
 """
 
 import re
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any
+
 from src.sanitizer import sanitize_data
 
 # Pola pembuka klise AI (throat-clearing)
@@ -97,7 +98,7 @@ def strip_redundant_comments(code_snippet: str) -> str:
             
     return "\n".join(filtered_lines)
 
-def classify_epistemic_grounding(statement: str, claimed_status: Optional[str] = None) -> Tuple[str, float]:
+def classify_epistemic_grounding(statement: str, claimed_status: str | None = None) -> tuple[str, float]:
     """
     Quality Gate Epistemologis:
     Memverifikasi apakah suatu klaim adalah FACT (didukung data empiris riil),
@@ -151,7 +152,7 @@ def distill_actionable_heuristic(heuristic_text: str) -> str:
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
-def clean_cognitive_payload(data: Dict[str, Any]) -> Dict[str, Any]:
+def clean_cognitive_payload(data: dict[str, Any]) -> dict[str, Any]:
     """
     Pipeline Lengkap Semantic Quality Gate:
     1. Redaksi kredensial rahasia (sanitizer.py).
@@ -169,10 +170,10 @@ def clean_cognitive_payload(data: Dict[str, Any]) -> Dict[str, Any]:
             sanitized[field] = strip_conversational_fluff(sanitized[field])
             
     # 3. Distilasi khusus heuristik
-    if "heuristic" in sanitized and sanitized["heuristic"]:
+    if sanitized.get("heuristic"):
         sanitized["heuristic"] = distill_actionable_heuristic(sanitized["heuristic"])
         
-    if "reflection_lesson" in sanitized and sanitized["reflection_lesson"]:
+    if sanitized.get("reflection_lesson"):
         sanitized["reflection_lesson"] = strip_conversational_fluff(sanitized["reflection_lesson"])
         
     # 4. Validasi kelas epistemik

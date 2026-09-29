@@ -8,18 +8,18 @@ Menguji:
 5. Integrasi pembersihan payload lengkap
 """
 import sys
-import os
 
 if "/opt/memoriagraph" not in sys.path:
     sys.path.insert(0, "/opt/memoriagraph")
 
 from src.semantic_sanitizer import (
+    classify_epistemic_grounding,
+    clean_cognitive_payload,
+    distill_actionable_heuristic,
     strip_conversational_fluff,
     strip_redundant_comments,
-    classify_epistemic_grounding,
-    distill_actionable_heuristic,
-    clean_cognitive_payload
 )
+
 
 def run_tests():
     print("=" * 60)
@@ -123,6 +123,9 @@ def restart_process(pid):
     print("\n" + "=" * 60)
     print("🎉 SEMUA TEST FASE 4 (SEMANTIC QUALITY GATE & ANTI-SLOP) LULUS 100%!")
     print("=" * 60)
+
+def test_semantic_sanitizer():
+    run_tests()
 
 if __name__ == "__main__":
     run_tests()

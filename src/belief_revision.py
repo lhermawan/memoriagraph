@@ -4,20 +4,22 @@ Menerapkan pembaruan keyakinan dinamis dengan Logarithmic Dampening dan Hysteres
 Mengelola status epistemik: CANDIDATE -> OBSERVED -> HIGH_CONFIDENCE (atau CONTESTED / DEPRECATED).
 """
 
-import math
-import uuid
 import datetime
+import math
 import sys
-from typing import Dict, Any, List, Optional, Tuple
+import uuid
+from typing import Any
+
 from neo4j import Driver
-from src.sanitizer import sanitize_data
+
 from src.event_logger import log_raw_event
+
 
 def calculate_reinforced_score(
     current_evidence: int,
     current_counter: int,
     current_score: float
-) -> Tuple[float, str]:
+) -> tuple[float, str]:
     """
     Menghitung peningkatan keyakinan berbasis penguatan positif baru.
     Menggunakan Logarithmic Dampening untuk mencegah lonjakan liar:
@@ -44,7 +46,7 @@ def calculate_challenged_score(
     current_evidence: int,
     current_counter: int,
     current_score: float
-) -> Tuple[float, str]:
+) -> tuple[float, str]:
     """
     Menghitung penurunan keyakinan akibat fakta kegagalan (counter-evidence).
     Menerapkan Hysteresis: Keyakinan yang sudah terbukti banyak (E tinggi)
@@ -102,13 +104,13 @@ def reinforce_belief(
     driver: Driver,
     identifier: str,
     details: str = "",
-    episode_id: Optional[str] = None
-) -> Dict[str, Any]:
+    episode_id: str | None = None
+) -> dict[str, Any]:
     """
     Memperkuat keyakinan / heuristik berdasarkan bukti sukses baru.
     Menerapkan logarithmic dampening dan mengkristalisasikan menjadi Pattern jika matang.
     """
-    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
     
     with driver.session() as s:
         # Cari node Reflection atau Pattern berdasarkan ID atau kemiripan teks
@@ -185,13 +187,13 @@ def challenge_belief(
     driver: Driver,
     identifier: str,
     failure_reason: str = "",
-    episode_id: Optional[str] = None
-) -> Dict[str, Any]:
+    episode_id: str | None = None
+) -> dict[str, Any]:
     """
     Menantang keyakinan / heuristik akibat terjadinya kegagalan (counter-evidence).
     Menerapkan Hysteresis: penalti terkontrol tanpa destruksi prematur.
     """
-    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
 
     with driver.session() as s:
         find_query = """
@@ -267,7 +269,7 @@ def crystallize_pattern(
     Mengkristalisasikan Reflection yang telah terbukti berulang kali menjadi reusable Pattern node.
     """
     pat_id = f"PAT-{uuid.uuid4().hex[:8]}"
-    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    now_iso = datetime.datetime.now(datetime.UTC).isoformat()
     
     with driver.session() as s:
         # Cek apakah sudah pernah dikristalisasikan
@@ -299,7 +301,7 @@ def crystallize_pattern(
             return True
     return False
 
-def list_beliefs(driver: Driver, status_filter: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
+def list_beliefs(driver: Driver, status_filter: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
     """
     Mengambil daftar keyakinan dan heuristik kognitif, terurut dari confidence tertinggi.
     """

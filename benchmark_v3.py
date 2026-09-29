@@ -8,26 +8,32 @@ Mengukur latency end-to-end dari setiap subsistem MemoriaGraph 3.0:
 5. Semantic Anti-Slop Sanitizer & Grounding Gate
 """
 
-import time
-import sys
+import os
 import statistics
+import sys
+import time
+
 from neo4j import GraphDatabase
 
 if "/opt/memoriagraph" not in sys.path:
     sys.path.insert(0, "/opt/memoriagraph")
 
-from src.hybrid_recall import HybridRecallEngine
-from src.dss_engine import query_personal_dss
 from src.belief_revision import list_beliefs
+from src.dss_engine import query_personal_dss
 from src.graph_visualizer import export_graph_for_3d_hud
+from src.hybrid_recall import HybridRecallEngine
 from src.semantic_sanitizer import clean_cognitive_payload
+
 
 def run_benchmarks():
     print("=" * 70)
     print("⚡ MEMORIAGRAPH 3.0: COMPREHENSIVE PRODUCTION BENCHMARK & DRIFT AUDIT")
     print("=" * 70)
 
-    driver = GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "maskiisecret"))
+    neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
+    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
+    neo4j_password = os.getenv("NEO4J_PASSWORD", "maskiisecret")
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
     recall_engine = HybridRecallEngine(auto_sync_vectors=False)
 
     queries = [
