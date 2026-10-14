@@ -6,6 +6,7 @@ Menguji:
 3. Facade reflect() dengan agregasi DSS + Crystallized Patterns
 4. Backward compatibility endpoint lama (get_context, query_dss)
 """
+import os
 import sys
 import uuid
 
@@ -20,7 +21,10 @@ from src.hybrid_recall import HybridRecallEngine
 
 
 def run_tests():
-    driver = GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "maskiisecret"))
+    neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
+    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
+    neo4j_password = os.getenv("NEO4J_PASSWORD", "your_secure_password")
+    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
     engine = HybridRecallEngine(auto_sync_vectors=False)
 
     print("=" * 60)
@@ -109,6 +113,9 @@ def run_tests():
     print("\n" + "=" * 60)
     print("🎉 SEMUA TEST FASE 5 (MEMORY BANKS & FACADE API) LULUS 100%!")
     print("=" * 60)
+
+def test_memory_banks():
+    run_tests()
 
 if __name__ == "__main__":
     run_tests()

@@ -25,7 +25,7 @@ from src.hybrid_recall import HybridRecallEngine
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "maskiisecret")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
 
 def cmd_dashboard():
     m = get_cognitive_metrics()

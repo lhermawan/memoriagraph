@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "memoriagraph"
-version = "3.0.0"
+version = "3.1.0"
 description = "The Biomimetic Cognitive Substrate & Architectural Triad for Autonomous AI Agents"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,7 +13,7 @@ authors = [
     { name = "Maskii", email = "commander@maskii.dev" }
 ]
 maintainers = [
-    { name = "Friday", email = "friday@vm-maskii.local" }
+    { name = "Friday", email = "ai@maskii.dev" }
 ]
 keywords = [
     "mcp",
@@ -48,7 +48,9 @@ dependencies = [
     "fastembed>=0.4.0",
     "numpy>=1.24.0",
     "pydantic>=2.0.0",
-    "psutil>=5.9.0"
+    "psutil>=5.9.0",
+    "starlette>=0.30.0",
+    "uvicorn>=0.20.0"
 ]
 
 [project.optional-dependencies]

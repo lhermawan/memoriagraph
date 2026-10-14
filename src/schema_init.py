@@ -14,7 +14,7 @@ dotenv.load_dotenv("/opt/memoriagraph/.env")
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "maskiisecret")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
 
 CONSTRAINTS = [
     ("Episode_id", "CREATE CONSTRAINT episode_id_unique IF NOT EXISTS FOR (e:Episode) REQUIRE e.id IS UNIQUE"),

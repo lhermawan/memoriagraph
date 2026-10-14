@@ -23,7 +23,7 @@ dotenv.load_dotenv("/opt/memoriagraph/.env")
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "maskiisecret")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
 VECTOR_CACHE_FILE = "/opt/memoriagraph/.vector_cache.pkl"
 
 # Lazy-loaded singleton FastEmbed model
@@ -72,6 +72,8 @@ class HybridRecallEngine:
         self.vector_matrix: np.ndarray | None = None
         
         self._load_vector_cache()
+        self._query_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+        self._cache_ttl = 300  # 5 menit (Pilar 5 - LRU Query Cache)
         if auto_sync_vectors and (not self.vector_cache or len(self.vector_cache) < 100):
             self.sync_vector_cache()
 
@@ -167,6 +169,8 @@ class HybridRecallEngine:
 
         self._save_vector_cache()
         self._rebuild_matrix()
+        if hasattr(self, "_query_cache"):
+            self._query_cache.clear()
         print(f"✅ [HybridRecall] Vector cache tersinkronisasi ({len(self.vector_cache)} node aktif).", file=sys.stderr)
 
     def _channel_bm25(self, session, lucene_query: str, limit: int = 25, bank_id: str | None = None) -> list[dict[str, Any]]:
@@ -331,6 +335,12 @@ class HybridRecallEngine:
         Eksekusi 4-Way Hybrid Recall dengan Reciprocal Rank Fusion (RRF) & Context Isolation (Memory Bank).
         RRF_Score(d) = sum_{m in M} (1 / (k + rank_m(d)))
         """
+        cache_key = f"{bank_id or 'all'}:{limit}:{query.strip().lower()}"
+        if hasattr(self, "_query_cache") and cache_key in self._query_cache:
+            ts, cached_res = self._query_cache[cache_key]
+            if (datetime.datetime.now().timestamp() - ts) < self._cache_ttl:
+                return cached_res
+
         lucene_query = build_lucene_query(query)
         
         with self.driver.session() as session:
@@ -381,5 +391,11 @@ class HybridRecallEngine:
                 node_info["rrf_score"] = round(rrf_scores[nid], 6)
                 node_info["matched_channels"] = channel_hits.get(nid, [])
                 final_results.append(node_info)
+
+            if hasattr(self, "_query_cache"):
+                if len(self._query_cache) > 256:
+                    oldest = min(self._query_cache.keys(), key=lambda k: self._query_cache[k][0])
+                    del self._query_cache[oldest]
+                self._query_cache[cache_key] = (datetime.datetime.now().timestamp(), final_results)
                 
             return final_results

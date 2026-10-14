@@ -309,7 +309,7 @@ def list_beliefs(driver: Driver, status_filter: str | None = None, limit: int = 
     with driver.session() as s:
         cypher = """
         MATCH (n)
-        WHERE (n:Reflection OR n:Pattern)
+        WHERE (n:Pattern OR (n:Reflection AND NOT (n)-[:CRYSTALLIZED_TO]->(:Pattern)))
         AND ($filter IS NULL OR n.status = $filter)
         RETURN 
             n.id AS id,
