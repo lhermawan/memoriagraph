@@ -40,7 +40,7 @@ except Exception as e:
     recall_engine = None
 
 # ==========================================
-# ?? PILAR 1: CANONICAL HINDSIGHT FACADES
+# 💎 PILAR 1: CANONICAL HINDSIGHT FACADES
 # ==========================================
 
 @mcp.tool()
@@ -128,7 +128,7 @@ def retain(
         else:
             recall_engine.sync_vector_cache()
 
-    return f"?? [Retain] Berhasil mencatat memori ke Bank '{bank}': '{title}' [ID: {ep_id}]."
+    return f"💾 [Retain] Berhasil mencatat memori ke Bank '{bank}': '{title}' [ID: {ep_id}]."
 
 @mcp.tool()
 def recall(
@@ -157,7 +157,7 @@ def recall(
         return list_cognitive_beliefs(status_filter=bank_id)
 
     if not recall_engine:
-        return "?? Error: Hybrid Recall Engine belum aktif."
+        return "⚠️ Error: Hybrid Recall Engine belum aktif."
     try:
         b_filter = bank_id.strip().lower() if bank_id and bank_id.strip() else None
         results = recall_engine.recall(query, limit=limit, bank_id=b_filter)
@@ -169,7 +169,7 @@ def recall(
 
         # Pilar 3: Kompresi Respons & Token Pruning
         if compact:
-            lines = [f"?? **Hasil 4-Way Hybrid Recall (RRF){bank_header} untuk:** *'{query}'*"]
+            lines = [f"🧠 **Hasil 4-Way Hybrid Recall (RRF){bank_header} untuk:** *'{query}'*"]
             for rank, r in enumerate(results, start=1):
                 title = r.get("title", "Unnamed")
                 lbls = ":".join(r.get("labels", []))
@@ -181,7 +181,7 @@ def recall(
                 lines.append(f"{rank}. **[{bid}] [{lbls}] {title}**{info_part}")
             return "\n".join(lines)
         else:
-            lines = [f"?? **Hasil 4-Way Hybrid Recall (RRF){bank_header} untuk:** *'{query}'*\n"]
+            lines = [f"🧠 **Hasil 4-Way Hybrid Recall (RRF){bank_header} untuk:** *'{query}'*\n"]
             for rank, r in enumerate(results, start=1):
                 title = r.get("title", "Unnamed")
                 lbls = ":".join(r.get("labels", []))
@@ -241,39 +241,39 @@ def reflect(
         """
         top_patterns = s.run(cypher, bank=target_bank).data()
 
-    lines = ["?? **MEMORIAGRAPH REFLECT: Solusi & Pola Berpikir Masa Lalu**", "????????????????????????????????????????????"]
+    lines = ["🪞 **MEMORIAGRAPH REFLECT: Solusi & Pola Berpikir Masa Lalu**", "--------------------------------------------"]
     if target_bank:
-        lines.append(f"?? **Memory Bank Terisolasi:** `{target_bank}`")
+        lines.append(f"🏦 **Memory Bank Terisolasi:** `{target_bank}`")
 
     if top_patterns:
-        lines.append("\n?? **Crystallized Patterns (Aturan Baku Terbukti):**")
+        lines.append("\n💎 **Crystallized Patterns (Aturan Baku Terbukti):**")
         for p in top_patterns:
-            lines.append(f"  ? [Score: `{p['score']}`] {p['rule']}")
+            lines.append(f"  - [Score: `{p['score']}`] {p['rule']}")
 
     heuristics = dss_result.get("relevant_heuristics", [])
     decisions = dss_result.get("observed_decisions", [])
     lessons = dss_result.get("relevant_lessons", [])
     
     if heuristics:
-        lines.append("\n?? **Heuristik Operasional Terkait:**")
+        lines.append("\n💡 **Heuristik Operasional Terkait:**")
         for h in heuristics:
-            lines.append(f"  ? {h}")
+            lines.append(f"  - {h}")
 
     if decisions:
-        lines.append("\n?? **Keputusan Masa Lalu:**")
+        lines.append("\n📋 **Keputusan Masa Lalu:**")
         for d in decisions:
-            lines.append(f"  ? {d}")
+            lines.append(f"  - {d}")
 
     if lessons:
-        lines.append("\n?? **Pelajaran Berharga:**")
+        lines.append("\n📖 **Pelajaran Berharga:**")
         for lesson in lessons:
-            lines.append(f"  ? {lesson}")
+            lines.append(f"  - {lesson}")
 
-    lines.append("????????????????????????????????????????????")
+    lines.append("--------------------------------------------")
     return "\n".join(lines)
 
 # ==========================================
-# ?? BACKWARD-COMPATIBILITY ALIASES (100% FAIL-SAFE)
+# 🔗 BACKWARD-COMPATIBILITY ALIASES (100% FAIL-SAFE)
 # ==========================================
 
 @mcp.tool()
@@ -335,34 +335,34 @@ def query_dss(situation: str, category: str = "", context: str = "") -> str:
         episodes = res.get("matched_episodes", [])
 
         lines = [
-            f"?? **PERSONAL DSS REPORT: {situation}**",
+            f"🛡️ **PERSONAL DSS REPORT: {situation}**",
             f"? Kasus Serupa Ditemukan: {res['matched_episodes_count']} episode ({res.get('matched_by', 'KEYWORD')})",
-            f"? Rekam Jejak Hasil: {outcomes['success']} Sukses | {outcomes['partial']} Parsial | {outcomes['failed']} Gagal",
+            f"📊 Rekam Jejak Hasil: {outcomes['success']} Sukses | {outcomes['partial']} Parsial | {outcomes['failed']} Gagal",
         ]
         if episodes:
-            lines.append("\n?? **Episode Historis Terkait:**")
+            lines.append("\n📜 **Episode Historis Terkait:**")
             for ep in episodes:
                 lines.append(f"  - [{ep['id']}] {ep['title']} ({ep.get('category', '')})")
                 if ep.get("objective"):
                     lines.append(f"    Tujuan: {ep['objective']}")
 
         if decisions:
-            lines.append("\n?? **Keputusan yang Pernah Diambil:**")
+            lines.append("\n📋 **Keputusan yang Pernah Diambil:**")
             for d in decisions:
                 lines.append(f"  - {d}")
         if heuristics:
-            lines.append("\n?? **Heuristik/Pelajaran Masa Lalu:**")
+            lines.append("\n💡 **Heuristik/Pelajaran Masa Lalu:**")
             for h in heuristics:
                 lines.append(f"  - {h}")
         if lessons:
-            lines.append("\n?? **Refleksi & Insight:**")
+            lines.append("\n🔮 **Refleksi & Insight:**")
             for lesson in lessons:
                 lines.append(f"  - {lesson}")
 
-        lines.append(f"\n?? *Catatan: {res['disclaimer']}*")
+        lines.append(f"\nℹ️ *Catatan: {res['disclaimer']}*")
         return "\n".join(lines)
     except Exception as err:
-        return f"? Gagal query DSS: {err}"
+        return f"❌ Gagal query DSS: {err}"
 
 @mcp.tool()
 def get_cognitive_dashboard() -> str:
@@ -374,14 +374,14 @@ def get_cognitive_dashboard() -> str:
         exp = m["exploration_pipeline"]
 
         report = f"""
-?? **PERSONAL COGNITIVE OBSERVATION DASHBOARD**
-????????????????????????????????????????????
-? Total Episode Terekam    : {m['total_episodes']} episode
-? Tingkat Keberhasilan Solusi: {m['success_rate_percent']}%
-? Rata-rata Percobaan/Masalah: {m['avg_attempts_per_problem']} attempts
-? Faktor Keputusan Dominan  : {c_lines}
-? Exploration Pipeline      : {exp['curiosity_count']} Rasa Penasaran ? {exp['prototype_count']} Prototype ? {exp['graduated_projects']} Project Jadi
-????????????????????????????????????????????
+📊 **PERSONAL COGNITIVE OBSERVATION DASHBOARD**
+--------------------------------------------
+• Total Episode Terekam    : {m['total_episodes']} episode
+• Tingkat Keberhasilan Solusi: {m['success_rate_percent']}%
+• Rata-rata Percobaan/Masalah: {m['avg_attempts_per_problem']} attempts
+• Faktor Keputusan Dominan  : {c_lines}
+• Exploration Pipeline      : {exp['curiosity_count']} Rasa Penasaran -> {exp['prototype_count']} Prototype -> {exp['graduated_projects']} Project Jadi
+--------------------------------------------
 *Data dihitung otomatis secara induktif dari histori empiris Neo4j.*
 """
         return report.strip()
@@ -396,9 +396,9 @@ def reinforce_belief_tool(identifier: str, details: str = "") -> str:
         return "Error: Database Neo4j offline."
     res = reinforce_belief(driver, identifier=identifier, details=details)
     if res["status"] == "SUCCESS":
-        c_msg = " ?? (Terkristalisasi menjadi Pattern!)" if res.get("crystallized") else ""
-        return f"? Keyakinan '{res['id']}' diperkuat! Score: {res['previous_score']} -> {res['new_score']} (Evidence: {res['evidence_count']}, Status: {res['belief_status']}){c_msg}"
-    return f"?? {res.get('message', 'Gagal memperkuat keyakinan.')}"
+        c_msg = " 💎 (Terkristalisasi menjadi Pattern!)" if res.get("crystallized") else ""
+        return f"✅ Keyakinan '{res['id']}' diperkuat! Score: {res['previous_score']} -> {res['new_score']} (Evidence: {res['evidence_count']}, Status: {res['belief_status']}){c_msg}"
+    return f"✅ {res.get('message', 'Gagal memperkuat keyakinan.')}"
 
 @mcp.tool()
 def challenge_belief_tool(identifier: str, reason: str = "") -> str:
@@ -408,8 +408,8 @@ def challenge_belief_tool(identifier: str, reason: str = "") -> str:
         return "Error: Database Neo4j offline."
     res = challenge_belief(driver, identifier=identifier, failure_reason=reason)
     if res["status"] == "CHALLENGED":
-        return f"?? Keyakinan '{res['id']}' ditantang! Score: {res['previous_score']} -> {res['new_score']} (Counter-evidence: {res['counter_evidence_count']}, Status: {res['belief_status']}). Alasan: {reason}"
-    return f"?? {res.get('message', 'Gagal menantang keyakinan.')}"
+        return f"⚠️ Keyakinan '{res['id']}' ditantang! Score: {res['previous_score']} -> {res['new_score']} (Counter-evidence: {res['counter_evidence_count']}, Status: {res['belief_status']}). Alasan: {reason}"
+    return f"❌ {res.get('message', 'Gagal menantang keyakinan.')}"
 
 @mcp.tool()
 def list_cognitive_beliefs(status_filter: str = "") -> str:
@@ -422,11 +422,11 @@ def list_cognitive_beliefs(status_filter: str = "") -> str:
     if not beliefs:
         return f"Tidak ada keyakinan kognitif dengan filter '{status_filter}'."
     
-    lines = [f"?? **MEMORIAGRAPH BELIEF INDEX ({len(beliefs)} Heuristik):**", "????????????????????????????????????????????"]
+    lines = [f"📚 **MEMORIAGRAPH BELIEF INDEX ({len(beliefs)} Heuristik):**", "--------------------------------------------"]
     for b in beliefs:
-        lines.append(f"? **[{b['status']}]** (Score: `{b['confidence_score']}`, E:{b['evidence_count']}, C:{b['counter_evidence_count']})")
+        lines.append(f"• **[{b['status']}]** (Score: `{b['confidence_score']}`, E:{b['evidence_count']}, C:{b['counter_evidence_count']})")
         lines.append(f"  Heuristik: {b['text']}")
-    lines.append("????????????????????????????????????????????")
+    lines.append("--------------------------------------------")
     return "\n".join(lines)
 
 @mcp.tool()
@@ -480,7 +480,7 @@ def record_code_action(
         base_ref=base_ref or None
     )
     b = res["blast_radius"]
-    return f"?? [Action] Berhasil dicatat [ID: {res['action_id']}]. Blast Severity: {b.get('blast_severity')}, Files Changed: {b.get('total_files_changed')}, Affected Areas: {', '.join(b.get('affected_areas', []))}."
+    return f"🚀 [Action] Berhasil dicatat [ID: {res['action_id']}]. Blast Severity: {b.get('blast_severity')}, Files Changed: {b.get('total_files_changed')}, Affected Areas: {', '.join(b.get('affected_areas', []))}."
 
 @mcp.tool()
 def get_context(topic: str) -> str:
@@ -499,10 +499,10 @@ def get_context(topic: str) -> str:
         try:
             hits = recall_engine.recall(topic, limit=5)
             if hits:
-                lines.append("?? **Top Memory Matches (4-Way Hybrid Recall RRF):**")
+                lines.append("🧠 **Top Memory Matches (4-Way Hybrid Recall RRF):**")
                 for h in hits:
                     lbls = ":".join(h.get("labels", []))
-                    lines.append(f"  ? **[{lbls}] {h['title']}** (Score: `{h['rrf_score']:.4f}`)")
+                    lines.append(f"  - **[{lbls}] {h['title']}** (Score: `{h['rrf_score']:.4f}`)")
                 lines.append("")
         except Exception as e:
             print(f"Hybrid recall in get_context error: {e}", file=sys.stderr)
@@ -543,30 +543,30 @@ def get_context(topic: str) -> str:
                 relations.append(rel_str)
 
     if entities_seen:
-        lines.append("?? **Entitas Terkait:**")
+        lines.append("🔗 **Entitas Terkait:**")
         for name, data in entities_seen.items():
-            lines.append(f"  ? **{name}** ({data['type']}): {data['description'][:100] if data['description'] else ''}")
+            lines.append(f"  - **{name}** ({data['type']}): {data['description'][:100] if data['description'] else ''}")
         if relations:
-            lines.append("\n?? **Relasi Terhubung:**")
+            lines.append("\n🔀 **Relasi Terhubung:**")
             for r in relations[:5]:
                 lines.append(f"    {r}")
 
     if res_ep:
-        lines.append("\n?? **Episode Terkait:**")
+        lines.append("\n📜 **Episode Terkait:**")
         for ep in res_ep:
-            lines.append(f"  ? **[{ep['id']}] {ep['title']}** ({ep['category']})")
+            lines.append(f"  - **[{ep['id']}] {ep['title']}** ({ep['category']})")
             if ep.get('decision'):
                 lines.append(f"    Keputusan: {ep['decision']}")
             if ep.get('heuristic'):
-                lines.append(f"    ?? Heuristik: {ep['heuristic']}")
+                lines.append(f"    💡 Heuristik: {ep['heuristic']}")
 
     if not lines:
         return f"Tidak ada ingatan atau episode yang terhubung dengan topik '{topic}' di MemoriaGraph."
 
-    return f"?? **Konteks MemoriaGraph untuk '{topic}':**\n" + "\n".join(lines)
+    return f"🌐 **Konteks MemoriaGraph untuk '{topic}':**\n" + "\n".join(lines)
 
 # ==========================================
-# ?? PILAR 4: HTTP SERVICE DAEMON (PORT 8085)
+# 🌐 PILAR 4: HTTP SERVICE DAEMON (PORT 8085)
 # ==========================================
 
 def start_http_background_server():
@@ -630,7 +630,7 @@ def start_http_background_server():
         srv = uvicorn.Server(config)
         srv.run()
     except Exception as err:
-        print(f"?? [HTTP Server] Port 8085 background server skipped: {err}", file=sys.stderr)
+        print(f"⚠️ [HTTP Server] Port 8085 background server skipped: {err}", file=sys.stderr)
 
 # Boot HTTP server in background thread only if explicitly requested
 if os.environ.get("RUN_EMBEDDED_HTTP") == "1":

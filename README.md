@@ -1,6 +1,6 @@
 <div align="center">
 
-# ?? MemoriaGraph 3.1
+# 🧠 MemoriaGraph 3.1
 
 [![Version](https://img.shields.io/badge/version-3.1.0-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-brightgreen.svg?style=for-the-badge)](https://www.python.org/)
@@ -11,12 +11,12 @@
 
 *The Biomimetic Cognitive Substrate & Long-Term Memory Engine for Autonomous AI Agents and Pair Programmers.*
 
-[What is it?](#-what-is-memoriagraph) ? [v3.1 Turbo](#-the-5-pillars-of-overhead-elimination-v31-turbo) ? [Evaluation & Benchmark](#-memoriagraph-31-vs-vanilla-ai-comparative-evaluation) ? [Quickstart](#-quickstart--setup-guide) ? [Canonical Facades](#-the-3-canonical-facades) ? [Integration](#-integration-guides)
+[What is it?](#-what-is-memoriagraph) • [v3.1 Turbo](#-the-5-pillars-of-overhead-elimination-v31-turbo) • [Evaluation & Benchmark](#-memoriagraph-31-vs-vanilla-ai-comparative-evaluation) • [Quickstart](#-quickstart--setup-guide) • [Canonical Facades](#-the-3-canonical-facades) • [Integration](#-integration-guides)
 </div>
 
 ---
 
-## ?? What is MemoriaGraph?
+## 🧠 What is MemoriaGraph?
 
 MemoriaGraph is an open-source, sovereign, long-term cognitive memory substrate for AI coding assistants and autonomous agents. 
 
@@ -24,12 +24,12 @@ Unlike traditional vector databases that treat code and interactions as flat, di
 
 ```mermaid
 flowchart LR
-    A["?? Observe<br/>Events & Dialogue"]
-    B["??? Sanitize<br/>Anti-Slop & Secret Strip"]
-    C["?? Remember<br/>Episodic Knowledge Graph"]
-    D["? Anchor<br/>Git AST & Blast Radius"]
-    E["? Recall<br/>4-Way RRF Hybrid Search"]
-    F["?? Reason<br/>Belief Revision & Patterns"]
+    A["📥 Observe<br/>Events & Dialogue"]
+    B["🛡️ Sanitize<br/>Anti-Slop & Secret Strip"]
+    C["🧠 Remember<br/>Episodic Knowledge Graph"]
+    D["⚓ Anchor<br/>Git AST & Blast Radius"]
+    E["⚡ Recall<br/>4-Way RRF Hybrid Search"]
+    F["🔮 Reason<br/>Belief Revision & Patterns"]
 
     A --> B --> C
     D --> C
@@ -39,20 +39,20 @@ flowchart LR
 
 ---
 
-## ? The 5 Pillars of Overhead Elimination (v3.1 Turbo)
+## ⚡ The 5 Pillars of Overhead Elimination (v3.1 Turbo)
 
 In version **3.1.0**, MemoriaGraph solves the fundamental challenge of autonomous agent systems: **token overhead and context window degradation (*Context Rot*)**.
 
 ```
-???????????????????????????????????????????????????????????????????????????????
-?                       MEMORIAGRAPH 3.1 TURBO ENGINE                         ?
-???????????????????????????????????????????????????????????????????????????????
-? 1. CANONICAL FACADES  ? Consolidates 14 tools into 3 core facades (70% cut) ?
-? 2. ASYNC HARVESTER    ? Background Worker Queue (<30ms write latency)       ?
-? 3. RESULT PRUNING     ? High-density compact bullets (65% token savings)    ?
-? 4. GATEWAY INJECTION  ? Reverse proxy pre-injection + Port 8085 daemon     ?
-? 5. QUERY CACHE TIER   ? In-Memory LRU Cache (TTL 300s, repeat query <1ms)   ?
-???????????????????????????????????????????????????????????????????????????????
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       MEMORIAGRAPH 3.1 TURBO ENGINE                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. CANONICAL FACADES  ➔ Consolidates 14 tools into 3 core facades (70% cut) │
+│ 2. ASYNC HARVESTER    ➔ Background Worker Queue (<30ms write latency)       │
+│ 3. RESULT PRUNING     ➔ High-density compact bullets (65% token savings)    │
+│ 4. GATEWAY INJECTION  ➔ Reverse proxy pre-injection + Port 8085 daemon     │
+│ 5. QUERY CACHE TIER   ➔ In-Memory LRU Cache (TTL 300s, repeat query <1ms)   │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 1. **Pillar 1: Canonical Facade Consolidation**  
@@ -68,28 +68,33 @@ In version **3.1.0**, MemoriaGraph solves the fundamental challenge of autonomou
 
 ---
 
-## ?? MemoriaGraph 3.1 vs. Vanilla AI: Comparative Evaluation
+## 📊 MemoriaGraph 3.1 vs. Vanilla AI: Comparative Evaluation
 
 Large Language Models (LLMs) are fundamentally **stateless and amnesic**. When a context window truncates or a new session starts, the AI loses all knowledge of previous engineering decisions and ongoing tasks.
 
 ```mermaid
 flowchart TD
-    subgraph VanillaAI["?? VANILLA AI (Without MemoriaGraph)"]
+    subgraph VanillaAI["🔴 VANILLA AI (Without MemoriaGraph)"]
         V_User["User: 'Continue the last agenda from today'"]
         V_Prompt["Fresh Prompt into Empty Context Window"]
         V_LLM["LLM Model (Stateless)"]
-        V_Resp["Hallucination or Confusion:\n'Which agenda are you referring to? Could you repeat the list?'"]
+        V_Resp["Hallucination or Confusion:
+'Which agenda are you referring to? Could you repeat the list?'"]
         
         V_User --> V_Prompt --> V_LLM --> V_Resp
     end
 
-    subgraph MemoriaGraphAI["?? AI WITH MEMORIAGRAPH 3.1"]
+    subgraph MemoriaGraphAI["🟢 AI WITH MEMORIAGRAPH 3.1"]
         M_User["User: 'Continue the last agenda from today'"]
-        M_Recall["4-Way Hybrid Recall (RRF):\nBM25 + Graph Traversal + Temporal (Today) + Vector"]
-        M_Graph[("Neo4j Knowledge Graph\nEpisodic Memory Substrate")]
+        M_Recall["4-Way Hybrid Recall (RRF):
+BM25 + Graph Traversal + Temporal (Today) + Vector"]
+        M_Graph[("Neo4j Knowledge Graph
+Episodic Memory Substrate")]
         M_Cache["LRU Cache (<1ms)"]
         M_Engine["AI Agent / Gateway Pre-Injector"]
-        M_Resp["Exact, Instant Continuity:\n'Agenda 1 (SOC Deployment) & Agenda 2 (Gateway) are done.\nStarting Agenda 3: 5 Pillars Overhead Elimination!'"]
+        M_Resp["Exact, Instant Continuity:
+'Agenda 1 (SOC Deployment) & Agenda 2 (Gateway) are done.
+Starting Agenda 3: 5 Pillars Overhead Elimination!'"]
         
         M_User --> M_Recall
         M_Recall <--> M_Cache
@@ -98,56 +103,56 @@ flowchart TD
     end
 ```
 
-### ?? Technical Comparison Matrix
+### 📋 Technical Comparison Matrix
 
-| Evaluation Dimension | ?? Vanilla LLM (Stateless) | ?? MemoriaGraph 3.1 (Turbo) | Impact / Advantage |
+| Evaluation Dimension | 🔴 Vanilla LLM (Stateless) | 🟢 MemoriaGraph 3.1 (Turbo) | Impact / Advantage |
 | :--- | :--- | :--- | :--- |
 | **Memory Continuity** | Isolated sessions. 100% amnesia on window close or compaction. | Persistent cognitive graph across all machines and sessions. | **Infinite Horizon Memory** |
 | **Retrieval Architecture** | Flat vector similarity or manual re-prompting. | **4-Way Hybrid Recall (RRF)**: BM25 + Multi-Hop + Temporal + Dense Vector. | **94.6% Retrieval Accuracy (LongMemEval SOTA)** |
 | **Context Window Rot** | Rapid attention decay as irrelevant history floods the prompt. | Context remains sharp; memories pruned into dense actionable bullets. | **Zero Attention Drift** |
-| **Tool Schema Overhead** | 10?15 fragmented tools consume ~2,000+ tokens every turn. | **3 Canonical Facades** consume <600 tokens per turn. | **70% Schema Token Savings** |
-| **Ingestion Latency** | Blocks agent loop for 1.2?2.5 seconds during vector encoding. | **Async Background Harvester** commits atomically in <30ms. | **97% Faster Ingestion** |
+| **Tool Schema Overhead** | 10–15 fragmented tools consume ~2,000+ tokens every turn. | **3 Canonical Facades** consume <600 tokens per turn. | **70% Schema Token Savings** |
+| **Ingestion Latency** | Blocks agent loop for 1.2–2.5 seconds during vector encoding. | **Async Background Harvester** commits atomically in <30ms. | **97% Faster Ingestion** |
 | **Decision Support (DSS)** | Hallucinates generic recommendations from broad internet data. | Retrieves proven empirical precedents and past incident post-mortems. | **Grounded Engineering Decisions** |
 | **Belief Evolution** | Static system prompt; susceptible to conversational manipulation. | **Dynamic Belief Revision Engine** (Logarithmic dampening & hysteresis). | **Self-Correcting Reasoning** |
 | **Deployment & Sovereignty**| Bound to third-party proprietary clouds. | 100% Local / Self-Hosted on standard Docker + Neo4j. | **Absolute Data Sovereignty** |
 
 ---
 
-## ??? System Architecture
+## 🏛️ System Architecture
 
 ```
                        MEMORIAGRAPH 3.1 ARCHITECTURE
-???????????????????????????????????????????????????????????????????????????????
-?                            CANONICAL API FACADE                             ?
-?       client.retain()      ?      client.recall()     ?   client.reflect()  ?
-???????????????????????????????????????????????????????????????????????????????
-               ?                           ?                          ?
-               ?                           ?                          ?
-???????????????????????????????? ???????????????????????????????????? ?
-?     BIOMIMETIC MEMORY BANKS  ? ?    4-WAY HYBRID RECALL ENGINE    ? ?
-?  ? bank: "infra-sre"         ? ?  1. Fulltext Index (BM25)        ? ?
-?  ? bank: "ai-hud"            ? ?  2. Graph Traversal (Cypher)     ? ?
-?  ? bank: "research-personal" ? ?  3. Temporal Window Slicing      ? ?
-?  ? bank: "csirt-security"    ? ?  4. Dense Semantic Vector        ? ?
-???????????????????????????????? ???????????????????????????????????? ?
-               ?                                   ?                  ?
-               ?                    ????????????????????????????????? ?
-               ?                    ? RECIPROCAL RANK FUSION (RRF)  ? ?
-               ?                    ?    In-Memory LRU Cache (<1ms) ? ?
-               ?                    ????????????????????????????????? ?
-               ?                                   ?                  ?
-               ?                                   ?                  ?
-???????????????????????????????????????????????????????????????????????????????
-?                 NEO4J NATIVE GRAPH & BELIEF REVISION ENGINE                 ?
-?   ? Episode / Attempts / Decisions / Outcomes (Historical Substrate)        ?
-?   ? Observations & Mental Models (Confidence Score & Evidence Counter)      ?
-?   ? Async Background Harvester (Decoupled Vector & Graph Sync)              ?
-???????????????????????????????????????????????????????????????????????????????
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            CANONICAL API FACADE                             │
+│       client.retain()      │      client.recall()     │   client.reflect()  │
+└──────────────┬─────────────┴─────────────┬────────────┴─────────────┬───────┘
+               │                           │                          │
+               ▼                           ▼                          │
+┌──────────────────────────────┐ ┌──────────────────────────────────┐ │
+│     BIOMIMETIC MEMORY BANKS  │ │    4-WAY HYBRID RECALL ENGINE    │ │
+│  • bank: "infra-sre"         │ │  1. Fulltext Index (BM25)        │ │
+│  • bank: "ai-hud"            │ │  2. Graph Traversal (Cypher)     │ │
+│  • bank: "research-personal" │ │  3. Temporal Window Slicing      │ │
+│  • bank: "csirt-security"    │ │  4. Dense Semantic Vector        │ │
+└──────────────┬───────────────┘ └─────────────────┬────────────────┘ │
+               │                                   ▼                  │
+               │                    ┌───────────────────────────────┐ │
+               │                    │ RECIPROCAL RANK FUSION (RRF)  │ │
+               │                    │    In-Memory LRU Cache (<1ms) │ │
+               │                    └──────────────┬────────────────┘ │
+               │                                   │                  │
+               ▼                                   ▼                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 NEO4J NATIVE GRAPH & BELIEF REVISION ENGINE                 │
+│   • Episode / Attempts / Decisions / Outcomes (Historical Substrate)        │
+│   • Observations & Mental Models (Confidence Score & Evidence Counter)      │
+│   • Async Background Harvester (Decoupled Vector & Graph Sync)              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## ?? Quickstart & Setup Guide
+## 🚀 Quickstart & Setup Guide
 
 ### 1. Requirements & Prerequisites
 - **Operating System:** Linux (Ubuntu 22.04 / 24.04 recommended), macOS, or Windows WSL2.
@@ -159,15 +164,7 @@ flowchart TD
 ### 2. Start Neo4j Database
 Run Neo4j with Docker in one command:
 ```bash
-docker run -d \
-  --name memoriagraph-neo4j \
-  --restart unless-stopped \
-  -p 127.0.0.1:7474:7474 \
-  -p 127.0.0.1:7687:7687 \
-  -e NEO4J_AUTH=neo4j/your_secure_password \
-  -e NEO4J_PLUGINS='["apoc"]' \
-  -v /var/lib/neo4j/data:/data \
-  neo4j:5.26-community
+docker run -d   --name memoriagraph-neo4j   --restart unless-stopped   -p 127.0.0.1:7474:7474   -p 127.0.0.1:7687:7687   -e NEO4J_AUTH=neo4j/your_secure_password   -e NEO4J_PLUGINS='["apoc"]'   -v /var/lib/neo4j/data:/data   neo4j:5.26-community
 ```
 
 ### 3. Clone & Install Dependencies
@@ -209,11 +206,11 @@ pytest tests/
 
 ---
 
-## ?? The 3 Canonical Facades
+## 🧩 The 3 Canonical Facades
 
 MemoriaGraph 3.1 exposes three streamlined canonical interfaces designed for human engineers and autonomous LLMs:
 
-### 1. `retain()` ? Unified Ingestion
+### 1. `retain()` — Unified Ingestion
 Store memories, problem-solving episodes, facts, and decisions into domain-isolated memory banks.
 
 ```python
@@ -228,7 +225,7 @@ retain(
 )
 ```
 
-### 2. `recall()` ? 4-Way Hybrid Search & Precedents
+### 2. `recall()` — 4-Way Hybrid Search & Precedents
 Retrieve relevant memories using Reciprocal Rank Fusion blending lexical, structural, temporal, and semantic search.
 
 ```python
@@ -238,7 +235,7 @@ results = recall(
     limit=5,
     bank_id="infra-sre",
     mode="hybrid",                      # Options: 'hybrid', 'context', 'dss', 'beliefs'
-    compact=True                        # Token-saving dense format (Pilar 3)
+    compact=True                        # Token-saving dense format (Pillar 3)
 )
 
 # Decision Support System (DSS) Precedents Mode
@@ -254,7 +251,7 @@ graph_context = recall(
 )
 ```
 
-### 3. `reflect()` ? Cognitive Reasoning & Belief Calibration
+### 3. `reflect()` — Cognitive Reasoning & Belief Calibration
 Synthesize lessons, review patterns, and dynamically calibrate heuristics based on empirical successes or failures.
 
 ```python
@@ -282,7 +279,7 @@ reflect(
 
 ---
 
-## ?? Integration Guides
+## 🔌 Integration Guides
 
 ### Option A: Standard Model Context Protocol (MCP)
 
@@ -345,9 +342,7 @@ curl "http://127.0.0.1:8085/recall?query=database+timeout&limit=3&compact=true"
 
 #### Async Memory Ingestion
 ```bash
-curl -X POST http://127.0.0.1:8085/retain \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -X POST http://127.0.0.1:8085/retain   -H "Content-Type: application/json"   -d '{
     "content": "Migrated auth service to Redis session tokens",
     "bank_id": "infra-sre",
     "title": "Redis Auth Migration"
@@ -366,7 +361,7 @@ This delivers:
 
 ---
 
-## ?? Security & Privacy
+## 🔒 Security & Privacy
 
 * **Zero-Secret Ingestion:** Automated regex and entropy-based sanitization strips private keys, tokens, and credentials before graph storage.
 * **Network Isolation:** Neo4j binds to `127.0.0.1` by default. Never expose port 7687 to the public internet without an encrypted WireGuard/Tailscale mesh.
@@ -374,7 +369,7 @@ This delivers:
 
 ---
 
-## ?? License
+## 📄 License
 
 Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for details.
 

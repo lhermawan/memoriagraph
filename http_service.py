@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.0 - High Performance HTTP API Gateway (Port 8085)
+MemoriaGraph 3.1 - High Performance HTTP API Gateway (Port 8085)
 Serving 9Router Pre-Injection, AI-SRE Watchdog, and Mesh Services
 """
 import os
@@ -15,7 +15,7 @@ import server
 async def health(request):
     return JSONResponse({
         "status": "healthy",
-        "service": "MemoriaGraph 3.0",
+        "service": "MemoriaGraph 3.1",
         "engine": "4-Way Hybrid Recall (RRF) with LRU Cache",
         "pid": os.getpid()
     })
@@ -62,5 +62,5 @@ app = Starlette(routes=[
 ])
 
 if __name__ == "__main__":
-    print("?? MemoriaGraph 3.0 HTTP API listening on http://0.0.0.0:8085", file=sys.stderr)
+    print("🚀 MemoriaGraph 3.1 HTTP API listening on http://0.0.0.0:8085", file=sys.stderr)
     uvicorn.run(app, host="0.0.0.0", port=8085, log_level="warning")
