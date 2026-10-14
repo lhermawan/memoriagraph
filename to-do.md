@@ -1,25 +1,10 @@
-# 🧠 MEMORIAGRAPH 2.0: Cognitive Process & Personal Decision Intelligence Upgrade
-> **Status:** 🟢 LIVE ACTIVE RESEARCH & OBSERVATION WINDOW  
-> **Periode Riset Bulan 1:** 26 September 2026 – 26 Oktober 2026  
-> **Target Evaluasi Milestone 1:** 26 Oktober 2026  
+# 🧠 MEMORIAGRAPH 3.1: Cognitive Substrate & Retrieval Engine Roadmap
+> **Status:** 🟢 PRODUCTION RELEASE & ACTIVE DEPLOYMENT (V3.1.0)  
 > **Target System:** Neo4j Local Instance (`memoriagraph-neo4j`) & `/opt/memoriagraph`  
 > **Author:** Maskii  
-> **AI Architecture Partner:** Friday (Antigravity AI-SRE)  
-> **Version:** 2.0.0 (Phase 1 & 2 Deployed)
+> **Version:** 3.1.0
 
 ---
-
-### 📅 Agenda Riset Terdekat:
-- [ ] **Eksperimen 1: Strix AI Security & n8n Integration** *(Jadwal: Senin, 28 September 2026)*
-  - [ ] Setup sandbox Docker Strix di `vm-maskii`.
-  - [ ] Konfigurasi LLM backend menggunakan Google AI Studio (**Gemini Flash API**).
-  - [ ] Pengujian terisolasi pada target lokal / container testbed.
-  - [ ] Uji integrasi pelaporan otomatis ke n8n (port 5678).
-- [ ] **Eksperimen 2: AI YouTube Clipper 100% Free / Zero-Cost** *(Jadwal: Senin, 28 September 2026)*
-  - [ ] Rancang pipeline automasi kliping video YouTube tanpa biaya API berbayar.
-  - [ ] Evaluasi opsi arsitektur: **n8n workflow** (`yt-dlp` + Gemini Flash Free Tier + `ffmpeg`) vs **Slendro AI**.
-  - [ ] Alur kerja: Download audio/sub $\to$ Deteksi viral hook/highlight dengan Gemini $\to$ Auto-crop/cut format 9:16 (Shorts/TikTok/Reels).
-  - *(⏰ Pengingat otomatis via WhatsApp untuk kedua agenda dijadwalkan pada Senin, 28 Sep 2026 jam 08:00 WIB)*.
 
 ## 📌 DAFTAR ISI & ROADMAP TRACKER
 
@@ -35,18 +20,18 @@
   - [x] Pemodelan Decision Graph (Constraints, Options, Tradeoffs).
   - [x] Pemodelan Exploration Arc (`Curiosity -> Discovery -> Prototype -> Project`).
   - [x] Pembuatan CLI global `memoria` (`dashboard`, `dss`, `episodes`) dan upgrade MCP Server (`server.py`).
-- [ ] **Phase 3 — Pattern Mining & Confidence Engine** *(Target: Bulan 1)*
-  - [ ] Implementasi status bertingkat (`OBSERVED` -> `CANDIDATE` -> `REPEATED` -> `HIGH_CONFIDENCE`).
-  - [ ] Analisis temporal week-over-week (kecepatan keputusan, recovery failure rate).
-  - [ ] Mesin induksi rule asosiasi berbasis data historis (tanpa manual rule).
-- [ ] **Phase 4 — Personal Decision Support System (DSS)** *(Target: Bulan 2)*
-  - [ ] Tool context matching & historical retrieval (vektor & graph similarity).
-  - [ ] Fitur Counterfactual Analysis (membandingkan Outcome historis Opsi A vs Opsi B).
-  - [ ] Penyajian bukti historis obyektif (advisory evidence, non-prescriptive).
-- [ ] **Phase 5 — Cognitive Dashboard & 2-Month Milestone Review** *(Target: Akhir Bulan 2)*
-  - [ ] Dashboard visual statistik observasi (Problem Solving, Exploration, Habit, Reversals).
-  - [ ] Evaluasi 8 Pertanyaan Kunci Kognitif.
-  - [ ] Pondasi eksperimen Personal Cognitive Model / Digital Twin tahap lanjut.
+- [x] **Phase 3 — Pattern Mining & Confidence Engine** *(Status: Selesai di V3.0 / V3.1)*
+  - [x] Implementasi status bertingkat (`OBSERVED` -> `CANDIDATE` -> `REPEATED` -> `HIGH_CONFIDENCE`).
+  - [x] Formula kalibrasi kepercayaan logaritmik dan histeresis asimetris (`src/belief_revision.py`).
+  - [x] Kristalisasi otomatis heuristik menjadi node `:Pattern` permanen.
+- [x] **Phase 4 — Personal Decision Support System (DSS) & 4-Way RRF** *(Status: Selesai di V3.0 / V3.1)*
+  - [x] 4-Way Hybrid Recall (BM25 + Cypher Multi-Hop + Temporal + FastEmbed ONNX Int8).
+  - [x] Tool context matching & historical retrieval via Reciprocal Rank Fusion (RRF).
+  - [x] Async Background Harvester (`src/harvester.py`) untuk latensi simpan <30ms.
+- [x] **Phase 5 — High-Performance Serving & Facades** *(Status: Selesai di V3.1.0)*
+  - [x] 3 Canonical Facades (`retain`, `recall`, `reflect`).
+  - [x] In-Memory LRU Cache (<1ms query repeated).
+  - [x] HTTP Microservice (FastAPI Port 8085) & AI Gateway Pre-Injection.
 
 ---
 
@@ -291,11 +276,11 @@ UNKNOWN ──▶ CURIOSITY ──▶ QUESTION ──▶ EXPLORATION ──▶ D
 PROJECT ◀── FEATURE/PROTOTYPE ◀── EXPERIMENT ◀────────────┘
 ```
 
-*Contoh Kasus Riil Server:*
+*Contoh Kasus Riil:*
 1. **Curiosity**: *"Bisakah sistem monitoring memanggil agent via script lokal?"*
-2. **Experiment**: Membuat script `patrol-hub.js` dengan otentikasi Ed25519.
-3. **Prototype**: Menghubungkan ke endpoint WhatsApp port 3200.
-4. **Project**: Membangun **AI-SRE Watchdog Hub** mandiri di `vm-maskii`.
+2. **Experiment**: Membuat script watchdog pengujian dengan otentikasi Ed25519.
+3. **Prototype**: Menghubungkan ke endpoint webhook notifikasi.
+4. **Project**: Membangun **AI-SRE Watchdog Hub** terintegrasi.
 
 ---
 
@@ -559,7 +544,7 @@ Data proses berpikir adalah data berharga dan sensitif tingkat tinggi.
    - Tokens: `Bearer [a-zA-Z0-9_\-\.]+` $\to$ `Bearer [REDACTED_TOKEN]`
    - Passwords: `password:\s*["'].+["']` $\to$ `password: [REDACTED_PASSWORD]`
 2. **Network Isolation**:
-   Database Neo4j hanya boleh mendengarkan pada interface loopback `127.0.0.1:7687` atau internal mesh Tailscale (`100.79.34.4`). Tidak boleh dipublikasikan ke `0.0.0.0`.
+   Database Neo4j hanya boleh mendengarkan pada interface loopback `127.0.0.1:7687` atau internal mesh WireGuard/VPN terisolasi. Tidak boleh dipublikasikan langsung ke internet publik (`0.0.0.0`).
 3. **Backup Encryption**:
    Dump database Neo4j wajib dienkripsi sebelum dipindahkan ke penyimpanan off-site.
 
@@ -575,7 +560,7 @@ Data proses berpikir adalah data berharga dan sensitif tingkat tinggi.
 ### Phase 2 — Cognitive Structure & Neo4j Integration (Minggu 2–3)
 - [ ] Buat script migrasi skema Neo4j di `/opt/memoriagraph/src/schema_init.py` untuk index & constraint labels.
 - [ ] Kembangkan `record_episode.py` untuk mencatat struktur multi-attempt dan decision constraints.
-- [ ] Hubungkan pipeline AI-SRE hub (`patrol-hub.js`) ke skema episode baru saat menangani insiden.
+- [x] Hubungkan pipeline SRE watchdog ke skema episode baru saat menangani insiden.
 
 ### Phase 3 — Pattern Mining & Confidence Calibration (Bulan 1)
 - [ ] Buat query Cypher penghitung support & frekuensi observasi.

@@ -1,6 +1,6 @@
 # 📘 Panduan Pelatihan & Adopsi MemoriaGraph untuk Instansi Pemerintah & Organisasi
 > **Pedoman Implementasi "Second Brain" Birokrasi & Kedaulatan Pengetahuan Berbasis Graf Kognitif**  
-> *Versi: 3.0.0 | Standar: Open-Source Enterprise & Gov-Tech*
+> *Versi: 3.1.0 | Standar: Open-Source Enterprise & Gov-Tech*
 
 ---
 
@@ -223,5 +223,5 @@ Cetak atau bagikan template ini kepada tim teknis/staf dinas setiap kali ada pem
 3. **Audit Trail Lengkap:** Setiap penambahan, penguatan, atau koreksi memori mencatat *timestamp* dan identitas agen pengunggah untuk keperluan akuntabilitas birokrasi.
 
 ---
-*Dokumen ini merupakan bagian dari repositori open-source MemoriaGraph 3.0.*  
+*Dokumen ini merupakan bagian dari repositori open-source MemoriaGraph 3.1.*  
 *Inisiatif: Maskii Studio & Friday Gov-AI Research Lab.*

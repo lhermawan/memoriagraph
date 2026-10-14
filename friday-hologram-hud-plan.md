@@ -1,127 +1,77 @@
-# 🎙️ FRIDAY HOLOGRAPHIC HUD & VOICE COMMAND CENTER
-> **Target Perangkat:** PC Rumah Maskii (Ryzen 5 5500 + NVIDIA RTX 3050 6GB + 16GB RAM + Monitor 144Hz)  
-> **Konektivitas:** Tailscale Mesh ke Server `vm-maskii` (32GB RAM / 100.79.34.4)  
-> **Status:** Siap Dieksekusi Kapan Saja di PC Rumah  
-> **Author:** Maskii & Friday (Antigravity AI)  
+# 🎙️ CLIENT BLUEPRINT: 3D HOLOGRAPHIC HUD & VOICE INTERFACE
+> **Target:** Modern Browser / Three.js 3D WebGL Audio-Visual Client  
+> **Connectivity:** MemoriaGraph 3.1 HTTP Microservice (`http://localhost:8085`)  
+> **Status:** Client Reference Architecture  
+> **Architecture:** Open-Source Companion HUD  
 
 ---
 
-## 1. VISI & KONSEP SISTEM
-Mengubah workstation PC rumah menjadi **Iron Man-Style AI Command Center**:
-* **Visual**: Tampilan antarmuka holografis futuristik (Arc Reactor HUD melayang) berjalan 144 FPS di monitor ViewSonic 24" IPS.
-* **Audio**: Mengaktifkan asisten suara dengan panggilan: **"Hey Friday"**.
-* **Integrasi Server**: Menghubungkan perintah suara PC rumah langsung ke **AI-SRE Daemon** dan **MemoriaGraph 2.0** di server `vm-maskii` via Tailscale secara Zero Trust (Ed25519).
+## 1. VISION & CONCEPT
+Build an interactive holographic AI command center on top of MemoriaGraph:
+* **Visual**: Futuristic 3D animated core (Three.js WebGL) rendering at high refresh rates (60–144 FPS).
+* **Voice**: Wake-word voice recognition with local browser Web Speech API or whisper.cpp.
+* **Memory Integration**: Direct bidirectional telemetry with **MemoriaGraph 3.1** via HTTP (`http://localhost:8085/recall` & `/retain`).
 
 ---
 
-## 2. ARSITEKTUR INTEGRASI
+## 2. INTEGRATION ARCHITECTURE
 
 ```
-[Suara Maskii di PC Rumah: "Hey Friday, tampilkan status server"]
+[User Voice Command: "What was our database failover heuristic?"]
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ PC RUMAH: BROWSER (Chrome/Edge 144Hz - http://localhost:5173)│
-│ • Web Speech API / Faster-Whisper (Deteksi "Hey Friday")    │
-│ • React + Three.js 3D Animated Arc Reactor Core             │
-│ • Glassmorphic Telemetry Cards & Audio Waveform             │
+│ BROWSER CLIENT (React + Three.js + Web Speech API)          │
+│ • Speech-to-Text: Listens for user prompt                   │
+│ • 3D Animation: Reactive audio waveform & particle core     │
+│ • Glassmorphic Telemetry Cards & Heuristic Displays         │
 └─────────────────────────────┬───────────────────────────────┘
                               │
-                              ▼ (HTTP Fetch via Tailscale)
+                              ▼ (HTTP GET /recall?query=...&compact=true)
 ┌─────────────────────────────────────────────────────────────┐
-│ SERVER VM-MASKII (100.79.34.4:3400 - AI-SRE DAEMON)          │
-│ • Otentikasi: Ed25519 Private Key Maskii                    │
-│ • Endpoint  : /api/all (Metrics PM2, RAM, Disk, SSL)        │
-│ • Database  : MemoriaGraph 2.0 (Neo4j localhost:7687)       │
+│ MEMORIAGRAPH 3.1 HTTP MICROSERVICE (Port 8085)              │
+│ • 4-Way Hybrid Recall (BM25 + Cypher + Temporal + FastEmbed)│
+│ • In-Memory LRU Cache (<1ms lookup)                         │
+│ • Neo4j Database Substrate (localhost:7687)                 │
 └─────────────────────────────┬───────────────────────────────┘
                               │
-                              ▼ (JSON Data Telemetri)
+                              ▼ (JSON Compact Response)
 ┌─────────────────────────────────────────────────────────────┐
-│ RESPON KEMBALI KE PC RUMAH:                                 │
-│ 1. VISUAL: Slide-in Panel Status Server & Meteran Circular  │
-│ 2. AUDIO : Friday merespons via TTS Speaker PC              │
+│ CLIENT RENDERING:                                           │
+│ 1. VISUAL: Slide-in Telemetry Card displaying top heuristic │
+│ 2. AUDIO : Text-to-Speech audio response playback           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. LANGKAH SETUP STEP-BY-STEP DI PC RUMAH (WINDOWS)
+## 3. STEP-BY-STEP CLIENT SETUP
 
-### Langkah 1: Clone Repositori Dasar
-Buka Terminal (PowerShell / Git Bash) di PC rumah:
-```powershell
-# Masuk ke direktori project Anda
-cd D:\Projects   # atau folder pilihan Anda
-git clone https://github.com/adewaskar/jarvis.git friday-hud
-cd friday-hud
+### Step 1: Clone Client Foundation
+```bash
+git clone https://github.com/adewaskar/jarvis.git ai-hud
+cd ai-hud
 npm install
 ```
 
-### Langkah 2: Ganti Wake Word ke "Hey Friday"
-Buka file pendeteksi suara di project (biasanya di `src/hooks/useSpeechRecognition.js` atau `src/App.jsx`):
+### Step 2: Configure MemoriaGraph API Integration
+In your client API connector (`src/services/memory.js`):
 ```javascript
-// Ganti baris pengecekan wake word:
-// DARI:
-if (transcript.toLowerCase().includes("hey jarvis"))
-// MENJADI:
-if (transcript.toLowerCase().includes("hey friday") || transcript.toLowerCase().includes("friday"))
-```
-
-### Langkah 3: Tambahkan Handler Pemanggilan SRE Server
-Di dalam file pemroses perintah suara (atau backend server lokal):
-```javascript
-// Fungsi untuk memanggil telemetri server vm-maskii
-async function fetchServerStatus() {
+// Connect directly to MemoriaGraph 3.1 HTTP Microservice
+export async function queryMemory(queryText) {
   try {
-    const res = await fetch("http://100.79.34.4:3400/api/all", {
-      headers: {
-        "x-agent-id": "maskii"
-      }
-    });
+    const res = await fetch(`http://localhost:8085/recall?query=${encodeURIComponent(queryText)}&limit=3&compact=true`);
     const data = await res.json();
-    return data.data;
+    return data.results;
   } catch (err) {
-    console.error("Gagal terhubung ke vm-maskii:", err);
-    return null;
+    console.error("MemoriaGraph connection error:", err);
+    return [];
   }
 }
 ```
 
-### Langkah 4: Tambahkan Komponen Visual Glassmorphic Card
-Tampilkan kartu saat perintah `tampilkan status server` diterima:
-* **Production Node**: Status 14/14 PM2 Online, RAM 46%.
-* **AI Hub VM**: Status Optimal, RAM 7%, Disk 15%.
-* **Hypervisor R740**: Uptime 81 Hari.
-
-### Langkah 5: Jalankan & Nikmati di Layar 144Hz
-```powershell
-npm start
-```
-Buka Google Chrome di `http://localhost:5173`, tekan tombol **INITIALISE**, izinkan akses Microphone, lalu coba ucapkan:
-> *"Hey Friday, tolong tampilkan status monitoring server."*
-
----
-
-## 4. DAFTAR PERINTAH SUARA (VOICE COMMANDS)
-
-| Perintah Suara | Respon Visual di Layar | Respon Suara Friday |
-| :--- | :--- | :--- |
-| **"Hey Friday, status server"** | Muncul kartu telemetri Production, VM-Maskii, & PowerEdge | *"Semua server dalam kondisi prima dan beroperasi normal, Bos."* |
-| **"Hey Friday, cek memori"** | Muncul gauge penggunaan RAM server & PC lokal | *"Kapasitas memori server sangat lega, penggunaan berada di angka 7 persen."* |
-| **"Hey Friday, bagaimana heuristik terakhir?"** | Menampilkan kartu heuristik dari MemoriaGraph 2.0 | *"Heuristik terakhir: Selalu verifikasi environment GOPATH sebelum mengulang instalasi Go tools."* |
-| **"Friday, tutup tampilan / stand down"** | Panel telemetri memudar (*fade out*), kembali ke inti reaktor | *"Standby mode aktif, Bos."* |
-
----
-
-## 5. CARA MEMANGGIL RENCANA INI NANTI DARI PC RUMAH
-
-Kapan pun Bos Maskii sudah di depan PC rumah, cukup panggil saya lewat terminal atau chat:
-
+### Step 3: Run the Holographic HUD
 ```bash
-# Opsi 1: Panggil lewat CLI MemoriaGraph
-memoria dss "rencana friday voice hologram hud"
-
-# Opsi 2: Buka file dokumentasi ini langsung
-# File tersimpan permanen di server dan MemoriaGraph!
+npm run dev
 ```
-Atau cukup bilang di chat: **"Friday, buka rencana HUD kemarin"** — saya akan langsung memandu eksekusi step-by-step-nya! 🚀
+Open `http://localhost:5173` in your browser.

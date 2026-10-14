@@ -28,7 +28,7 @@ def run_tests():
     engine = HybridRecallEngine(auto_sync_vectors=False)
 
     print("=" * 60)
-    print("🧪 MEMORIAGRAPH 3.0: MEMORY BANKS & FACADE API TEST SUITE")
+    print("🧪 MEMORIAGRAPH 3.1: MEMORY BANKS & FACADE API TEST SUITE")
     print("=" * 60)
 
     # 1. Test Retain ke Bank Spesifik

@@ -1,4 +1,4 @@
-# Contributing to MemoriaGraph 3.0
+# Contributing to MemoriaGraph 3.1
 
 Thank you for your interest in contributing to **MemoriaGraph**! MemoriaGraph is a biomimetic cognitive memory substrate built on the **Architectural Triad**:
 - **Hindsight** (Episodic Substrate & Belief Revision)

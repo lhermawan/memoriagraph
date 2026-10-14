@@ -1,9 +1,10 @@
 # 🧠 Dynamic Belief Revision & Evidence Engine
 
-MemoriaGraph 3.0 models human cognitive belief calibration:
+**MemoriaGraph 3.1** models human cognitive belief calibration:
 - **Fast learning** on early observations.
 - **Logarithmic diminishing returns** on repeated confirmations.
 - **Asymmetric hysteresis** preventing a single outlier from destroying a well-proven heuristic.
+- **Direct integration** into the `reflect()` canonical facade (`action="reinforce"` and `action="challenge"`).
 
 ---
 
@@ -19,6 +20,15 @@ Where:
 - $N_{evidence}$ is the cumulative number of supporting proofs
 - The marginal confidence gain decreases logarithmically as evidence accumulates.
 
+```python
+# Invocation via reflect() Facade:
+reflect(
+    target_id="heuristic-db-failover-timeout",
+    action="reinforce",
+    reason="Validated successfully during high-concurrency staging test"
+)
+```
+
 ### 2. Negative Challenge (Resilient Hysteresis)
 When an unexpected failure or counter-evidence occurs:
 
@@ -27,6 +37,15 @@ $$C_{new} = \max\left(0.10, \; C_{current} \cdot \left(1 - \frac{0.35}{1 + 0.5 \
 Where:
 - A heuristic with $N=1$ evidence drops significantly upon failure ($35\%$ drop).
 - A battle-tested heuristic with $N=10$ evidence experiences only a mild dip ($\sim 6\%$ drop), shielding the agent from random noise or temporary network timeouts.
+
+```python
+# Invocation via reflect() Facade:
+reflect(
+    target_id="heuristic-optimistic-locking",
+    action="challenge",
+    reason="Caused excessive deadlock under 10k RPS burst"
+)
+```
 
 ---
 
@@ -41,3 +60,5 @@ Where:
       ▼ (Pattern Crystallization)
 [ HIGH_CONFIDENCE ] (Battle-hardened pattern, Confidence > 0.85, Zero contradictions)
 ```
+
+When a heuristic reaches `HIGH_CONFIDENCE`, MemoriaGraph automatically crystallizes it into a permanent `:Pattern` node that receives top priority during retrieval and decision support synthesis.

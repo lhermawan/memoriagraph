@@ -1,6 +1,6 @@
 """
-MemoriaGraph 3.0 - Comprehensive Operational Latency & Integrity Benchmark (Fase 7)
-Mengukur latency end-to-end dari setiap subsistem MemoriaGraph 3.0:
+MemoriaGraph 3.1 - Comprehensive Operational Latency & Integrity Benchmark (Fase 7)
+Mengukur latency end-to-end dari setiap subsistem MemoriaGraph 3.1:
 1. 4-Way Hybrid Recall (RRF)
 2. Personal DSS Query
 3. Belief Revision & Evidence Listing
@@ -27,7 +27,7 @@ from src.semantic_sanitizer import clean_cognitive_payload
 
 def run_benchmarks():
     print("=" * 70)
-    print("⚡ MEMORIAGRAPH 3.0: COMPREHENSIVE PRODUCTION BENCHMARK & DRIFT AUDIT")
+    print("⚡ MEMORIAGRAPH 3.1: COMPREHENSIVE PRODUCTION BENCHMARK & DRIFT AUDIT")
     print("=" * 70)
 
     neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
@@ -37,9 +37,9 @@ def run_benchmarks():
     recall_engine = HybridRecallEngine(auto_sync_vectors=False)
 
     queries = [
-        "friday-hologram-hud Three.js",
+        "interactive 3d hud Three.js",
         "strix ai security kali docker sandbox",
-        "lucky production watchdog pm2",
+        "production cluster watchdog pm2",
         "solusi restart high memory leak ram",
         "agenda besok senin 28 september"
     ]
@@ -112,7 +112,7 @@ def run_benchmarks():
     print(f"4. 3D WebGL Graph Exporter      : {dt_vis:6.2f} ms [INSTAN]")
     print(f"5. Anti-Slop Quality Gate       : {dt_clean:6.3f} ms [ULTRA-LOW LATENCY]")
     print("=" * 70)
-    print("✨ MEMORIAGRAPH 3.0 PRODUCTION READY 100%!")
+    print("✨ MEMORIAGRAPH 3.1 PRODUCTION READY 100%!")
 
     recall_engine.close()
     driver.close()
