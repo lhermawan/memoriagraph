@@ -15,7 +15,7 @@ from src.hybrid_recall import HybridRecallEngine
 from src.sanitizer import sanitize_data
 from src.semantic_sanitizer import strip_conversational_fluff, slugify_bank_id
 from src.harvester import harvester
-from src.ingestion_gate import ingestion_gate
+from src.ingestion_gate import ingestion_gate, detect_critical_secrets
 
 # Load environment variables
 load_dotenv("/opt/memoriagraph/.env")
@@ -29,14 +29,14 @@ mcp = MCPServer("MemoriaGraph")
 try:
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     driver.verify_connectivity()
-    print("MemoriaGraph 3.1.1: Berhasil terhubung ke database Neo4j!", file=sys.stderr)
+    print("MemoriaGraph 3.1.2: Berhasil terhubung ke database Neo4j!", file=sys.stderr)
 except Exception as e:
     print(f"Warning: Tidak bisa terhubung ke Neo4j. Error: {e}", file=sys.stderr)
     driver = None
 
 try:
     recall_engine = HybridRecallEngine(k_rrf=60)
-    print("MemoriaGraph 3.1.1: Hybrid Recall Engine (4-Way RRF) aktif!", file=sys.stderr)
+    print("MemoriaGraph 3.1.2: Hybrid Recall Engine (4-Way RRF) aktif!", file=sys.stderr)
 except Exception as e:
     print(f"Warning: Gagal inisialisasi HybridRecallEngine: {e}", file=sys.stderr)
     recall_engine = None
@@ -102,10 +102,12 @@ def retain(
     decision: str = "",
     attempts: str = "",
     outcome_status: str = "UNKNOWN",
+    record_type: str = "",
+    provenance: str = "",
     async_mode: bool = True
 ) -> str:
     """
-    [MemoriaGraph 3.1 Facade] Menyimpan unit memori/pengetahuan/episode ke Memory Bank spesifik.
+    [MemoriaGraph 3.1.2 Facade] Menyimpan unit memori/pengetahuan/episode ke Memory Bank spesifik.
     Bank: 'infra-sre', 'ai-hud', 'research-personal', 'csirt-security', 'general'.
     Outcome status: 'SUCCESS', 'FAILURE', 'PARTIAL', 'UNKNOWN'.
     Mendukung async background harvesting (Pilar 2) untuk inferensi ultra-cepat.
@@ -119,8 +121,10 @@ def retain(
         title=title,
         bank_id=bank_id,
         category=category,
+        record_type=record_type,
         outcome_status=outcome_status,
         attempts=attempts,
+        provenance=provenance,
         source_reference="retain-facade"
     )
 
@@ -140,9 +144,14 @@ def retain(
         context=bank,
         record_type=val.record_type,
         outcome_applicable=val.outcome_applicable,
-        dedupe_fingerprint=val.fingerprint
+        dedupe_fingerprint=val.fingerprint,
+        provenance=val.provenance
     )
     ep_id = ep["id"]
+
+    if ep.get("is_duplicate"):
+        mgr.close()
+        return f"💾 [Retain] Memori sudah ada sebelumnya (Idempoten) di Bank '{bank}' [Type: {val.record_type}, Outcome: {final_outcome}]: '{ep['title']}' [ID: {ep_id}]."
 
     # Beri label bank_id pada Episode di Neo4j
     with driver.session() as s:
@@ -500,6 +509,10 @@ def add_entity(name: str, entity_type: str, description: str = "") -> str:
     """[Legacy Compatibility] Menambahkan entitas generik ke dalam MemoriaGraph."""
     if not driver:
         return "Error: Tidak terhubung ke Neo4j."
+    # Cek kredensial kritis sebelum DB write (Guardrail)
+    sec = detect_critical_secrets(f"{name} {description}")
+    if sec:
+        return f"🚫 [IngestionGate: QUARANTINED] Entitas ditolak: Terdeteksi kredensial sensitif: {', '.join(sec)}."
     clean_desc = sanitize_data(description)
     query = """
     MERGE (n:Entity {name: $name})
@@ -646,7 +659,7 @@ def start_http_background_server():
         async def health(request):
             return JSONResponse({
                 "status": "healthy",
-                "service": "MemoriaGraph 3.1.1",
+                "service": "MemoriaGraph 3.1.2",
                 "engine": "4-Way Hybrid Recall (RRF)",
                 "pid": os.getpid()
             })
@@ -671,6 +684,10 @@ def start_http_background_server():
                 title = body.get("title", "")
                 heuristic = body.get("heuristic", "")
                 decision = body.get("decision", "")
+                outcome_status = body.get("outcome_status", "UNKNOWN")
+                attempts = body.get("attempts", "")
+                record_type = body.get("record_type", "")
+                provenance = body.get("provenance", "")
                 if not content:
                     return JSONResponse({"error": "Missing 'content' parameter"}, status_code=400)
                 msg = retain(
@@ -680,8 +697,14 @@ def start_http_background_server():
                     title=title,
                     heuristic=heuristic,
                     decision=decision,
+                    attempts=attempts,
+                    outcome_status=outcome_status,
+                    record_type=record_type,
+                    provenance=provenance,
                     async_mode=True
                 )
+                if msg.startswith("🚫 [IngestionGate:"):
+                    return JSONResponse({"status": "rejected", "error": msg}, status_code=422)
                 return JSONResponse({"status": "success", "message": msg})
             except Exception as e:
                 return JSONResponse({"error": str(e)}, status_code=500)

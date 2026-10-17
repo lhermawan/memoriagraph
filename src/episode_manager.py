@@ -44,9 +44,38 @@ class EpisodeManager:
         trigger: str = "manual",
         record_type: str = "TASK",
         outcome_applicable: str = "YES",
-        dedupe_fingerprint: str = ""
+        dedupe_fingerprint: str = "",
+        provenance: str = "OBSERVED"
     ) -> dict[str, Any]:
-        """Membuat episode kognitif baru."""
+        """Membuat episode kognitif baru atau mengembalikan episode yang sudah ada jika terdeteksi duplikasi."""
+        # 1. Idempotency Check: jika fingerprint sudah ada di database pada context/bank yang sama, cegah duplikasi
+        if dedupe_fingerprint:
+            check_query = """
+            MATCH (e:Episode {dedupe_fingerprint: $dedupe_fingerprint})
+            WHERE e.bank_id = $context OR e.context = $context OR $context = ""
+            RETURN e.id AS existing_id, e.title AS existing_title, e.category AS existing_category,
+                   e.status AS existing_status, coalesce(e.record_type, 'TASK') AS existing_record_type,
+                   coalesce(e.outcome_applicable, 'YES') AS existing_outcome_applicable,
+                   coalesce(e.provenance, 'OBSERVED') AS existing_provenance
+            LIMIT 1
+            """
+            with self.driver.session() as s:
+                res = s.run(check_query, dedupe_fingerprint=dedupe_fingerprint, context=context)
+                rec = res.single()
+                if rec:
+                    return {
+                        "id": rec["existing_id"],
+                        "title": rec["existing_title"],
+                        "category": rec["existing_category"],
+                        "context": context,
+                        "status": rec["existing_status"],
+                        "record_type": rec["existing_record_type"],
+                        "outcome_applicable": rec["existing_outcome_applicable"],
+                        "provenance": rec["existing_provenance"],
+                        "dedupe_fingerprint": dedupe_fingerprint,
+                        "is_duplicate": True
+                    }
+
         ep_id = f"EP-{datetime.datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
         now_iso = datetime.datetime.now(timezone.utc).isoformat()
 
@@ -61,7 +90,9 @@ class EpisodeManager:
             "timestamp_start": now_iso,
             "record_type": record_type.upper(),
             "outcome_applicable": outcome_applicable.upper(),
-            "dedupe_fingerprint": dedupe_fingerprint
+            "dedupe_fingerprint": dedupe_fingerprint,
+            "provenance": (provenance or "OBSERVED").upper(),
+            "is_duplicate": False
         })
 
         query = """
@@ -75,7 +106,8 @@ class EpisodeManager:
             e.timestamp_start = datetime($timestamp_start),
             e.record_type = $record_type,
             e.outcome_applicable = $outcome_applicable,
-            e.dedupe_fingerprint = $dedupe_fingerprint
+            e.dedupe_fingerprint = $dedupe_fingerprint,
+            e.provenance = $provenance
         WITH e
         MATCH (p:Person {name: 'Maskii'})
         MERGE (p)-[:PARTICIPATED_IN]->(e)

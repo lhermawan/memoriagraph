@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.1.1 - High Performance HTTP API Gateway (Port 8085)
+MemoriaGraph 3.1.2 - High Performance HTTP API Gateway (Port 8085)
 Serving 9Router Pre-Injection, AI-SRE Watchdog, and Mesh Services
 """
 import os
@@ -15,7 +15,7 @@ import server
 async def health(request):
     return JSONResponse({
         "status": "healthy",
-        "service": "MemoriaGraph 3.1.1",
+        "service": "MemoriaGraph 3.1.2",
         "engine": "4-Way Hybrid Recall (RRF) with LRU Cache",
         "pid": os.getpid()
     })
@@ -42,6 +42,8 @@ async def http_retain(request):
         decision = body.get("decision", "")
         outcome_status = body.get("outcome_status", "UNKNOWN")
         attempts = body.get("attempts", "")
+        record_type = body.get("record_type", "")
+        provenance = body.get("provenance", "")
         if not content:
             return JSONResponse({"error": "Missing 'content' parameter"}, status_code=400)
         msg = server.retain(
@@ -53,6 +55,8 @@ async def http_retain(request):
             decision=decision,
             attempts=attempts,
             outcome_status=outcome_status,
+            record_type=record_type,
+            provenance=provenance,
             async_mode=True
         )
         if msg.startswith("🚫 [IngestionGate:"):
@@ -68,5 +72,5 @@ app = Starlette(routes=[
 ])
 
 if __name__ == "__main__":
-    print("🚀 MemoriaGraph 3.1.1 HTTP API listening on http://0.0.0.0:8085", file=sys.stderr)
+    print("🚀 MemoriaGraph 3.1.2 HTTP API listening on http://0.0.0.0:8085", file=sys.stderr)
     uvicorn.run(app, host="0.0.0.0", port=8085, log_level="warning")

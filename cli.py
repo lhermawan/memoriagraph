@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MemoriaGraph 3.1.1 - Command Line Interface (CLI)
+MemoriaGraph 3.1.2 - Command Line Interface (CLI)
 Pusat kendali kognitif mandiri untuk Cognitive Dashboard, DSS, Beliefs, dan Hybrid Recall.
 """
 import argparse
@@ -33,7 +33,7 @@ def cmd_dashboard():
     c_str = ", ".join([f"{c['constraint_name']} ({c['frequency']}x)" for c in constraints]) if constraints else "Belum cukup data"
     exp = m.get("exploration_pipeline", {})
 
-    print("\n🧠 \033[1;36mMEMORIAGRAPH 3.1.1 - COGNITIVE DASHBOARD & SUBSTRATE\033[0m")
+    print("\n🧠 \033[1;36mMEMORIAGRAPH 3.1.2 - COGNITIVE DASHBOARD & SUBSTRATE\033[0m")
     print("━" * 65)
     print(f"📊 Total Episode Kognitif      : \033[1;32m{m.get('total_episodes', 0)}\033[0m episode")
     print(f"🎯 Tingkat Keberhasilan Solusi : \033[1;32m{m.get('success_rate_percent', 0)}%\033[0m")
@@ -173,7 +173,7 @@ def cmd_benchmark():
         print("❌ benchmark_v3.py tidak ditemukan.")
 
 def main():
-    parser = argparse.ArgumentParser(description="MemoriaGraph 3.1.1 - Cognitive Substrate CLI")
+    parser = argparse.ArgumentParser(description="MemoriaGraph 3.1.2 - Cognitive Substrate CLI")
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser("dashboard", help="Tampilkan Personal Cognitive Dashboard")

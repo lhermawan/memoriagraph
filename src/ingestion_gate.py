@@ -67,6 +67,7 @@ class ProvenanceType(str, Enum):
 
 class IngestionStatus(str, Enum):
     ACCEPTED = "ACCEPTED"
+    ACCEPTED_SHADOW = "ACCEPTED_SHADOW"
     QUARANTINED = "QUARANTINED"
     REJECTED = "REJECTED"
 
@@ -78,10 +79,13 @@ REASON_TITLE_EMPTY = "TITLE_EMPTY_OR_INVALID"
 REASON_CONTENT_EMPTY = "CONTENT_EMPTY"
 REASON_FLUFF_STRIPPED = "CONVERSATIONAL_FLUFF_STRIPPED"
 REASON_UNVERIFIED_SUCCESS_DOWNGRADED = "UNVERIFIED_SUCCESS_DOWNGRADED_TO_UNKNOWN"
+REASON_UNVERIFIED_FAILURE_DOWNGRADED = "UNVERIFIED_FAILURE_DOWNGRADED_TO_UNKNOWN"
+REASON_INTERMEDIATE_FAILURE_OVERRIDDEN = "INTERMEDIATE_FAILURE_OVERRIDDEN_BY_RECOVERY"
 REASON_NON_TASK_OUTCOME_NEUTRALIZED = "NON_TASK_OUTCOME_SET_NOT_APPLICABLE"
 REASON_EVIDENCE_ARTIFACT_VERIFIED = "EVIDENCE_ARTIFACT_VERIFIED"
 REASON_INTERMEDIATE_FAILURE_PRESERVED = "INTERMEDIATE_FAILURE_PRESERVED"
 REASON_NOISE_REJECTED = "LOW_VALUE_NOISE_REJECTED"
+REASON_SHADOW_MODE_RECORDED = "SHADOW_MODE_RECORDED"
 
 
 @dataclass
@@ -137,11 +141,33 @@ def detect_critical_secrets(text: str) -> list[str]:
     return detected
 
 
+POSITIVE_EVIDENCE_PATTERNS = [
+    r"\bexit\s+code\s+0\b",
+    r"\bstatus\s+(code\s+)?(200|201|204|ok|running|active)\b",
+    r"\b\d+\s+passed(\s+in\s+[\d\.]+s)?\b",
+    r"\b(lulus|passed|verified)\s+(uat|test|audit|benchmark)\b",
+    r"\bcommit\s+[0-9a-f]{7,40}\b",
+    r"\bhash\s*[:=]?\s*[0-9a-f]{7,40}\b",
+    r"\b200\s+ok\b",
+    r"\btests?:\s*\d+\s+passed\b",
+]
+
+FAILURE_EVIDENCE_PATTERNS = [
+    r"\bexit\s+code\s+[1-9]\d*\b",
+    r"\bstatus\s+(code\s+)?([45][0-9]{2}|error|failed|crashed|fatal)\b",
+    r"\b(traceback|stacktrace|exception|segmentation fault|sigsegv|sigkill|oom|out of memory)\b",
+    r"\b(failed|failure|gagal)\s+(uat|test|audit|benchmark|build|compile)\b",
+    r"\b\d+\s+failed\b",
+    r"\bcrashloopbackoff\b",
+    r"\berror\s*:\s*.+",
+]
+
+
 def check_has_empirical_evidence(text: str, attempts: list | None = None) -> bool:
-    """Memeriksa apakah terdapat bukti empiris nyata (commit hash, exit code 0, status 200, test report)."""
-    # 1. Cek pola anchor empiris pada teks
-    has_anchor = any(re.search(pat, text, flags=re.IGNORECASE) for pat in EMPIRICAL_ANCHORS)
-    if has_anchor:
+    """Memeriksa apakah terdapat bukti empiris keberhasilan nyata (commit hash, exit code 0, status 200, test report)."""
+    # 1. Cek pola positif empiris pada teks
+    has_pos = any(re.search(pat, text, flags=re.IGNORECASE) for pat in POSITIVE_EVIDENCE_PATTERNS)
+    if has_pos:
         return True
 
     # 2. Cek attempts terstruktur
@@ -151,12 +177,33 @@ def check_has_empirical_evidence(text: str, attempts: list | None = None) -> boo
                 res = str(att.get("result", ""))
                 act = str(att.get("action", ""))
                 combined = f"{act} {res}"
-                if any(re.search(pat, combined, flags=re.IGNORECASE) for pat in EMPIRICAL_ANCHORS):
+                if any(re.search(pat, combined, flags=re.IGNORECASE) for pat in POSITIVE_EVIDENCE_PATTERNS):
                     return True
                 if str(att.get("status", "")).upper() in ["SUCCESS", "RESOLVED"]:
-                    # Jika ada status SUCCESS eksplisit dalam attempt berstruktur
                     if len(res.strip()) > 10 and not any(w in res.lower() for w in ["mungkin", "kayaknya", "diduga"]):
                         return True
+
+    return False
+
+
+def check_has_failure_evidence(text: str, attempts: list | None = None) -> bool:
+    """Memeriksa apakah terdapat bukti kesalahan / kegagalan nyata (exit code non-zero, crash, traceback, OOM)."""
+    # 1. Cek pola kegagalan pada teks
+    has_fail = any(re.search(pat, text, flags=re.IGNORECASE) for pat in FAILURE_EVIDENCE_PATTERNS)
+    if has_fail:
+        return True
+
+    # 2. Cek attempts terstruktur
+    if attempts:
+        for att in attempts:
+            if isinstance(att, dict):
+                res = str(att.get("result", ""))
+                act = str(att.get("action", ""))
+                combined = f"{act} {res}"
+                if any(re.search(pat, combined, flags=re.IGNORECASE) for pat in FAILURE_EVIDENCE_PATTERNS):
+                    return True
+                if str(att.get("status", "")).upper() in ["FAILED", "FAILURE", "ERROR"]:
+                    return True
 
     return False
 
@@ -205,9 +252,9 @@ class MemoryIngestionQualityGate:
     """
 
     def __init__(self, enforce: bool = True):
-        # Membaca environment flag
+        # Membaca environment flag (default true)
         env_val = os.getenv("MEMORIAGRAPH_ENFORCE_INGESTION_GATE", "true").strip().lower()
-        self.enforce = enforce if env_val == "true" else False
+        self.enforce = (env_val == "true") and enforce
 
     def validate(
         self,
@@ -231,24 +278,29 @@ class MemoryIngestionQualityGate:
         secrets_detected = detect_critical_secrets(f"{title} {content}")
         if secrets_detected:
             reasons.append(REASON_SECRET_DETECTED)
-            errors.append(f"Payload ditolak: Terdeteksi kredensial sensitif: {', '.join(secrets_detected)}.")
-            return IngestionValidationResult(
-                valid=False,
-                status=IngestionStatus.QUARANTINED,
-                record_type=record_type or "UNKNOWN",
-                outcome_applicable="NO",
-                outcome_status="REJECTED_SECRET",
-                review_decision="QUARANTINED",
-                confidence_stage="HYPOTHESIS",
-                provenance="USER_REPORTED",
-                fingerprint="",
-                sanitized_title="[QUARANTINED]",
-                sanitized_content="[QUARANTINED_SECRET_PAYLOAD]",
-                bank=slugify_bank_id(bank_id),
-                reason_codes=reasons,
-                errors=errors,
-                metadata={"secrets_detected": secrets_detected}
-            )
+            if self.enforce:
+                errors.append(f"Payload ditolak: Terdeteksi kredensial sensitif: {', '.join(secrets_detected)}.")
+                return IngestionValidationResult(
+                    valid=False,
+                    status=IngestionStatus.QUARANTINED,
+                    record_type=record_type or "UNKNOWN",
+                    outcome_applicable="NO",
+                    outcome_status="REJECTED_SECRET",
+                    review_decision="QUARANTINED",
+                    confidence_stage="HYPOTHESIS",
+                    provenance="USER_REPORTED",
+                    fingerprint="",
+                    sanitized_title="[QUARANTINED]",
+                    sanitized_content="[QUARANTINED_SECRET_PAYLOAD]",
+                    bank=slugify_bank_id(bank_id),
+                    reason_codes=reasons,
+                    errors=errors,
+                    metadata={"secrets_detected": secrets_detected}
+                )
+            else:
+                reasons.append(REASON_SHADOW_MODE_RECORDED)
+                content = sanitize_string(content)
+                title = sanitize_string(title)
 
         # 2. Pembersihan Fluff & Conversational Slop
         clean_content = strip_conversational_fluff(content)
@@ -260,23 +312,27 @@ class MemoryIngestionQualityGate:
 
         # Evaluasi kegunaan & validitas minimum
         if not clean_content or len(clean_content.strip()) < 5:
-            errors.append("Konten memori kosong atau terlalu pendek (kurang dari 5 karakter).")
-            return IngestionValidationResult(
-                valid=False,
-                status=IngestionStatus.REJECTED,
-                record_type=record_type or "UNKNOWN",
-                outcome_applicable="NO",
-                outcome_status="REJECTED_EMPTY",
-                review_decision="NOT_APPLICABLE",
-                confidence_stage="HYPOTHESIS",
-                provenance=provenance,
-                fingerprint="",
-                sanitized_title=title,
-                sanitized_content="",
-                bank=slugify_bank_id(bank_id),
-                reason_codes=[REASON_CONTENT_EMPTY],
-                errors=errors
-            )
+            if self.enforce:
+                errors.append("Konten memori kosong atau terlalu pendek (kurang dari 5 karakter).")
+                return IngestionValidationResult(
+                    valid=False,
+                    status=IngestionStatus.REJECTED,
+                    record_type=record_type or "UNKNOWN",
+                    outcome_applicable="NO",
+                    outcome_status="REJECTED_EMPTY",
+                    review_decision="NOT_APPLICABLE",
+                    confidence_stage="HYPOTHESIS",
+                    provenance=provenance,
+                    fingerprint="",
+                    sanitized_title=title,
+                    sanitized_content="",
+                    bank=slugify_bank_id(bank_id),
+                    reason_codes=[REASON_CONTENT_EMPTY],
+                    errors=errors
+                )
+            else:
+                reasons.append(REASON_CONTENT_EMPTY)
+                reasons.append(REASON_SHADOW_MODE_RECORDED)
 
         # 3. Normalisasi Judul
         clean_title = sanitize_string(strip_conversational_fluff(title))
@@ -312,12 +368,22 @@ class MemoryIngestionQualityGate:
         if raw_status in ["AUTO", "DEFAULT", ""]:
             raw_status = "UNKNOWN"
 
-        has_evidence = check_has_empirical_evidence(clean_content, parsed_attempts)
+        has_positive_evidence = check_has_empirical_evidence(clean_content, parsed_attempts)
+        has_failure_evidence = check_has_failure_evidence(clean_content, parsed_attempts)
+
+        # Deteksi apakah attempt berurutan menunjukkan recovery (intermediate failure -> success)
+        has_recovered_attempt = False
+        if parsed_attempts:
+            had_failure = any(str(a.get("status", "")).upper() in ["FAILED", "FAILURE", "ERROR"] for a in parsed_attempts if isinstance(a, dict))
+            last_attempt = parsed_attempts[-1] if isinstance(parsed_attempts[-1], dict) else {}
+            last_is_success = str(last_attempt.get("status", "")).upper() in ["SUCCESS", "RESOLVED"]
+            if had_failure and last_is_success:
+                has_recovered_attempt = True
 
         if rec_type in [CanonicalRecordType.TASK, CanonicalRecordType.INCIDENT]:
             out_applicable = OutcomeApplicability.YES.value
             if raw_status in ["SUCCESS", "RESOLVED"]:
-                if has_evidence:
+                if has_positive_evidence:
                     final_outcome = CanonicalOutcomeStatus.SUCCESS.value
                     review_dec = "SUCCESS"
                     reasons.append(REASON_EVIDENCE_ARTIFACT_VERIFIED)
@@ -330,8 +396,17 @@ class MemoryIngestionQualityGate:
                 final_outcome = CanonicalOutcomeStatus.PARTIAL.value
                 review_dec = "PARTIAL"
             elif raw_status in ["FAILURE", "FAILED"]:
-                final_outcome = CanonicalOutcomeStatus.FAILURE.value
-                review_dec = "FAILURE"
+                if has_recovered_attempt:
+                    final_outcome = CanonicalOutcomeStatus.SUCCESS.value if has_positive_evidence else CanonicalOutcomeStatus.PARTIAL.value
+                    review_dec = "SUCCESS" if has_positive_evidence else "PARTIAL"
+                    reasons.append(REASON_INTERMEDIATE_FAILURE_OVERRIDDEN)
+                elif has_failure_evidence:
+                    final_outcome = CanonicalOutcomeStatus.FAILURE.value
+                    review_dec = "FAILURE"
+                else:
+                    final_outcome = CanonicalOutcomeStatus.UNKNOWN.value
+                    review_dec = "NEEDS_MORE_EVIDENCE"
+                    reasons.append(REASON_UNVERIFIED_FAILURE_DOWNGRADED)
             else:
                 final_outcome = CanonicalOutcomeStatus.UNKNOWN.value
                 review_dec = "NEEDS_MORE_EVIDENCE"
@@ -352,20 +427,27 @@ class MemoryIngestionQualityGate:
             epistemic_score = 0.5
 
         # 8. Provenance
-        if has_evidence:
+        if has_positive_evidence:
             provenance_final = ProvenanceType.ARTIFACT_VERIFIED.value
-        elif provenance.upper() in ProvenanceType.__members__:
+        elif provenance and provenance.upper() in ProvenanceType.__members__:
             provenance_final = provenance.upper()
         else:
             provenance_final = ProvenanceType.OBSERVED.value
 
         # 9. Idempotency Fingerprint
         fingerprint = compute_idempotency_fingerprint(bank, rec_type.value, clean_title, clean_content)
-        reasons.append(REASON_OK)
+
+        if not self.enforce:
+            final_status = IngestionStatus.ACCEPTED_SHADOW
+            if REASON_SHADOW_MODE_RECORDED not in reasons:
+                reasons.append(REASON_SHADOW_MODE_RECORDED)
+        else:
+            final_status = IngestionStatus.ACCEPTED
+            reasons.append(REASON_OK)
 
         return IngestionValidationResult(
             valid=True,
-            status=IngestionStatus.ACCEPTED,
+            status=final_status,
             record_type=rec_type.value,
             outcome_applicable=out_applicable,
             outcome_status=final_outcome,
@@ -379,7 +461,9 @@ class MemoryIngestionQualityGate:
             reason_codes=reasons,
             errors=[],
             metadata={
-                "has_empirical_evidence": has_evidence,
+                "has_empirical_evidence": has_positive_evidence,
+                "has_failure_evidence": has_failure_evidence,
+                "has_recovered_attempt": has_recovered_attempt,
                 "parsed_attempts_count": len(parsed_attempts),
                 "source_reference": source_reference
             }

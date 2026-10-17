@@ -46,6 +46,7 @@ INDEXES = [
     ("Decision_bank", "CREATE INDEX decision_bank_idx IF NOT EXISTS FOR (d:Decision) ON (d.bank_id)"),
     ("Reflection_bank", "CREATE INDEX reflection_bank_idx IF NOT EXISTS FOR (r:Reflection) ON (r.bank_id)"),
     ("Pattern_bank", "CREATE INDEX pattern_bank_idx IF NOT EXISTS FOR (pat:Pattern) ON (pat.bank_id)"),
+    ("Episode_fingerprint", "CREATE INDEX episode_fingerprint_idx IF NOT EXISTS FOR (e:Episode) ON (e.dedupe_fingerprint)"),
     ("Cognitive_fulltext", """
         CREATE FULLTEXT INDEX cognitive_fulltext_idx IF NOT EXISTS
         FOR (n:Entity|Episode|Problem|Decision|Action|Outcome|Reflection|Pattern|Fact|Curiosity|Prototype|Project)

@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🧠 MemoriaGraph 3.1.1
+# 🧠 MemoriaGraph 3.1.2
 
-[![Version](https://img.shields.io/badge/version-3.1.1-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
+[![Version](https://img.shields.io/badge/version-3.1.2-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-brightgreen.svg?style=for-the-badge)](https://www.python.org/)
 [![Protocol](https://img.shields.io/badge/MCP-Standard%202.2-orange.svg?style=for-the-badge)](https://modelcontextprotocol.io/)
 [![Database](https://img.shields.io/badge/Neo4j-Graph%20Engine-008CC1.svg?style=for-the-badge&logo=neo4j)](https://neo4j.com/)
@@ -11,7 +11,7 @@
 
 *The Biomimetic Cognitive Substrate & Long-Term Memory Engine for Autonomous AI Agents and Pair Programmers.*
 
-[What is it?](#-what-is-memoriagraph) • [What's New in v3.1.1](#-whats-new-in-v311) • [v3.1 Turbo](#-the-5-pillars-of-overhead-elimination-v31-turbo) • [Evaluation & Benchmark](#-memoriagraph-31-vs-vanilla-ai-comparative-evaluation) • [Quickstart](#-quickstart--setup-guide) • [Canonical Facades](#-the-3-canonical-facades) • [Integration](#-integration-guides)
+[What is it?](#-what-is-memoriagraph) • [What's New in v3.1.2](#-whats-new-in-v312) • [v3.1 Turbo](#-the-5-pillars-of-overhead-elimination-v31-turbo) • [Evaluation & Benchmark](#-memoriagraph-31-vs-vanilla-ai-comparative-evaluation) • [Quickstart](#-quickstart--setup-guide) • [Canonical Facades](#-the-3-canonical-facades) • [Integration](#-integration-guides)
 </div>
 
 ---
@@ -39,20 +39,29 @@ flowchart LR
 
 ---
 
-## 🚀 What's New in v3.1.1
+## 🚀 What's New in v3.1.2
 
-MemoriaGraph **v3.1.1** introduces a contract-driven **Shared Memory Ingestion Quality Gate** and enterprise-grade cache reliability to eliminate memory pollution, unverified outcome hallucinations, and credential exposure across all ingestion vectors:
+MemoriaGraph **v3.1.2** delivers **Ingestion Integrity Hardening, Graph Deduplication, and Shadow Mode Governance**:
 
 | Feature / Hardening | Description | Impact |
 | :--- | :--- | :--- |
-| **Shared Ingestion Quality Gate** | Deterministic chokepoint ([`src/ingestion_gate.py`](src/ingestion_gate.py)) gating both MCP tools (`retain`, `record_cognitive_episode`) and REST API (`POST /retain`). | Zero invalid, malformed, or unvetted data reaches embeddings or Neo4j. |
-| **Hard Secret Quarantine** | Active regex & entropy scanner for OpenSSH keys, Bearer tokens, GitHub/GitLab tokens, and API secrets. Rejects hazardous inputs with `HTTP 422`. | Complete prevention of credential leaks into persistent graph & vector caches. |
-| **Evidence Grounding Engine** | Verifies claimed task outcomes against empirical anchors (commit SHA, status 200, exit code 0, test pass logs). Unverified claims automatically downgrade to `UNKNOWN` (`NEEDS_MORE_EVIDENCE`). | Eliminates cognitive false-positives and protects the Belief Revision system from corrupting heuristics. |
-| **Canonical Record Types** | Strict taxonomy (`TASK`, `INCIDENT`, `DECISION`, `CONSTRAINT`, `OBSERVATION`, `PLAN`, `REFERENCE`). Non-execution records (`PLAN`, `OBSERVATION`, etc.) are auto-neutralized to `outcome_applicable=NO` and `NOT_APPLICABLE`. | Preserves clean distinction between future intentions, observations, and verified accomplishments. |
-| **Anti-Slop Fluff Stripping** | Automated stripping of conversational filler, LLM throat-clearing (*"Certainly!"*, *"Tentu saja Bos!"*), and concluding platitudes. | Higher signal-to-noise ratio and significant token reduction during recall. |
-| **Idempotency Deduplication** | Deterministic SHA-256 fingerprinting based on canonical envelope content (`bank + record_type + title + normalized_content`). | Prevents duplicate episode and reflection nodes on repeated agent calls. |
-| **Vector Cache Reliability** | Cross-process `FileLock`, atomic file swapping via `os.replace`, and SHA-256 envelope checksum verification on `.vector_cache.pkl`. | Complete elimination of cache corruption under concurrent multi-process worker loads. |
-| **Full Regression Test Suite** | 42 comprehensive unit & integration tests ([`tests/test_ingestion_quality_gate.py`](tests/test_ingestion_quality_gate.py), [`tests/test_audit_p0_p1.py`](tests/test_audit_p0_p1.py), etc.) passing 100%. | Rigorous empirical assurance and regression prevention. |
+| **Database-Level Deduplication** | `EpisodeManager.create_episode()` checks `dedupe_fingerprint` in Neo4j prior to insert. Returns existing episode with `is_duplicate=True` if matched. | 100% idempotent write operations; duplicate node creation is physically eliminated. |
+| **Strict Empirical Success Grounding** | `check_has_empirical_evidence()` strictly isolates positive completion signals (`exit code 0`, `status 200`, `tests passed`, `commit <sha>`). Eliminates false positives from arbitrary strings or error codes. | Halts outcome hallucination; tasks claiming success without verified anchors are safely downgraded to `UNKNOWN`. |
+| **Failure Integrity & Attempt Recovery** | Validates `FAILURE` claims against empirical failure signals (`exit code [1-9]`, `stacktrace`, `OOM`). Overrides intermediate failure labels if sequential attempts culminated in verified resolution. | Prevents transient troubleshooting attempts from polluting the system as terminal failures. |
+| **Active Shadow Mode Governance** | `MEMORIAGRAPH_ENFORCE_INGESTION_GATE` actively switches between strict blocking (`QUARANTINED`/`REJECTED`) and passive observation (`ACCEPTED_SHADOW`) with full audit reason code recording. | Safe zero-downtime evaluation of gate policies in staging and production environments. |
+| **Full-Chain Provenance Tracking** | `provenance` (`OBSERVED`, `USER_REPORTED`, `INFERRED`, `ARTIFACT_VERIFIED`) and `record_type` parameters are propagated from HTTP API & MCP facade directly to Neo4j `Episode` nodes. | Complete end-to-end auditability and origin transparency for every memory node in the graph. |
+| **Sealed Write Vector Bypasses** | Added critical credential sanitization to legacy tools like `add_entity()` and indexed `dedupe_fingerprint` in Neo4j schema. | Comprehensive defense-in-depth across both primary facades and secondary utility entry points. |
+
+---
+
+### Prior Release Highlights (v3.1.1)
+
+MemoriaGraph **v3.1.1** introduced the initial contract-driven **Shared Memory Ingestion Quality Gate** and enterprise-grade cache reliability:
+- Deterministic Ingestion Gate chokepoint gating MCP tools and REST API.
+- Hard secret quarantine and Anti-Slop conversation fluff stripper.
+- Cross-process `FileLock` and atomic file swapping on `.vector_cache.pkl`.
+
+---
 
 ---
 

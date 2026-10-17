@@ -14,6 +14,9 @@ from src.ingestion_gate import (
     REASON_NON_TASK_OUTCOME_NEUTRALIZED,
     REASON_SECRET_DETECTED,
     REASON_UNVERIFIED_SUCCESS_DOWNGRADED,
+    REASON_UNVERIFIED_FAILURE_DOWNGRADED,
+    REASON_INTERMEDIATE_FAILURE_OVERRIDDEN,
+    REASON_SHADOW_MODE_RECORDED,
     compute_idempotency_fingerprint,
     detect_critical_secrets,
 )
@@ -311,3 +314,116 @@ class TestServerRetainIngestionGateIntegration:
         assert res.valid is True
         assert res.outcome_status == CanonicalOutcomeStatus.UNKNOWN.value
         assert res.review_decision == "NEEDS_MORE_EVIDENCE"
+
+
+class TestIngestionGateV312Hardening:
+    """v3.1.2 Hardening: Idempotency, Strict Grounding, Failure Integrity, Shadow Mode, Provenance, and Legacy Sanitization."""
+
+    def test_strict_positive_grounding_rejects_arbitrary_port_anchor(self, gate):
+        content = "Perbaikan service telah selesai pada port 8080."
+        res = gate.validate(
+            content=content,
+            title="Service Setup Port 8080",
+            bank_id="general",
+            record_type="TASK",
+            outcome_status="SUCCESS"
+        )
+        assert res.valid is True
+        assert res.outcome_status == CanonicalOutcomeStatus.UNKNOWN.value
+        assert res.review_decision == "NEEDS_MORE_EVIDENCE"
+        assert REASON_UNVERIFIED_SUCCESS_DOWNGRADED in res.reason_codes
+
+    def test_failure_without_failure_evidence_downgraded_to_unknown(self, gate):
+        content = "Tugas gagal dieksekusi tanpa kejelasan log atau error."
+        res = gate.validate(
+            content=content,
+            title="Tugas Gagal Tanpa Error Log",
+            bank_id="general",
+            record_type="TASK",
+            outcome_status="FAILURE"
+        )
+        assert res.valid is True
+        assert res.outcome_status == CanonicalOutcomeStatus.UNKNOWN.value
+        assert res.review_decision == "NEEDS_MORE_EVIDENCE"
+        assert REASON_UNVERIFIED_FAILURE_DOWNGRADED in res.reason_codes
+
+    def test_failure_overridden_by_subsequent_successful_recovery_attempt(self, gate):
+        attempts = [
+            {"number": 1, "action": "First migration try", "result": "exit code 1, syntax error", "status": "FAILED"},
+            {"number": 2, "action": "Fix migration script syntax", "result": "exit code 0, status 200 OK", "status": "SUCCESS"}
+        ]
+        res = gate.validate(
+            content="Menjalankan migrasi database v3.1.2.",
+            title="Migrasi Database dengan Recovery",
+            bank_id="general",
+            record_type="TASK",
+            attempts=attempts,
+            outcome_status="FAILURE"
+        )
+        assert res.valid is True
+        assert res.outcome_status == CanonicalOutcomeStatus.SUCCESS.value
+        assert REASON_INTERMEDIATE_FAILURE_OVERRIDDEN in res.reason_codes
+
+    def test_shadow_mode_passes_without_hard_blocking(self):
+        shadow_gate = MemoryIngestionQualityGate(enforce=False)
+        dangerous_payload = (
+            "Kredensial SSH root:\n"
+            "-----BEGIN OPENSSH PRIVATE KEY-----\n"
+            "b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn\n"
+            "-----END OPENSSH PRIVATE KEY-----"
+        )
+        res = shadow_gate.validate(
+            content=dangerous_payload,
+            title="Deploy Shadow Key",
+            bank_id="general"
+        )
+        assert res.valid is True
+        assert res.status == IngestionStatus.ACCEPTED_SHADOW
+        assert REASON_SECRET_DETECTED in res.reason_codes
+        assert REASON_SHADOW_MODE_RECORDED in res.reason_codes
+
+    def test_end_to_end_retain_idempotency_reuses_existing_episode(self):
+        import server
+        import uuid
+        unique_title = f"Idempotency Test Case Marker {uuid.uuid4().hex[:8]}"
+        content = "Konfigurasi idempotency check. Evidence: commit a1b2c3d, exit code 0, status 200 OK."
+        
+        # Ingestion pertama
+        msg1 = server.retain(
+            content=content,
+            title=unique_title,
+            bank_id="infra-sre",
+            record_type="TASK",
+            outcome_status="SUCCESS",
+            async_mode=False
+        )
+        assert "💾 [Retain] Berhasil mencatat memori" in msg1
+
+        # Ingestion kedua dengan payload identik
+        msg2 = server.retain(
+            content=content,
+            title=unique_title,
+            bank_id="infra-sre",
+            record_type="TASK",
+            outcome_status="SUCCESS",
+            async_mode=False
+        )
+        assert "💾 [Retain] Memori sudah ada sebelumnya (Idempoten)" in msg2
+
+        # Verifikasi bahwa hanya ada 1 node Episode di graph
+        with server.driver.session() as s:
+            rec = s.run("MATCH (e:Episode {title: $t}) RETURN count(e) as c", t=unique_title).single()
+            assert rec["c"] == 1
+
+    def test_add_entity_blocks_critical_secrets(self):
+        import server
+        secret_key = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----"
+        res = server.add_entity(
+            name="CompromisedKey",
+            entity_type="Config",
+            description=f"Secret credentials: {secret_key}"
+        )
+        assert "🚫 [IngestionGate: QUARANTINED]" in res
+        with server.driver.session() as s:
+            rec = s.run("MATCH (n:Entity {name: 'CompromisedKey'}) RETURN count(n) as c").single()
+            assert rec["c"] == 0
