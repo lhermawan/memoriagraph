@@ -9,11 +9,24 @@ Dilebur menggunakan Reciprocal Rank Fusion (RRF, k=60).
 """
 
 import datetime
+import hashlib
 import os
 import pickle
 import re
 import sys
+import threading
+import time
 from typing import Any
+
+try:
+    from filelock import FileLock, Timeout
+except ImportError:
+    import contextlib
+    @contextlib.contextmanager
+    def FileLock(path, timeout=10):
+        yield
+    class Timeout(Exception):
+        pass
 
 import dotenv
 import numpy as np
@@ -24,7 +37,7 @@ dotenv.load_dotenv("/opt/memoriagraph/.env")
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
-VECTOR_CACHE_FILE = "/opt/memoriagraph/.vector_cache.pkl"
+VECTOR_CACHE_FILE = os.getenv("VECTOR_CACHE_FILE", "/opt/memoriagraph/.vector_cache.pkl")
 
 # Lazy-loaded singleton FastEmbed model
 _EMBED_MODEL = None
@@ -67,7 +80,8 @@ class HybridRecallEngine:
     def __init__(self, k_rrf: int = 60, auto_sync_vectors: bool = True):
         self.k_rrf = k_rrf
         self.driver = get_driver()
-        self.vector_cache: dict[str, Any] = {} # node_id -> {title, labels, summary, vec, ...}
+        self._cache_lock = threading.Lock()
+        self.vector_cache: dict[str, Any] = {} # node_id -> {title, labels, summary, fingerprint, vec, ...}
         self.matrix_node_ids: list[str] = []
         self.vector_matrix: np.ndarray | None = None
         
@@ -81,24 +95,82 @@ class HybridRecallEngine:
         if self.driver:
             self.driver.close()
 
+    @property
+    def _lock_file_path(self) -> str:
+        return f"{VECTOR_CACHE_FILE}.lock"
+
     def _load_vector_cache(self):
-        """Memuat cache vektor dari disk jika tersedia."""
-        if os.path.exists(VECTOR_CACHE_FILE):
-            try:
-                with open(VECTOR_CACHE_FILE, "rb") as f:
-                    self.vector_cache = pickle.load(f)
-                self._rebuild_matrix()
-            except Exception as e:
-                print(f"⚠️ Gagal memuat vector cache: {e}", file=sys.stderr)
-                self.vector_cache = {}
+        """Memuat cache vektor dari disk secara aman dengan cross-process lock, validasi checksum, dan auto-recovery jika korup."""
+        with self._cache_lock:
+            if os.path.exists(VECTOR_CACHE_FILE):
+                lock_path = self._lock_file_path
+                try:
+                    with FileLock(lock_path, timeout=10):
+                        with open(VECTOR_CACHE_FILE, "rb") as f:
+                            raw = pickle.load(f)
+                    if isinstance(raw, dict) and raw.get("schema_version") == 2 and "data" in raw:
+                        if "checksum" in raw:
+                            data_bytes = pickle.dumps(raw["data"], protocol=pickle.HIGHEST_PROTOCOL)
+                            expected_checksum = hashlib.sha256(data_bytes).hexdigest()
+                            if raw["checksum"] != expected_checksum:
+                                raise ValueError(f"Envelope checksum mismatch: {raw['checksum']} vs {expected_checksum}")
+                        self.vector_cache = raw["data"]
+                    elif isinstance(raw, dict):
+                        # Kompatibilitas mundur dengan raw dict v1
+                        self.vector_cache = raw
+                    else:
+                        raise ValueError("Format cache vektor tidak valid atau tidak dikenali.")
+                    self._rebuild_matrix()
+                except Exception as e:
+                    print(f"⚠️ Gagal memuat vector cache: {e}. Mengisolasi cache rusak & menjadwalkan recovery...", file=sys.stderr)
+                    corrupt_path = f"{VECTOR_CACHE_FILE}.corrupted.{int(time.time())}"
+                    try:
+                        with FileLock(lock_path, timeout=5):
+                            if os.path.exists(VECTOR_CACHE_FILE):
+                                os.rename(VECTOR_CACHE_FILE, corrupt_path)
+                                print(f"📦 Cache rusak diisolasi ke: {corrupt_path}", file=sys.stderr)
+                    except Exception as rename_err:
+                        print(f"⚠️ Gagal mengisolasi cache rusak: {rename_err}", file=sys.stderr)
+                    self.vector_cache = {}
+                    self._rebuild_matrix()
 
     def _save_vector_cache(self):
-        """Menyimpan cache vektor ke disk."""
-        try:
-            with open(VECTOR_CACHE_FILE, "wb") as f:
-                pickle.dump(self.vector_cache, f)
-        except Exception as e:
-            print(f"⚠️ Gagal menyimpan vector cache: {e}", file=sys.stderr)
+        """
+        Menyimpan cache vektor ke disk secara ATOMIK (write to tmp -> flush -> fsync -> atomic replace).
+        Menyertakan amplop metadata versi, SHA-256 checksum, dan koordinasi lintas proses (FileLock).
+        """
+        with self._cache_lock:
+            cache_dir = os.path.dirname(os.path.abspath(VECTOR_CACHE_FILE)) or "."
+            os.makedirs(cache_dir, exist_ok=True)
+            lock_path = self._lock_file_path
+            temp_path = f"{VECTOR_CACHE_FILE}.tmp.{os.getpid()}.{threading.get_ident()}"
+
+            data_bytes = pickle.dumps(self.vector_cache, protocol=pickle.HIGHEST_PROTOCOL)
+            checksum = hashlib.sha256(data_bytes).hexdigest()
+            envelope = {
+                "schema_version": 2,
+                "model": "BAAI/bge-small-en-v1.5",
+                "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "node_count": len(self.vector_cache),
+                "checksum": checksum,
+                "data": self.vector_cache
+            }
+            try:
+                with open(temp_path, "wb") as f:
+                    pickle.dump(envelope, f, protocol=pickle.HIGHEST_PROTOCOL)
+                    f.flush()
+                    os.fsync(f.fileno())
+                with FileLock(lock_path, timeout=15):
+                    os.replace(temp_path, VECTOR_CACHE_FILE)
+            except Timeout:
+                print(f"⚠️ [HybridRecall] Timeout ({lock_path}) saat menyimpan vector cache!", file=sys.stderr)
+            except Exception as e:
+                print(f"⚠️ Gagal menyimpan vector cache secara atomik: {e}", file=sys.stderr)
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
 
     def _rebuild_matrix(self):
         """Membangun matriks numpy untuk perbandingan kosinus instan (<1ms)."""
@@ -108,17 +180,29 @@ class HybridRecallEngine:
             return
             
         self.matrix_node_ids = list(self.vector_cache.keys())
-        vecs = [self.vector_cache[nid]["vector"] for nid in self.matrix_node_ids]
+        vecs = [self.vector_cache[nid]["vector"] for nid in self.matrix_node_ids if "vector" in self.vector_cache[nid]]
+        if not vecs:
+            self.vector_matrix = None
+            self.matrix_node_ids = []
+            return
         mat = np.array(vecs, dtype=np.float32)
         # Normalisasi baris
         norms = np.linalg.norm(mat, axis=1, keepdims=True)
         norms[norms == 0] = 1.0
         self.vector_matrix = mat / norms
 
+    @staticmethod
+    def _compute_fingerprint(title: str, summary: str) -> str:
+        content_bytes = f"{title.strip()}|{summary.strip()}".encode("utf-8")
+        return hashlib.sha256(content_bytes).hexdigest()[:16]
+
     def sync_vector_cache(self):
         """
         Sinkronisasi embedding node dari Neo4j ke vector cache lokal.
-        Hanya meng-embed node baru yang belum ada di cache.
+        Fitur Keandalan (Audit P0-2):
+        1. Pruning stale nodes: Hapus node di cache yang sudah dihapus dari Neo4j.
+        2. Invalidation update: Re-embed jika judul atau ringkasan node berubah (via fingerprint).
+        3. Atomic persistence: Menyimpan state bersih via atomic replace.
         """
         embedder = get_embed_model()
         if not embedder:
@@ -139,39 +223,67 @@ class HybridRecallEngine:
                 coalesce(n.bank_id, 'general') AS bank_id
             """).data()
 
-        # Selalu update properti bank_id jika berubah
+        live_node_ids = {n["node_id"] for n in nodes}
+        cache_modified = False
+
+        # 1. Prune deleted / stale nodes
+        stale_ids = [nid for nid in list(self.vector_cache.keys()) if nid not in live_node_ids]
+        if stale_ids:
+            for sid in stale_ids:
+                del self.vector_cache[sid]
+            cache_modified = True
+            print(f"🧹 [HybridRecall] {len(stale_ids)} stale/deleted nodes dipangkas dari cache.", file=sys.stderr)
+
+        # 2. Periksa update bank_id dan fingerprint
+        nodes_to_embed = []
         for n in nodes:
             nid = n["node_id"]
-            if nid in self.vector_cache:
-                self.vector_cache[nid]["bank_id"] = n.get("bank_id", "general")
+            title = n["title"]
+            summary = n["summary"]
+            fp = self._compute_fingerprint(title, summary)
+            n["fingerprint"] = fp
 
-        new_nodes = [n for n in nodes if n["node_id"] not in self.vector_cache]
-        if not new_nodes:
+            if nid in self.vector_cache:
+                cached_entry = self.vector_cache[nid]
+                if cached_entry.get("bank_id") != n.get("bank_id", "general"):
+                    cached_entry["bank_id"] = n.get("bank_id", "general")
+                    cache_modified = True
+                # Jika sudah punya vektor valid tapi belum ada fingerprint (migrasi dari v1):
+                # Backfill fingerprint tanpa re-embedding seluruh graf!
+                if "vector" in cached_entry and cached_entry.get("fingerprint") is None:
+                    cached_entry["fingerprint"] = fp
+                    cache_modified = True
+                elif cached_entry.get("fingerprint") != fp:
+                    nodes_to_embed.append(n)
+            else:
+                nodes_to_embed.append(n)
+
+        # 3. Lakukan embedding untuk node baru atau yang berubah
+        if nodes_to_embed:
+            texts = [f"{n['title']}. {n['summary']}".strip() for n in nodes_to_embed]
+            new_vecs = list(embedder.embed(texts))
+
+            for n, v in zip(nodes_to_embed, new_vecs):
+                self.vector_cache[n["node_id"]] = {
+                    "node_id": n["node_id"],
+                    "labels": n["labels"],
+                    "title": n["title"],
+                    "summary": n["summary"],
+                    "timestamp": n["timestamp"],
+                    "timestamp_start": n["timestamp_start"],
+                    "category": n["category"],
+                    "bank_id": n.get("bank_id", "general"),
+                    "fingerprint": n["fingerprint"],
+                    "vector": np.array(v, dtype=np.float32)
+                }
+            cache_modified = True
+
+        if cache_modified:
             self._save_vector_cache()
             self._rebuild_matrix()
-            return
-
-        texts = [f"{n['title']}. {n['summary']}".strip() for n in new_nodes]
-        new_vecs = list(embedder.embed(texts))
-
-        for n, v in zip(new_nodes, new_vecs):
-            self.vector_cache[n["node_id"]] = {
-                "node_id": n["node_id"],
-                "labels": n["labels"],
-                "title": n["title"],
-                "summary": n["summary"],
-                "timestamp": n["timestamp"],
-                "timestamp_start": n["timestamp_start"],
-                "category": n["category"],
-                "bank_id": n.get("bank_id", "general"),
-                "vector": np.array(v, dtype=np.float32)
-            }
-
-        self._save_vector_cache()
-        self._rebuild_matrix()
-        if hasattr(self, "_query_cache"):
-            self._query_cache.clear()
-        print(f"✅ [HybridRecall] Vector cache tersinkronisasi ({len(self.vector_cache)} node aktif).", file=sys.stderr)
+            if hasattr(self, "_query_cache"):
+                self._query_cache.clear()
+            print(f"✅ [HybridRecall] Vector cache tersinkronisasi ({len(self.vector_cache)} node aktif).", file=sys.stderr)
 
     def _channel_bm25(self, session, lucene_query: str, limit: int = 25, bank_id: str | None = None) -> list[dict[str, Any]]:
         """Jalur 1: BM25 Fulltext Search via Neo4j cognitive_fulltext_idx dengan Memory Bank filter."""
@@ -243,8 +355,17 @@ class HybridRecallEngine:
         if "kemarin" in q_lower or "yesterday" in q_lower:
             yesterday = now - datetime.timedelta(days=1)
             target_dates.append(yesterday.strftime("%Y-%m-%d"))
+
+        recency_keywords = ["terbaru", "recent", "latest", "terkini", "terakhir"]
+        has_recency_intent = any(rw in q_lower for rw in recency_keywords)
             
-        if not target_dates:
+        if not target_dates and not has_recency_intent:
+            # PENTING (Audit P1-1): Jika tidak ada petunjuk tanggal dan tidak ada intensi 'terbaru',
+            # JANGAN suntikkan 25 episode acak ke RRF! Kembalikan [] agar RRF dipimpin oleh
+            # BM25, Graph Traversal, dan Dense Vector Semantic Similarity secara obyektif.
+            return []
+
+        if not target_dates and has_recency_intent:
             cypher = """
             MATCH (e:Episode)
             WHERE e.timestamp_start IS NOT NULL AND ($bank IS NULL OR coalesce(e.bank_id, 'general') = $bank)

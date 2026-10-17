@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import threading
 import datetime
@@ -12,8 +13,9 @@ from src.episode_manager import EpisodeManager
 from src.event_logger import log_raw_event
 from src.hybrid_recall import HybridRecallEngine
 from src.sanitizer import sanitize_data
-from src.semantic_sanitizer import strip_conversational_fluff
+from src.semantic_sanitizer import strip_conversational_fluff, slugify_bank_id
 from src.harvester import harvester
+from src.ingestion_gate import ingestion_gate
 
 # Load environment variables
 load_dotenv("/opt/memoriagraph/.env")
@@ -27,14 +29,14 @@ mcp = MCPServer("MemoriaGraph")
 try:
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     driver.verify_connectivity()
-    print("MemoriaGraph 3.1: Berhasil terhubung ke database Neo4j!", file=sys.stderr)
+    print("MemoriaGraph 3.1.1: Berhasil terhubung ke database Neo4j!", file=sys.stderr)
 except Exception as e:
     print(f"Warning: Tidak bisa terhubung ke Neo4j. Error: {e}", file=sys.stderr)
     driver = None
 
 try:
     recall_engine = HybridRecallEngine(k_rrf=60)
-    print("MemoriaGraph 3.1: Hybrid Recall Engine (4-Way RRF) aktif!", file=sys.stderr)
+    print("MemoriaGraph 3.1.1: Hybrid Recall Engine (4-Way RRF) aktif!", file=sys.stderr)
 except Exception as e:
     print(f"Warning: Gagal inisialisasi HybridRecallEngine: {e}", file=sys.stderr)
     recall_engine = None
@@ -42,6 +44,53 @@ except Exception as e:
 # ==========================================
 # 💎 PILAR 1: CANONICAL HINDSIGHT FACADES
 # ==========================================
+
+def infer_outcome_status(
+    content: str,
+    title: str = "",
+    attempts_list: list | None = None,
+    explicit_status: str = ""
+) -> str:
+    """
+    Menentukan outcome status secara obyektif berdasarkan bukti nyata:
+    - Jika eksplisit diberikan, gunakan status tersebut.
+    - Jika ada attempts yang semuanya FAILED tanpa RESOLVED -> FAILURE.
+    - Jika ada kata kunci kegagalan eksplisit tanpa bukti resolusi -> FAILURE.
+    - Jika ada bukti empiris penyelesaian/sukses -> SUCCESS.
+    - Selain itu -> UNKNOWN (mencegah bias sukses 100%).
+    """
+    if explicit_status and explicit_status.strip().upper() not in ["", "AUTO", "DEFAULT", "UNKNOWN"]:
+        return explicit_status.strip().upper()
+
+    combined = f"{title} {content}".lower()
+
+    if attempts_list:
+        statuses = [str(a.get("status", "")).upper() for a in attempts_list if isinstance(a, dict)]
+        if statuses and all(s in ["FAILED", "FAILURE"] for s in statuses):
+            return "FAILURE"
+        if any(s in ["SUCCESS", "RESOLVED"] for s in statuses):
+            return "SUCCESS"
+
+    success_indicators = [
+        "berhasil", "sukses", "resolved", "lulus uat", "exit code 0",
+        "status 200", "fixed", "selesai 100%", "fix confirmed"
+    ]
+    failure_indicators = [
+        "gagal", "error", "crash", "failed", "incident", "exception",
+        "timeout", "panic", "terkendala", "broken", "tidak bisa"
+    ]
+
+    has_success = any(re.search(r'\b' + re.escape(w) + r'\b', combined) for w in success_indicators)
+    has_failure = any(re.search(r'\b' + re.escape(w) + r'\b', combined) for w in failure_indicators)
+
+    if has_failure and not has_success:
+        return "FAILURE"
+    if has_success and not has_failure:
+        return "SUCCESS"
+    if has_success and has_failure:
+        return "PARTIAL"
+
+    return "UNKNOWN"
 
 @mcp.tool()
 def retain(
@@ -52,31 +101,46 @@ def retain(
     heuristic: str = "",
     decision: str = "",
     attempts: str = "",
+    outcome_status: str = "UNKNOWN",
     async_mode: bool = True
 ) -> str:
     """
     [MemoriaGraph 3.1 Facade] Menyimpan unit memori/pengetahuan/episode ke Memory Bank spesifik.
     Bank: 'infra-sre', 'ai-hud', 'research-personal', 'csirt-security', 'general'.
+    Outcome status: 'SUCCESS', 'FAILURE', 'PARTIAL', 'UNKNOWN'.
     Mendukung async background harvesting (Pilar 2) untuk inferensi ultra-cepat.
     """
     if not driver:
         return "Error: Database Neo4j offline."
 
-    bank = bank_id.strip().lower() if bank_id else "general"
-    clean_content = strip_conversational_fluff(content)
+    # Shared Memory Ingestion Quality Gate
+    val = ingestion_gate.validate(
+        content=content,
+        title=title,
+        bank_id=bank_id,
+        category=category,
+        outcome_status=outcome_status,
+        attempts=attempts,
+        source_reference="retain-facade"
+    )
 
-    if not title:
-        first_line = clean_content.split("\n")[0].strip()
-        title = (first_line[:60] + "...") if len(first_line) > 60 else first_line
-        if not title:
-            title = f"Memori {category.title()} ({bank})"
+    if not val.valid:
+        return f"🚫 [IngestionGate: {val.status.value}] {', '.join(val.errors)}"
+
+    bank = val.bank
+    clean_content = val.sanitized_content
+    title = val.sanitized_title
+    final_outcome = val.outcome_status
 
     mgr = EpisodeManager()
     ep = mgr.create_episode(
         title=title,
         category=category,
         objective=clean_content[:150],
-        context=bank
+        context=bank,
+        record_type=val.record_type,
+        outcome_applicable=val.outcome_applicable,
+        dedupe_fingerprint=val.fingerprint
     )
     ep_id = ep["id"]
 
@@ -84,10 +148,11 @@ def retain(
     with driver.session() as s:
         s.run("MATCH (e:Episode {id: $id}) SET e.bank_id = $bank", id=ep_id, bank=bank)
 
+    parsed_attempts = []
     if attempts:
         try:
-            att_list = json.loads(attempts) if isinstance(attempts, str) else attempts
-            for att in att_list:
+            parsed_attempts = json.loads(attempts) if isinstance(attempts, str) else attempts
+            for att in parsed_attempts:
                 mgr.add_attempt(
                     episode_id=ep_id,
                     attempt_number=int(att.get("number", 1)),
@@ -108,7 +173,7 @@ def retain(
 
     mgr.complete_episode(
         episode_id=ep_id,
-        outcome_status="SUCCESS",
+        outcome_status=final_outcome,
         reflection_lesson=clean_content,
         heuristic=heuristic or clean_content[:120]
     )
@@ -128,7 +193,7 @@ def retain(
         else:
             recall_engine.sync_vector_cache()
 
-    return f"💾 [Retain] Berhasil mencatat memori ke Bank '{bank}': '{title}' [ID: {ep_id}]."
+    return f"💾 [Retain] Berhasil mencatat memori ke Bank '{bank}' [Type: {val.record_type}, Outcome: {final_outcome}]: '{title}' [ID: {ep_id}]."
 
 @mcp.tool()
 def recall(
@@ -299,6 +364,7 @@ def record_cognitive_episode(
         heuristic=reflection_heuristic,
         decision=decision_choice,
         attempts=attempts,
+        outcome_status=outcome_status,
         async_mode=True
     )
 
@@ -580,7 +646,7 @@ def start_http_background_server():
         async def health(request):
             return JSONResponse({
                 "status": "healthy",
-                "service": "MemoriaGraph 3.1",
+                "service": "MemoriaGraph 3.1.1",
                 "engine": "4-Way Hybrid Recall (RRF)",
                 "pid": os.getpid()
             })

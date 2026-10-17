@@ -1,0 +1,79 @@
+{
+  "mission_id": "MG-RESEARCH-2026-10-17",
+  "target_system": "MemoriaGraph v3.1",
+  "phase": "POST_FIX",
+  "timestamp": "2026-10-17T01:50:00+07:00",
+  "environment": {
+    "host": "vm-maskii",
+    "tailscale_ip": "100.79.34.4",
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "neo4j_version": "5.x Enterprise (Docker)",
+    "embedding_model": "BAAI/bge-small-en-v1.5 (FastEmbed ONNX Int8)"
+  },
+  "metrics": {
+    "test_suite": {
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "duration_sec": 4.84
+    },
+    "hybrid_recall_rrf": {
+      "mean_latency_ms": 52.50,
+      "cold_start_latency_ms": 170.42,
+      "warm_latencies_ms": [27.70, 21.81, 19.64, 22.92],
+      "sample_queries": 5,
+      "iterations_per_query": 5,
+      "temporal_noise_eliminated": true
+    },
+    "personal_dss": {
+      "mean_latency_ms": 8.08,
+      "queries": {
+        "memory leak": {"latency_ms": 10.81, "matches": 1},
+        "port security": {"latency_ms": 6.02, "matches": 10},
+        "automated backup": {"latency_ms": 7.41, "matches": 4}
+      },
+      "supports_failure_and_partial_tracking": true
+    },
+    "belief_revision_index": {
+      "latency_ms": 12.36,
+      "active_items": 20,
+      "idempotency_guard": true
+    },
+    "graph_visualizer_3d": {
+      "latency_ms": 89.53,
+      "nodes_exported": 100,
+      "links_exported": 121
+    },
+    "semantic_anti_slop_pipeline": {
+      "throughput_ms_per_payload": 0.245,
+      "ops_per_second": 4088,
+      "false_certainty_mitigated": true
+    },
+    "vector_cache": {
+      "file_path": "/opt/memoriagraph/.vector_cache.pkl",
+      "file_size_human": "8.7 MB",
+      "active_nodes": 4321,
+      "schema_version": 2,
+      "atomic_write": true,
+      "stale_pruning": true,
+      "text_fingerprint_check": true,
+      "corruption_auto_recovery": true
+    },
+    "episode_outcome_classification": {
+      "hardcoded_success_removed": true,
+      "supported_statuses": ["SUCCESS", "FAILURE", "PARTIAL", "UNKNOWN"],
+      "verified_outcomes_in_neo4j": {
+        "UAT Failure Test": "FAILURE",
+        "UAT Success Test": "SUCCESS",
+        "UAT Neutral Test": "UNKNOWN",
+        "UAT Slug Test": "UNKNOWN"
+      }
+    },
+    "bank_slugification": {
+      "enforced": true,
+      "max_length": 32,
+      "regex": "^[a-z0-9\\-]+$"
+    }
+  }
+}

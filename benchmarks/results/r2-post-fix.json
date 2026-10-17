@@ -1,0 +1,116 @@
+{
+  "mission_id": "MG-RESEARCH-2026-10-17-R2",
+  "target_system": "MemoriaGraph v3.1",
+  "phase": "R2_INDEPENDENT_VERIFICATION",
+  "timestamp": "2026-10-16T19:19:11.892746+00:00",
+  "environment": {
+    "host": "vm-maskii",
+    "python_version": "3.12.3",
+    "neo4j_version": "5.x Enterprise (Docker)",
+    "embedding_model": "BAAI/bge-small-en-v1.5 (FastEmbed ONNX Int8)",
+    "sample_policy": "N=30 iterations per query/operation; min/median/p95/max recorded"
+  },
+  "metrics": {
+    "hybrid_recall_rrf": {
+      "cold_start_ms": 791.72,
+      "uncached_4way_rrf": {
+        "n": 30,
+        "median": 100.66,
+        "p95": 131.97,
+        "mean": 102.43,
+        "min": 74.89,
+        "max": 147.32,
+        "stddev": 17.68,
+        "cold_start_ms": 791.72
+      },
+      "cached_query_hits": {
+        "n": 30,
+        "median": 0.0,
+        "p95": 105.27,
+        "mean": 14.2,
+        "min": 0.0,
+        "max": 112.35,
+        "stddev": 36.84
+      }
+    },
+    "personal_dss": {
+      "n": 30,
+      "median": 4.77,
+      "p95": 12.88,
+      "mean": 6.34,
+      "min": 3.46,
+      "max": 18.02,
+      "stddev": 3.63
+    },
+    "belief_revision_index": {
+      "n": 30,
+      "median": 3.67,
+      "p95": 4.47,
+      "mean": 3.8,
+      "min": 3.06,
+      "max": 6.36,
+      "stddev": 0.65,
+      "active_items": 20
+    },
+    "graph_visualizer_3d": {
+      "n": 30,
+      "median": 28.04,
+      "p95": 43.58,
+      "mean": 31.04,
+      "min": 19.09,
+      "max": 46.62,
+      "stddev": 7.74,
+      "cold_start_ms": 19.91,
+      "nodes_exported": 100,
+      "links_exported": 121
+    },
+    "semantic_anti_slop": {
+      "n": 100,
+      "median": 0.21,
+      "p95": 0.24,
+      "mean": 0.3,
+      "min": 0.18,
+      "max": 9.16,
+      "stddev": 0.9,
+      "ops_per_second": 3333
+    },
+    "retain_write_persistence_sync": {
+      "n": 5,
+      "median": 1160.56,
+      "p95": 1242.05,
+      "mean": 1190.94,
+      "min": 1021.85,
+      "max": 1412.94,
+      "stddev": 147.34
+    },
+    "retain_receipt_async": {
+      "n": 10,
+      "median": 134.56,
+      "p95": 211.36,
+      "mean": 152.79,
+      "min": 86.02,
+      "max": 247.81,
+      "stddev": 53.02
+    },
+    "vector_cache": {
+      "file_path": "/opt/memoriagraph/.vector_cache.pkl",
+      "file_size_human": "8.8 MB",
+      "file_size_bytes": 9250177,
+      "active_nodes": 4381,
+      "schema_version": 2,
+      "has_checksum": true,
+      "cross_process_filelock": true,
+      "atomic_replace": true
+    },
+    "graph_database": {
+      "total_nodes": 5185,
+      "total_relationships": 11931,
+      "total_episodes": 219
+    },
+    "system_memory_rss": {
+      "neo4j_jvm_mb": 1636.1,
+      "python_procs_mb": 1663.5,
+      "total_mb": 3299.6
+    }
+  }
+}

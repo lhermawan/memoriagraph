@@ -14,8 +14,8 @@ from src.sanitizer import sanitize_data
 
 # Pola pembuka klise AI (throat-clearing)
 AI_PREFACE_PATTERNS = [
-    r"^(certainly!|sure!|of course!|sure thing!|as requested,?)\s*",
-    r"^(tentu saja!|tentu!|siap bos!|dengan senang hati!|berikut adalah|berikut ini)\s*[\:\,\.]?\s*",
+    r"^(certainly!?|sure!?|of course!?|sure thing!?|as requested,?)\s*",
+    r"^(tentu saja!?(\s+bos!?)?|tentu!?|siap bos!?|dengan senang hati!?|berikut adalah|berikut ini)\s*[\:\,\.]?\s*",
     r"^(here is|here are|below is|the following is|in this section,?)\s*[\:\,\.]?\s*",
     r"^(sebagai model ai|as an ai language model|as an assistant),?\s*",
     r"^(perlu dicatat bahwa|perlu diingat bahwa|harap perhatikan bahwa),?\s*",
@@ -24,7 +24,7 @@ AI_PREFACE_PATTERNS = [
 
 # Pola penutup klise AI (concluding fluff)
 AI_CLOSING_PATTERNS = [
-    r"\s*(semoga ini membantu!?|semoga bermanfaat!?|semoga berhasil!?)$",
+    r"\s*(semoga\s+(ini\s+)?(membantu|bermanfaat|berhasil)!?(\s+dan\s+bermanfaat!?)?)$",
     r"\s*(hope this helps!?|hope that helps!?|let me know if you need anything else!?)$",
     r"\s*(feel free to ask if you have any questions!?)$",
     r"\s*(jika ada pertanyaan lebih lanjut,? jangan ragu untuk bertanya\.?)$",
@@ -39,16 +39,17 @@ OBVIOUS_CODE_COMMENTS = [
     r"^\s*//\s*(increment\s+.*|loop\s+.*|check\s+condition)$",
 ]
 
-# Indikator bukti empiris (Evidence Grounding)
+# Indikator bukti empiris nyata (Evidence Grounding: metrik, exit code, telemetri, test pass)
 EMPIRICAL_ANCHORS = [
     r"\bexit\s+code\s+\d+\b",
     r"\bcode\s+[0-9]+\b",
-    r"\bstatus\s+[2-5][0-9]{2}\b",
-    r"\b\d+(\.\d+)?\s*(%|mb|gb|tb|ms|s|sec|seconds|kbps|mbps|ghz|mhz|cores|threads)\b",
-    r"\b(pm2|docker|container|systemd|tailscale|kvm|qemu)\b",
-    r"\b(pid\s+\d+|port\s+\d+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\b",
+    r"\bstatus\s+(code\s+)?([2-5][0-9]{2}|ok|running|active|exited)\b",
+    r"\b\d+(\.\d+)?\s*(%|mb|gb|tb|ms|s|sec|seconds|kbps|mbps|ghz|mhz|cores|threads)\b\s*(usage|load|latency|free|consumed|overhead|memory|cpu)?",
+    r"\b(pid\s+\d+|port\s+\d+|127\.0\.0\.1:[0-9]+|100\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\b",
     r"\b[0-9a-f]{7,40}\b", # Git hash
-    r"/(bin|usr|opt|etc|home|root|var|sys|proc)/[a-zA-Z0-9_\-\./]+", # Unix path
+    r"\b\d+\s+passed\s+in\s+[\d\.]+s\b", # Test runner pass evidence
+    r"\b(lulus|passed|verified)\s+(uat|test|audit|benchmark)\b",
+    r"/(bin|usr|opt|etc|home|root|var|sys|proc)/[a-zA-Z0-9_\-\./]+", # Unix path eksplisit
 ]
 
 # Kata-kata indikator spekulasi / hipotesis
@@ -102,6 +103,8 @@ def classify_epistemic_grounding(statement: str, claimed_status: str | None = No
     """
     Quality Gate Epistemologis:
     Memverifikasi apakah suatu klaim adalah FACT (didukung data empiris riil),
+    OBSERVATION (pengamatan operasional terverifikasi),
+    CLAIM (laporan/klaim subjektif),
     INFERENCE (penalaran logis tanpa metrik riil), atau HYPOTHESIS (dugaan spekulatif).
     Mengembalikan (label_epistemik, skor_kepercayaan_awal).
     """
@@ -116,19 +119,28 @@ def classify_epistemic_grounding(statement: str, claimed_status: str | None = No
     # 2. Cek keberadaan bukti empiris riil
     empirical_hits = sum(1 for pat in EMPIRICAL_ANCHORS if re.search(pat, text_lower))
     
-    # Logika Epistemik Anti-Slop
-    if speculative_hits > 0 and empirical_hits == 0:
-        return "HYPOTHESIS", 0.40
+    # Logika Epistemik Anti-Slop & Anti-Hallucination
+    if speculative_hits > 0:
+        return "HYPOTHESIS", 0.35 if empirical_hits == 0 else 0.45
         
-    if empirical_hits >= 1 and speculative_hits == 0:
+    if claimed_status:
+        c_upper = claimed_status.upper()
+        if c_upper in ["HYPOTHESIS", "SPECULATION"]:
+            return "HYPOTHESIS", 0.40
+        if c_upper in ["CLAIM", "USER_REPORT"]:
+            return "CLAIM", 0.50
+        if c_upper == "OBSERVATION" and empirical_hits >= 1:
+            return "OBSERVATION", 0.90
+
+    if empirical_hits >= 2 and speculative_hits == 0:
         return "FACT", 0.95
+
+    if empirical_hits == 1 and speculative_hits == 0:
+        return "FACT", 0.90
         
     if claimed_status and claimed_status.upper() in ["FACT", "OBSERVATION"] and empirical_hits == 0:
         # Klaim mengaku FACT tapi tidak menyertakan bukti telemetri/log nyata -> downgrade ke INFERENCE
         return "INFERENCE", 0.60
-        
-    if claimed_status and claimed_status.upper() in ["HYPOTHESIS", "SPECULATION"]:
-        return "HYPOTHESIS", 0.45
         
     return "INFERENCE", 0.65
 
@@ -183,3 +195,20 @@ def clean_cognitive_payload(data: dict[str, Any]) -> dict[str, Any]:
     sanitized["initial_epistemic_confidence"] = conf
     
     return sanitized
+
+def slugify_bank_id(bank_id: str | None) -> str:
+    """
+    Menstandarkan bank_id agar bersih, aman, dan konsisten:
+    - Huruf kecil, hanya a-z, 0-9, dan hyphens
+    - Maksimal 32 karakter
+    - Fallback ke 'general' jika kosong/tidak valid
+    """
+    if not bank_id or not isinstance(bank_id, str):
+        return "general"
+    
+    slug = re.sub(r'[^a-zA-Z0-9\-]+', '-', bank_id.strip().lower())
+    slug = re.sub(r'-+', '-', slug).strip('-')
+    if not slug:
+        return "general"
+    return slug[:32]
+

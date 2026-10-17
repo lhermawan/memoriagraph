@@ -152,8 +152,24 @@ def reinforce_belief(
         """
         s.run(update_query, elem_id=record["elem_id"], new_e=new_e, new_s=new_s, new_status=new_status, now=now_iso)
 
-        # Hubungkan ke Episode jika ada
         if episode_id:
+            already_confirmed = s.run("""
+            MATCH (e:Episode {id: $ep_id})-[r:CONFIRMED_HEURISTIC]->(n)
+            WHERE elementId(n) = $elem_id
+            RETURN count(r) AS c
+            """, ep_id=episode_id, elem_id=record["elem_id"]).single()["c"]
+            if already_confirmed > 0:
+                return {
+                    "status": "ALREADY_CONFIRMED",
+                    "id": record["id"],
+                    "previous_score": cur_s,
+                    "new_score": cur_s,
+                    "evidence_count": cur_e,
+                    "belief_status": record["status"],
+                    "crystallized": False,
+                    "message": "Episode ini sudah pernah mengonfirmasi keyakinan tersebut (idempotent)."
+                }
+
             s.run("""
             MATCH (e:Episode {id: $ep_id})
             MATCH (n) WHERE elementId(n) = $elem_id
@@ -235,6 +251,22 @@ def challenge_belief(
         s.run(update_query, elem_id=record["elem_id"], new_c=new_c, new_s=new_s, new_status=new_status, now=now_iso)
 
         if episode_id:
+            already_challenged = s.run("""
+            MATCH (e:Episode {id: $ep_id})-[r:CHALLENGED_HEURISTIC]->(n)
+            WHERE elementId(n) = $elem_id
+            RETURN count(r) AS c
+            """, ep_id=episode_id, elem_id=record["elem_id"]).single()["c"]
+            if already_challenged > 0:
+                return {
+                    "status": "ALREADY_CHALLENGED",
+                    "id": record["id"],
+                    "previous_score": cur_s,
+                    "new_score": cur_s,
+                    "counter_evidence_count": cur_c,
+                    "belief_status": record["status"],
+                    "message": "Episode ini sudah pernah menantang keyakinan tersebut (idempotent)."
+                }
+
             s.run("""
             MATCH (e:Episode {id: $ep_id})
             MATCH (n) WHERE elementId(n) = $elem_id

@@ -103,9 +103,10 @@ def query_personal_dss(
 
     driver.close()
 
-    success_count = sum(1 for r in results if r.get("outcome") == "SUCCESS")
-    failed_count = sum(1 for r in results if r.get("outcome") == "FAILED")
-    partial_count = sum(1 for r in results if r.get("outcome") == "PARTIAL_SUCCESS")
+    success_count = sum(1 for r in results if (r.get("outcome") or "").upper() == "SUCCESS")
+    failed_count = sum(1 for r in results if (r.get("outcome") or "").upper() in ["FAILED", "FAILURE"])
+    partial_count = sum(1 for r in results if (r.get("outcome") or "").upper() in ["PARTIAL", "PARTIAL_SUCCESS"])
+    unknown_count = sum(1 for r in results if (r.get("outcome") or "").upper() not in ["SUCCESS", "FAILED", "FAILURE", "PARTIAL", "PARTIAL_SUCCESS"])
 
     episodes_list = []
     seen_ep = set()
@@ -113,12 +114,22 @@ def query_personal_dss(
         ep_id = r["episode_id"]
         if ep_id not in seen_ep:
             seen_ep.add(ep_id)
+            raw_out = (r.get("outcome") or "UNKNOWN").upper()
+            if raw_out in ["FAILED", "FAILURE"]:
+                canonical_out = "FAILURE"
+            elif raw_out in ["PARTIAL", "PARTIAL_SUCCESS"]:
+                canonical_out = "PARTIAL"
+            elif raw_out in ["SUCCESS", "RESOLVED"]:
+                canonical_out = "SUCCESS"
+            else:
+                canonical_out = "UNKNOWN"
+
             episodes_list.append({
                 "id": ep_id,
                 "title": r.get("title", ""),
                 "category": r.get("category", ""),
                 "objective": r.get("objective", ""),
-                "outcome": r.get("outcome", "RESOLVED")
+                "outcome": canonical_out
             })
 
     common_decisions = list(dict.fromkeys([r["decision"] for r in results if r.get("decision")]))
@@ -139,7 +150,8 @@ def query_personal_dss(
         "historical_outcomes": {
             "success": success_count,
             "partial": partial_count,
-            "failed": failed_count
+            "failed": failed_count,
+            "unknown": unknown_count
         },
         "observed_decisions": common_decisions[:5],
         "relevant_heuristics": heuristics[:5],
@@ -160,7 +172,10 @@ def get_cognitive_metrics() -> dict[str, Any]:
         OPTIONAL MATCH (e)-[:PRODUCED_OUTCOME]->(o:Outcome)
         RETURN 
             count(e) AS total_episodes,
-            sum(CASE WHEN o.status = 'SUCCESS' THEN 1 ELSE 0 END) AS success_episodes
+            sum(CASE WHEN o.status = 'SUCCESS' THEN 1 ELSE 0 END) AS success_episodes,
+            sum(CASE WHEN o.status IN ['FAILURE', 'FAILED'] THEN 1 ELSE 0 END) AS failure_episodes,
+            sum(CASE WHEN o.status IN ['PARTIAL', 'PARTIAL_SUCCESS'] THEN 1 ELSE 0 END) AS partial_episodes,
+            sum(CASE WHEN o.status IS NULL OR o.status IN ['UNKNOWN', 'COMPLETED'] THEN 1 ELSE 0 END) AS unknown_episodes
         """).single()
 
         # 2. Average Attempts per Episode
@@ -193,6 +208,9 @@ def get_cognitive_metrics() -> dict[str, Any]:
 
     total_ep = ep_stats["total_episodes"] if ep_stats else 0
     succ_ep = ep_stats["success_episodes"] if ep_stats else 0
+    fail_ep = ep_stats["failure_episodes"] if ep_stats else 0
+    part_ep = ep_stats["partial_episodes"] if ep_stats else 0
+    unkn_ep = ep_stats["unknown_episodes"] if ep_stats else 0
     succ_rate = round((succ_ep / total_ep * 100), 1) if total_ep > 0 else 0.0
 
     avg_att = round(att_stats["avg_attempts"], 2) if (att_stats and att_stats["avg_attempts"]) else 1.0
@@ -200,6 +218,10 @@ def get_cognitive_metrics() -> dict[str, Any]:
     return {
         "total_episodes": total_ep,
         "success_rate_percent": succ_rate,
+        "success_episodes": succ_ep,
+        "failure_episodes": fail_ep,
+        "partial_episodes": part_ep,
+        "unknown_episodes": unkn_ep,
         "avg_attempts_per_problem": avg_att,
         "top_decision_constraints": constraints_stats,
         "exploration_pipeline": {

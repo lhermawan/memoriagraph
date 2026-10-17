@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🧠 MemoriaGraph 3.1
+# 🧠 MemoriaGraph 3.1.1
 
-[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
+[![Version](https://img.shields.io/badge/version-3.1.1-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-brightgreen.svg?style=for-the-badge)](https://www.python.org/)
 [![Protocol](https://img.shields.io/badge/MCP-Standard%202.2-orange.svg?style=for-the-badge)](https://modelcontextprotocol.io/)
 [![Database](https://img.shields.io/badge/Neo4j-Graph%20Engine-008CC1.svg?style=for-the-badge&logo=neo4j)](https://neo4j.com/)

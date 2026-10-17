@@ -26,6 +26,13 @@ SECRET_PATTERNS = [
     (r"(password[\"']?\s*[:=]\s*[\"']?)([^\"'\s]{4,})([\"']?)", r"\1[REDACTED_PASSWORD]\3"),
     (r"(secret[\"']?\s*[:=]\s*[\"']?)([^\"'\s]{4,})([\"']?)", r"\1[REDACTED_SECRET]\3"),
     (r"(token[\"']?\s*[:=]\s*[\"']?)([^\"'\s]{10,})([\"']?)", r"\1[REDACTED_TOKEN]\3"),
+    (r"(api[_-]?key[\"']?\s*[:=]\s*[\"']?)([^\"'\s]{10,})([\"']?)", r"\1[REDACTED_API_KEY]\3"),
+    
+    # Connection URIs with embedded credentials (e.g. bolt://user:pass@host, postgresql://...)
+    (r"://([^:\s/@]+):([^@\s]+)@", r"://\1:[REDACTED_PASSWORD]@"),
+    
+    # AWS Access Key IDs
+    (r"\b(AKIA[0-9A-Z]{16})\b", "[REDACTED_AWS_KEY]"),
 ]
 
 def sanitize_string(text: str) -> str:

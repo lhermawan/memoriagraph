@@ -41,7 +41,10 @@ class EpisodeManager:
         category: str = "PROBLEM_SOLVING",
         objective: str = "",
         context: str = "infrastructure",
-        trigger: str = "manual"
+        trigger: str = "manual",
+        record_type: str = "TASK",
+        outcome_applicable: str = "YES",
+        dedupe_fingerprint: str = ""
     ) -> dict[str, Any]:
         """Membuat episode kognitif baru."""
         ep_id = f"EP-{datetime.datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
@@ -55,7 +58,10 @@ class EpisodeManager:
             "context": context,
             "trigger": trigger,
             "status": "IN_PROGRESS",
-            "timestamp_start": now_iso
+            "timestamp_start": now_iso,
+            "record_type": record_type.upper(),
+            "outcome_applicable": outcome_applicable.upper(),
+            "dedupe_fingerprint": dedupe_fingerprint
         })
 
         query = """
@@ -66,7 +72,10 @@ class EpisodeManager:
             e.context = $context,
             e.trigger = $trigger,
             e.status = $status,
-            e.timestamp_start = datetime($timestamp_start)
+            e.timestamp_start = datetime($timestamp_start),
+            e.record_type = $record_type,
+            e.outcome_applicable = $outcome_applicable,
+            e.dedupe_fingerprint = $dedupe_fingerprint
         WITH e
         MATCH (p:Person {name: 'Maskii'})
         MERGE (p)-[:PARTICIPATED_IN]->(e)
@@ -254,23 +263,34 @@ class EpisodeManager:
     def complete_episode(
         self,
         episode_id: str,
-        outcome_status: str = "SUCCESS",
+        outcome_status: str = "UNKNOWN",
         time_to_result_sec: int = 0,
         reflection_lesson: str = "",
         heuristic: str = ""
     ) -> dict[str, Any]:
         """
         Menyelesaikan episode: mencatat Outcome dan Reflection.
+        Mendukung canonical status: SUCCESS, FAILURE, PARTIAL, UNKNOWN.
         """
         now_iso = datetime.datetime.now(timezone.utc).isoformat()
         out_id = f"OUT-{uuid.uuid4().hex[:8]}"
         refl_id = f"REFL-{uuid.uuid4().hex[:8]}"
 
+        raw_status = (outcome_status or "UNKNOWN").strip().upper()
+        if raw_status in ["SUCCESS", "BERHASIL", "RESOLVED"]:
+            canonical_status = "SUCCESS"
+        elif raw_status in ["FAILURE", "FAILED", "GAGAL", "ERROR"]:
+            canonical_status = "FAILURE"
+        elif raw_status in ["PARTIAL", "PARTIAL_SUCCESS", "SEBAGIAN"]:
+            canonical_status = "PARTIAL"
+        else:
+            canonical_status = "UNKNOWN"
+
         data = clean_cognitive_payload({
             "episode_id": episode_id,
             "out_id": out_id,
             "refl_id": refl_id,
-            "outcome_status": outcome_status.upper(),
+            "outcome_status": canonical_status,
             "time_to_result": time_to_result_sec,
             "reflection_lesson": reflection_lesson,
             "heuristic": heuristic,
@@ -279,7 +299,12 @@ class EpisodeManager:
 
         query = """
         MATCH (e:Episode {id: $episode_id})
-        SET e.status = 'RESOLVED',
+        SET e.status = CASE 
+            WHEN $outcome_status = 'SUCCESS' THEN 'RESOLVED' 
+            WHEN $outcome_status = 'FAILURE' THEN 'FAILED'
+            WHEN $outcome_status = 'PARTIAL' THEN 'PARTIAL'
+            ELSE 'COMPLETED' 
+        END,
             e.timestamp_end = datetime($timestamp_end)
         CREATE (o:Outcome {
             id: $out_id,
@@ -308,14 +333,15 @@ class EpisodeManager:
 
         # Cek apakah ada heuristik terkait yang dapat diperkuat atau ditantang
         if heuristic:
-            if outcome_status.upper() == "SUCCESS":
+            if canonical_status == "SUCCESS":
                 reinforce_belief(self.driver, identifier=heuristic, details=reflection_lesson, episode_id=episode_id)
-            elif outcome_status.upper() in ["FAILURE", "FAILED"]:
+            elif canonical_status == "FAILURE":
                 challenge_belief(self.driver, identifier=heuristic, failure_reason=reflection_lesson, episode_id=episode_id)
 
+        ev_type = "success" if canonical_status == "SUCCESS" else ("failure" if canonical_status == "FAILURE" else "reflection")
         log_raw_event(
-            event_type="success" if outcome_status.upper() == "SUCCESS" else "reflection",
-            description=f"Episode {episode_id} selesai ({outcome_status.upper()}): {reflection_lesson}",
+            event_type=ev_type,
+            description=f"Episode {episode_id} selesai ({canonical_status}): {reflection_lesson}",
             context="episode-completion",
             episode_id=episode_id,
             source="episode_manager"

@@ -1,0 +1,86 @@
+{
+  "mission_id": "MG-RESEARCH-2026-10-17",
+  "target_system": "MemoriaGraph v3.1",
+  "phase": "BASELINE",
+  "timestamp": "2026-10-17T01:31:00+07:00",
+  "environment": {
+    "host": "vm-maskii",
+    "tailscale_ip": "100.79.34.4",
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "neo4j_version": "5.x Enterprise (Docker)",
+    "embedding_model": "BAAI/bge-small-en-v1.5 (FastEmbed ONNX Int8)"
+  },
+  "metrics": {
+    "hybrid_recall_rrf": {
+      "mean_latency_ms": 50.65,
+      "cold_start_latency_ms": 163.91,
+      "warm_latencies_ms": [20.40, 18.37, 26.53, 24.02],
+      "sample_queries": 5,
+      "iterations_per_query": 5
+    },
+    "personal_dss": {
+      "mean_latency_ms": 9.29,
+      "queries": {
+        "memory leak": {"latency_ms": 8.68, "matches": 1},
+        "port security": {"latency_ms": 12.20, "matches": 10},
+        "automated backup": {"latency_ms": 6.99, "matches": 4}
+      }
+    },
+    "belief_revision_index": {
+      "latency_ms": 10.65,
+      "active_items": 20
+    },
+    "graph_visualizer_3d": {
+      "latency_ms": 31.32,
+      "nodes_exported": 100,
+      "links_exported": 121
+    },
+    "semantic_anti_slop_pipeline": {
+      "throughput_ms_per_payload": 0.379,
+      "ops_per_second": 2640
+    },
+    "write_latency_retain": {
+      "async_mode": {
+        "median_ms": 160.34,
+        "p95_ms": 743.13,
+        "min_ms": 96.91,
+        "max_ms": 616.93,
+        "iterations": 10
+      },
+      "sync_mode": {
+        "mean_ms": 2835.92,
+        "min_ms": 2071.00,
+        "max_ms": 4221.71,
+        "iterations": 3
+      }
+    },
+    "vector_cache": {
+      "file_path": "/opt/memoriagraph/.vector_cache.pkl",
+      "file_size_bytes": 9017728,
+      "file_size_human": "8.6 MB",
+      "active_nodes": 4318,
+      "schema_version": 1,
+      "atomic_write": false
+    },
+    "graph_database": {
+      "total_nodes": 4997,
+      "total_relationships": 11787,
+      "total_episodes": 219,
+      "outcomes": {
+        "SUCCESS": 218,
+        "ON_TESTING": 1,
+        "FAILURE": 0,
+        "PARTIAL": 0,
+        "UNKNOWN": 0
+      },
+      "outcome_success_bias_pct": 99.5
+    },
+    "ecosystem_memory_rss_mb": {
+      "neo4j_jvm": 1427.9,
+      "python_server_fastembed": 808.6,
+      "python_http_service": 132.5,
+      "total_mb": 2369.0
+    }
+  }
+}

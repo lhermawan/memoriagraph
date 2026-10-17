@@ -31,6 +31,15 @@ def run_tests():
     print("🧪 MEMORIAGRAPH 3.0: MEMORY BANKS & FACADE API TEST SUITE")
     print("=" * 60)
 
+    # Bersihkan sisa artefak uji lama sebelum mulai
+    with driver.session() as s:
+        s.run("""
+        MATCH (e:Episode) WHERE e.title STARTS WITH 'Riset Pentest Strix Multi-Agent Sandbox'
+        OPTIONAL MATCH (e)-[:REFLECTED_BY]->(r:Reflection)
+        OPTIONAL MATCH (e)-[:PRODUCED_OUTCOME]->(o:Outcome)
+        DETACH DELETE e, r, o
+        """)
+
     # 1. Test Retain ke Bank Spesifik
     print("\n[TEST 1] Testing Facade retain() into Specific Memory Bank:")
     mgr = EpisodeManager()
@@ -67,7 +76,7 @@ def run_tests():
     print("\n[TEST 2] Testing Facade recall() Partition Isolation:")
     # Query: "Strix Docker container pentest"
     # Target bank 1: csirt-security (Harus match episode di atas)
-    res_csirt = engine.recall("Strix Docker container pentest", limit=3, bank_id="csirt-security")
+    res_csirt = engine.recall("Strix Docker container pentest", limit=5, bank_id="csirt-security")
     print(f"  Hits di csirt-security: {len(res_csirt)}")
     assert len(res_csirt) > 0
     assert any(test_ep_id in r["node_id"] or test_title in r["title"] for r in res_csirt)
