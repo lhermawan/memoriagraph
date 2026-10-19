@@ -13,12 +13,16 @@ from starlette.staticfiles import StaticFiles
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
+import dotenv
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 if '/opt/memoriagraph' not in sys.path:
     sys.path.insert(0, '/opt/memoriagraph')
+
+dotenv.load_dotenv(os.path.join(CURRENT_DIR, ".env"))
+dotenv.load_dotenv("/opt/memoriagraph/.env")
 
 try:
     import server
