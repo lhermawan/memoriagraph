@@ -166,6 +166,10 @@ routes = [
 # Static mounting for Cockpit bundle
 dist_dir = os.path.join(CURRENT_DIR, "cockpit", "dist")
 if os.path.isdir(dist_dir):
+    assets_dir = os.path.join(dist_dir, "assets")
+    if os.path.isdir(assets_dir):
+        routes.append(Mount("/cockpit/assets", StaticFiles(directory=assets_dir), name="cockpit_assets"))
+        routes.append(Mount("/assets", StaticFiles(directory=assets_dir), name="root_assets"))
     routes.append(Mount("/cockpit", StaticFiles(directory=dist_dir, html=True), name="cockpit"))
     routes.append(Route("/", root_redirect))
 
