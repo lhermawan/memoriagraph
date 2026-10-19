@@ -21,6 +21,8 @@ interface HeaderProps {
   onOpenSearch: () => void;
   onOpenIngest: () => void;
   isRefreshing?: boolean;
+  autoSync: boolean;
+  onToggleAutoSync: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -33,6 +35,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onOpenIngest,
   isRefreshing = false,
+  autoSync,
+  onToggleAutoSync,
 }) => {
   return (
     <header className="h-16 border-b border-cyber-border bg-cyber-panel/90 hud-glass px-4 md:px-6 flex items-center justify-between gap-4 z-10 shrink-0">
@@ -129,6 +133,19 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <PlusCircle className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Ingest (POST /retain)</span>
+        </button>
+
+        <button
+          onClick={onToggleAutoSync}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all ${
+            autoSync
+              ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-sm'
+              : 'border-cyber-border text-cyber-muted hover:text-cyber-text hover:bg-cyber-card'
+          }`}
+          title="Toggle Auto-Sync Polling (Pindai otomatis graf tiap 12 detik)"
+        >
+          <span className={`w-2 h-2 rounded-full ${autoSync ? 'bg-emerald-400 animate-ping' : 'bg-cyber-muted'}`} />
+          <span className="hidden xl:inline">Auto-Sync {autoSync ? 'ON' : 'OFF'}</span>
         </button>
 
         <button

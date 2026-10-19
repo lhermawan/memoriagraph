@@ -8,7 +8,7 @@ import { PlusCircle, X, Loader2, ShieldAlert, CheckCircle2, Terminal } from 'luc
 interface IngestModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onMemoryIngested: (newMemory: any) => void;
+  onMemoryIngested: (newMemory: any, relatedNodes?: any[], newEdges?: any[]) => void;
 }
 
 export const IngestModal: React.FC<IngestModalProps> = ({
@@ -51,47 +51,110 @@ export const IngestModal: React.FC<IngestModalProps> = ({
       record_type: 'incident_rca',
     };
 
-    try {
-      const res = await submitRetain(payload);
-      setStatusMsg({ type: 'ok', text: res.message || 'Ingest berhasil!' });
-      onMemoryIngested({
-        ...payload,
-        id: `ep_ingest_${Date.now()}`,
-        name: title || 'Episode: Baru Tersimpan',
-        label: 'Episode',
+    const epId = `ep_${Date.now()}`;
+    const newEpisode = {
+      id: epId,
+      name: title || 'Episode: Baru Tersimpan',
+      full_name: `${title || 'Episode Baru'}: ${content}`,
+      label: 'Episode' as const,
+      bank: bankId,
+      color: BANK_CONFIG[bankId].color,
+      val: 24,
+      confidence: 0.95,
+      status: (outcomeStatus === 'SUCCESS' ? 'VERIFIED_EMPIRICAL' : 'FAILED') as any,
+      provenance,
+      problem: content,
+      solution: decision,
+      heuristic,
+      empirical_anchor: outcomeStatus === 'SUCCESS' ? 'exit code 0, status 200' : 'exit code 1',
+      created_at: new Date().toISOString(),
+    };
+
+    const relatedNodes: any[] = [];
+    const newEdges: any[] = [];
+
+    // Decision Sub-node
+    if (decision.trim()) {
+      const decId = `dec_${Date.now()}`;
+      relatedNodes.push({
+        id: decId,
+        name: `Decision: ${decision.slice(0, 40)}`,
+        full_name: decision,
+        label: 'Decision',
         bank: bankId,
         color: BANK_CONFIG[bankId].color,
-        val: 20,
-        confidence: 0.9,
-        status: outcomeStatus === 'SUCCESS' ? 'VERIFIED_EMPIRICAL' : 'FAILED',
+        val: 18,
+        confidence: 0.95,
+        status: 'APPLIED',
+        provenance,
+        solution: decision,
+      });
+      newEdges.push({
+        source: epId,
+        target: decId,
+        type: 'CONTAINED_DECISION',
+      });
+    }
+
+    // Reflection Sub-node
+    if (heuristic.trim()) {
+      const reflId = `refl_${Date.now()}`;
+      relatedNodes.push({
+        id: reflId,
+        name: `Reflection: ${heuristic.slice(0, 40)}`,
+        full_name: heuristic,
+        label: 'Reflection',
+        bank: bankId,
+        color: BANK_CONFIG[bankId].color,
+        val: 18,
+        confidence: 0.98,
+        status: 'ACTIVE',
+        provenance,
+        heuristic,
+      });
+      newEdges.push({
+        source: epId,
+        target: reflId,
+        type: 'REFLECTED_BY',
+      });
+    }
+
+    // Attempt Sub-node
+    if (attempts.trim()) {
+      const attId = `att_${Date.now()}`;
+      relatedNodes.push({
+        id: attId,
+        name: `Attempt: ${attempts.slice(0, 40)}`,
+        full_name: attempts,
+        label: 'Attempt',
+        bank: bankId,
+        color: BANK_CONFIG[bankId].color,
+        val: 14,
+        confidence: outcomeStatus === 'SUCCESS' ? 0.95 : 0.4,
+        status: outcomeStatus === 'SUCCESS' ? 'SUCCESS' : 'FAILED',
         provenance,
       });
+      newEdges.push({
+        source: epId,
+        target: attId,
+        type: 'HAS_ATTEMPT',
+      });
+    }
+
+    try {
+      const res = await submitRetain(payload);
+      setStatusMsg({ type: 'ok', text: res.message || 'Ingest berhasil dikirim ke Ingestion Gate!' });
+      onMemoryIngested(newEpisode, relatedNodes, newEdges);
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (err: any) {
-      console.warn('Live retain failed, fallback to local simulator:', err);
-      // Local fallback simulation
+      console.warn('Live retain failed, running local simulator:', err);
       setStatusMsg({
         type: 'ok',
-        text: `⚡ [Simulasi Ingest Terverifikasi] Episode '${title || "Baru"}' berhasil disimpan di buffer graf lokal.`
+        text: `⚡ [Simulasi Terverifikasi] Subgraf kognitif '${title || "Baru"}' dan relasi tersambung di buffer lokal.`
       });
-      onMemoryIngested({
-        id: `ep_sim_${Date.now()}`,
-        name: title || 'Episode: Hasil Simulasi Ingest',
-        full_name: content,
-        label: 'Episode',
-        bank: bankId,
-        color: BANK_CONFIG[bankId].color,
-        val: 22,
-        confidence: 0.95,
-        status: outcomeStatus === 'SUCCESS' ? 'VERIFIED_EMPIRICAL' : 'FAILED',
-        provenance,
-        problem: content,
-        solution: decision,
-        heuristic: heuristic,
-        empirical_anchor: outcomeStatus === 'SUCCESS' ? 'exit code 0, status 200' : 'exit code 1',
-      });
+      onMemoryIngested(newEpisode, relatedNodes, newEdges);
       setTimeout(() => {
         onClose();
       }, 1400);

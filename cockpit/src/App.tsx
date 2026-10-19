@@ -16,6 +16,7 @@ export const App: React.FC = () => {
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const [isLive, setIsLive] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [autoSync, setAutoSync] = useState(true);
 
   // Modals state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -66,6 +67,15 @@ export const App: React.FC = () => {
     loadData(selectedBank);
   }, [selectedBank, loadData]);
 
+  // Auto-Sync Polling setiap 12 detik jika Live
+  useEffect(() => {
+    if (!autoSync || !isLive) return;
+    const interval = setInterval(() => {
+      loadData(selectedBank);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, [autoSync, isLive, selectedBank, loadData]);
+
   // Map of nodes for quick reference
   const nodeMap = useMemo(() => {
     const map = new Map<string, GraphNode>();
@@ -73,11 +83,28 @@ export const App: React.FC = () => {
     return map;
   }, [nodes]);
 
-  // Handle Ingest of new memory
-  const handleMemoryIngested = (newMemory: GraphNode) => {
-    setNodes((prev) => [newMemory, ...prev]);
-    setSelectedNode(newMemory);
-    newMemory.flash = 1;
+  // Handle Ingest of new memory & its connected subgraph
+  const handleMemoryIngested = (
+    newEpisode: GraphNode,
+    relatedNodes?: GraphNode[],
+    newEdges?: GraphEdge[]
+  ) => {
+    const nodesToAdd = [newEpisode, ...(relatedNodes || [])];
+    const edgesToAdd = newEdges || [];
+
+    setNodes((prev) => [...nodesToAdd, ...prev]);
+    if (edgesToAdd.length > 0) {
+      setEdges((prev) => [...edgesToAdd, ...prev]);
+    }
+    setSelectedNode(newEpisode);
+    newEpisode.flash = 1;
+
+    // Sinkronkan data utuh dari Neo4j setelah 1.2 detik
+    if (isLive) {
+      setTimeout(() => {
+        loadData(selectedBank);
+      }, 1200);
+    }
   };
 
   return (
@@ -93,6 +120,8 @@ export const App: React.FC = () => {
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenIngest={() => setIsIngestOpen(true)}
         isRefreshing={isRefreshing}
+        autoSync={autoSync}
+        onToggleAutoSync={() => setAutoSync((prev) => !prev)}
       />
 
       {/* Main Workspace (Canvas + Inspector) */}
