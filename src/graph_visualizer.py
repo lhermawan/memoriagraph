@@ -112,25 +112,31 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = No
         lbl = n.get("primary_label", "Entity")
         weight = LABEL_WEIGHTS.get(lbl, 3)
         
+        created_at_val = n.get("created_at", "")
+        if hasattr(created_at_val, "isoformat"):
+            created_at_str = created_at_val.isoformat()
+        else:
+            created_at_str = str(created_at_val) if created_at_val else ""
+        
         formatted_nodes.append({
-            "id": n["id"],
-            "name": n["name"][:50],
-            "full_name": n["name"],
-            "label": lbl,
-            "bank": bank,
+            "id": str(n["id"]),
+            "name": str(n["name"])[:50],
+            "full_name": str(n["name"]),
+            "label": str(lbl),
+            "bank": str(bank),
             "color": BANK_COLORS.get(bank, "#ffaa00"),
             "val": weight,
-            "confidence": n.get("confidence", 0.7),
-            "status": n.get("status", "ACTIVE"),
-            "provenance": n.get("provenance", "OBSERVED"),
-            "record_type": n.get("record_type", "incident_rca"),
-            "dedupe_fingerprint": n.get("dedupe_fingerprint", ""),
-            "problem": n.get("problem", ""),
-            "solution": n.get("solution", ""),
-            "mitigation": n.get("mitigation", ""),
-            "heuristic": n.get("heuristic", ""),
-            "empirical_anchor": n.get("empirical_anchor", ""),
-            "created_at": n.get("created_at", "")
+            "confidence": float(n.get("confidence") or 0.7),
+            "status": str(n.get("status", "ACTIVE")),
+            "provenance": str(n.get("provenance", "OBSERVED")),
+            "record_type": str(n.get("record_type", "incident_rca")),
+            "dedupe_fingerprint": str(n.get("dedupe_fingerprint", "")),
+            "problem": str(n.get("problem", "")),
+            "solution": str(n.get("solution", "")),
+            "mitigation": str(n.get("mitigation", "")),
+            "heuristic": str(n.get("heuristic", "")),
+            "empirical_anchor": str(n.get("empirical_anchor", "")),
+            "created_at": created_at_str
         })
 
     # Format links
