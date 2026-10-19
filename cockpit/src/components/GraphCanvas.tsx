@@ -23,6 +23,24 @@ interface GraphCanvasProps {
   isDarkMode: boolean;
 }
 
+interface EdgePhoton {
+  sourceId: string;
+  targetId: string;
+  edgeType: string;
+  progress: number;
+  speed: number;
+  size: number;
+}
+
+interface StarParticle {
+  x: number;
+  y: number;
+  radius: number;
+  baseAlpha: number;
+  twinkleSpeed: number;
+  phase: number;
+}
+
 export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   nodes,
   edges,
@@ -38,11 +56,17 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   const appRef = useRef<Application | null>(null);
   const viewportRef = useRef<Container | null>(null);
   const edgesGraphicsRef = useRef<Graphics | null>(null);
+  const pulseGraphicsRef = useRef<Graphics | null>(null);
+  const starfieldGraphicsRef = useRef<Graphics | null>(null);
+  const edgeBadgesContainerRef = useRef<Container | null>(null);
 
   // Sprite & Label references by Node ID
   const nodeSpritesRef = useRef<Map<string, Sprite>>(new Map());
+  const nodeAuraSpritesRef = useRef<Map<string, Sprite>>(new Map());
   const labelTextsRef = useRef<Map<string, Text>>(new Map());
   const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const hubDegreeMapRef = useRef<Map<string, number>>(new Map());
+  const photonsRef = useRef<EdgePhoton[]>([]);
 
   // Interaction State
   const [showLabels, setShowLabels] = useState(true);
@@ -69,18 +93,29 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     hoveredNodeIdRef.current = hoveredNode ? hoveredNode.id : null;
   }, [hoveredNode]);
 
-  // 1. Pre-computed Adjacency Map (1-hop neighbors)
-  const adjacencyMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    nodes.forEach((n) => map.set(n.id, new Set()));
-    edges.forEach((e) => {
-      map.get(e.source)?.add(e.target);
-      map.get(e.target)?.add(e.source);
+  // 1. Pre-computed Adjacency Map & Hub Degree Map
+  const { adjacencyMap, degreeMap } = useMemo(() => {
+    const adj = new Map<string, Set<string>>();
+    const deg = new Map<string, number>();
+    nodes.forEach((n) => {
+      adj.set(n.id, new Set());
+      deg.set(n.id, 0);
     });
-    return map;
+    edges.forEach((e) => {
+      adj.get(e.source)?.add(e.target);
+      adj.get(e.target)?.add(e.source);
+      deg.set(e.source, (deg.get(e.source) || 0) + 1);
+      deg.set(e.target, (deg.get(e.target) || 0) + 1);
+    });
+    return { adjacencyMap: adj, degreeMap: deg };
   }, [nodes, edges]);
 
-  // Convert hex color to number
+  // Keep degreeMap in ref for ticker loop
+  useEffect(() => {
+    hubDegreeMapRef.current = degreeMap;
+  }, [degreeMap]);
+
+  // Convert hex color string to number
   const hexToNumber = (hex: string) => {
     if (!hex || !hex.startsWith('#')) return 0x00f0ff;
     return parseInt(hex.slice(1), 16);
@@ -93,10 +128,12 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
 
     const scale = viewport.scale.x;
     const hoveredId = hoveredNodeIdRef.current;
-    const neighbors = hoveredId ? adjacencyMap.get(hoveredId) : null;
+    const selectedId = selectedNodeIdRef.current;
+    const focusId = hoveredId || selectedId;
+    const neighbors = focusId ? adjacencyMap.get(focusId) : null;
 
     labelTextsRef.current.forEach((label, id) => {
-      const isSpotlight = id === hoveredId || (neighbors && neighbors.has(id));
+      const isSpotlight = id === focusId || (neighbors && neighbors.has(id));
 
       if (isSpotlight) {
         label.visible = true;
@@ -104,17 +141,82 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         return;
       }
 
-      if (!showLabels || scale < 0.38) {
+      if (!showLabels || scale < 0.35) {
         label.visible = false;
         label.alpha = 0;
       } else {
         label.visible = true;
-        label.alpha = Math.min(1, (scale - 0.38) / 0.45);
+        label.alpha = Math.min(1, (scale - 0.35) / 0.45);
       }
     });
   }, [adjacencyMap, showLabels]);
 
-  // 3. Batch Draw Edges
+  // 3. Update Semantic Edge Badges (Floating Pills when Focus Active)
+  const updateEdgeBadges = useCallback(() => {
+    const container = edgeBadgesContainerRef.current;
+    if (!container) return;
+
+    // Clear previous badges
+    container.removeChildren();
+
+    const hoveredId = hoveredNodeIdRef.current;
+    const selectedId = selectedNodeIdRef.current;
+    const focusId = hoveredId || selectedId;
+    if (!focusId) return;
+
+    const posMap = nodePositionsRef.current;
+
+    // Find edges connected to focusId
+    edges.forEach((edge) => {
+      if (edge.source !== focusId && edge.target !== focusId) return;
+
+      const a = posMap.get(edge.source);
+      const b = posMap.get(edge.target);
+      if (!a || !b) return;
+
+      const midX = (a.x + b.x) / 2;
+      const midY = (a.y + b.y) / 2;
+
+      const badgeContainer = new Container();
+      badgeContainer.position.set(midX, midY);
+
+      const typeText = edge.type || 'CONNECTS_TO';
+      const cleanType = typeText.length > 20 ? typeText.slice(0, 18) + '…' : typeText;
+
+      const text = new Text({
+        text: cleanType,
+        style: new TextStyle({
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontSize: 8.5,
+          fontWeight: '700',
+          fill: isDarkMode ? 0x00ffcc : 0x0284c7,
+          letterSpacing: 0.6,
+        }),
+      });
+      text.anchor.set(0.5);
+
+      const paddingX = 7;
+      const paddingY = 3.5;
+      const badgeW = text.width + paddingX * 2;
+      const badgeH = text.height + paddingY * 2;
+
+      const bg = new Graphics();
+      bg.roundRect(-badgeW / 2, -badgeH / 2, badgeW, badgeH, 4);
+      bg.fill({ color: isDarkMode ? 0x070e1e : 0xffffff, alpha: 0.92 });
+      bg.setStrokeStyle({
+        width: 1.2,
+        color: isDarkMode ? 0x00ffcc : 0x0284c7,
+        alpha: 0.85,
+      });
+      bg.stroke();
+
+      badgeContainer.addChild(bg);
+      badgeContainer.addChild(text);
+      container.addChild(badgeContainer);
+    });
+  }, [edges, isDarkMode]);
+
+  // 4. Batch Draw Base Edges
   const drawEdges = useCallback(() => {
     const graphics = edgesGraphicsRef.current;
     if (!graphics) return;
@@ -127,7 +229,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     const neighbors = focusId ? adjacencyMap.get(focusId) : null;
 
     const posMap = nodePositionsRef.current;
-    const edgeBaseColor = isDarkMode ? 0x8b97b8 : 0x5b6785;
+    const edgeBaseColor = isDarkMode ? 0x22365c : 0x94a3b8;
 
     edges.forEach((edge) => {
       const a = posMap.get(edge.source);
@@ -151,27 +253,27 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
 
       if (isConnectedToFocus || isHighlighted) {
         graphics.setStrokeStyle({
-          width: 2.2,
+          width: 2.4,
           color: 0x00f0ff,
           alpha: 0.95,
         });
       } else if (isConnectedToNeighbor) {
         graphics.setStrokeStyle({
-          width: 1.5,
+          width: 1.6,
           color: 0x00ff88,
-          alpha: 0.7,
+          alpha: 0.75,
         });
       } else if (focusId !== null) {
         graphics.setStrokeStyle({
           width: 0.8,
           color: edgeBaseColor,
-          alpha: 0.05,
+          alpha: 0.08,
         });
       } else {
         graphics.setStrokeStyle({
-          width: 1.0,
+          width: 1.1,
           color: edgeBaseColor,
-          alpha: 0.22,
+          alpha: isDarkMode ? 0.28 : 0.45,
         });
       }
 
@@ -179,9 +281,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       graphics.lineTo(b.x, b.y);
       graphics.stroke();
     });
-  }, [edges, adjacencyMap, highlightedIds, isDarkMode]);
 
-  // 4. Update Node Spotlight Alpha
+    updateEdgeBadges();
+  }, [edges, adjacencyMap, highlightedIds, isDarkMode, updateEdgeBadges]);
+
+  // 5. Update Node Spotlight Alpha
   const updateSpotlight = useCallback(() => {
     const hoveredId = hoveredNodeIdRef.current;
     const selectedId = selectedNodeIdRef.current;
@@ -198,13 +302,13 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         sprite.scale.set(params.nodeSizeMult);
       } else if (isFocus) {
         sprite.alpha = 1.0;
-        sprite.scale.set(params.nodeSizeMult * 1.35);
+        sprite.scale.set(params.nodeSizeMult * 1.4);
       } else if (isNeighbor || isHigh) {
         sprite.alpha = 1.0;
-        sprite.scale.set(params.nodeSizeMult * 1.15);
+        sprite.scale.set(params.nodeSizeMult * 1.18);
       } else {
-        sprite.alpha = 0.15;
-        sprite.scale.set(params.nodeSizeMult * 0.9);
+        sprite.alpha = 0.14;
+        sprite.scale.set(params.nodeSizeMult * 0.88);
       }
     });
 
@@ -212,7 +316,35 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     updateLabelVisibility();
   }, [adjacencyMap, highlightedIds, params.nodeSizeMult, drawEdges, updateLabelVisibility]);
 
-  // 5. Initialize PixiJS Application & Web Worker
+  // 6. Pre-generate Textures
+  const createCircleTexture = (app: Application, radius = 32): Texture => {
+    const circleGraphics = new Graphics();
+    circleGraphics.circle(radius, radius, radius);
+    circleGraphics.fill({ color: 0xffffff });
+    const tex = app.renderer.generateTexture(circleGraphics);
+    circleGraphics.destroy();
+    return tex;
+  };
+
+  const createAuraTexture = (radius = 56): Texture => {
+    const canvas = document.createElement('canvas');
+    canvas.width = radius * 2;
+    canvas.height = radius * 2;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const grad = ctx.createRadialGradient(radius, radius, 0, radius, radius, radius);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+      grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.55)');
+      grad.addColorStop(0.55, 'rgba(255, 255, 255, 0.20)');
+      grad.addColorStop(0.85, 'rgba(255, 255, 255, 0.05)');
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, radius * 2, radius * 2);
+    }
+    return Texture.from(canvas);
+  };
+
+  // 7. Initialize PixiJS Application, Web Worker, & 60 FPS Render Ticker
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -231,13 +363,14 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     appRef.current = app;
 
     let circleTexture: Texture | null = null;
+    let auraTexture: Texture | null = null;
 
     const initPixi = async () => {
       await app.init({
         antialias: true,
         autoDensity: true,
         resolution: window.devicePixelRatio || 1,
-        backgroundColor: isDarkMode ? 0x070b14 : 0xf3f6fc,
+        backgroundColor: isDarkMode ? 0x050811 : 0xf4f7fc,
         resizeTo: container,
       });
 
@@ -248,43 +381,87 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
 
       container.appendChild(app.canvas);
 
-      // Pre-generate Sharp Circle Texture once for all nodes
-      const circleGraphics = new Graphics();
-      circleGraphics.circle(32, 32, 32);
-      circleGraphics.fill({ color: 0xffffff });
-      circleTexture = app.renderer.generateTexture(circleGraphics);
-      circleGraphics.destroy();
+      // Generate sharp circle & smooth radial aura textures
+      circleTexture = createCircleTexture(app, 32);
+      auraTexture = createAuraTexture(56);
 
-      // Camera Viewport Container
+      // A. Starfield / Cosmic Dust Background Layer
+      const starfieldGraphics = new Graphics();
+      app.stage.addChild(starfieldGraphics);
+      starfieldGraphicsRef.current = starfieldGraphics;
+
+      const stars: StarParticle[] = [];
+      const starCount = 130;
+      for (let i = 0; i < starCount; i++) {
+        stars.push({
+          x: Math.random() * container.clientWidth,
+          y: Math.random() * container.clientHeight,
+          radius: 0.75 + Math.random() * 1.5,
+          baseAlpha: 0.15 + Math.random() * 0.45,
+          twinkleSpeed: 1.2 + Math.random() * 2.5,
+          phase: Math.random() * Math.PI * 2,
+        });
+      }
+
+      // B. Camera Viewport Container
       const viewport = new Container();
       viewport.position.set(container.clientWidth / 2, container.clientHeight / 2);
       viewport.scale.set(0.85);
       app.stage.addChild(viewport);
       viewportRef.current = viewport;
 
-      // 1. Edges Graphics Layer
+      // 1. Edges Graphics Layer (Base lines)
       const edgesGraphics = new Graphics();
       viewport.addChild(edgesGraphics);
       edgesGraphicsRef.current = edgesGraphics;
 
-      // 2. Nodes Sprites Layer
+      // 2. Pulse Graphics Layer (Additive Traveling Photons & Comet Tails)
+      const pulseGraphics = new Graphics();
+      pulseGraphics.blendMode = 'add';
+      viewport.addChild(pulseGraphics);
+      pulseGraphicsRef.current = pulseGraphics;
+
+      // 3. Node Aura Sprites Layer (Additive Radial Breathing Glows)
+      const aurasContainer = new Container();
+      aurasContainer.blendMode = 'add';
+      viewport.addChild(aurasContainer);
+
+      // 4. Node Sprites Layer (Circles)
       const nodesContainer = new Container();
       viewport.addChild(nodesContainer);
 
-      // 3. Labels Container Layer
+      // 5. Semantic Edge Badges Layer (Floating Relation Pills)
+      const edgeBadgesContainer = new Container();
+      viewport.addChild(edgeBadgesContainer);
+      edgeBadgesContainerRef.current = edgeBadgesContainer;
+
+      // 6. Labels Container Layer (Text with Stroke Outline)
       const labelsContainer = new Container();
       viewport.addChild(labelsContainer);
 
-      // Populate Node Sprites & Labels
+      // Populate Node Sprites, Auras & High-Contrast Labels
       const spritesMap = new Map<string, Sprite>();
+      const aurasMap = new Map<string, Sprite>();
       const labelsMap = new Map<string, Text>();
       const posMap = new Map<string, { x: number; y: number }>();
 
       nodes.forEach((n) => {
-        const radius = (6 + (n.val || 10) * 0.35);
+        const degree = degreeMap.get(n.id) || 0;
+        const radius = 6 + (n.val || 10) * 0.35;
         const nodeColor = hexToNumber(n.color);
+        const isHub = degree >= 5 || (n.val || 10) >= 20;
 
-        // Sprite
+        // Aura Sprite
+        const auraSprite = new Sprite(auraTexture!);
+        auraSprite.anchor.set(0.5);
+        auraSprite.tint = nodeColor;
+        auraSprite.width = radius * 3.8;
+        auraSprite.height = radius * 3.8;
+        auraSprite.alpha = isHub ? 0.55 : 0.22;
+        aurasContainer.addChild(auraSprite);
+        aurasMap.set(n.id, auraSprite);
+
+        // Core Node Sprite
         const sprite = new Sprite(circleTexture!);
         sprite.anchor.set(0.5);
         sprite.tint = nodeColor;
@@ -316,7 +493,6 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           onSelectNode(n);
           updateSpotlight();
 
-          // Transform mouse position to world coordinates
           const localPos = viewport.toLocal(e.global);
           worker.postMessage({
             type: 'DRAG_START',
@@ -326,7 +502,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           } as WorkerInMessage);
         });
 
-        const handleGlobalMove = (e: any) => {
+        const handleGlobalMove = (e: { global: { x: number; y: number } }) => {
           if (!isNodeDragging) return;
           const localPos = viewport.toLocal(e.global);
           worker.postMessage({
@@ -353,16 +529,25 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         nodesContainer.addChild(sprite);
         spritesMap.set(n.id, sprite);
 
-        // Text Label
+        // High-Contrast Hierarchy Text Label with Protective Stroke Outline
         const titleText = n.name.split(': ').slice(1).join(': ') || n.name;
         const shortTitle = titleText.length > 28 ? titleText.slice(0, 26) + '…' : titleText;
+
+        const fontSize = isHub ? 11.5 : (degree >= 3 ? 10 : 9);
+        const fontWeight = isHub ? '700' : (degree >= 3 ? '600' : '500');
 
         const label = new Text({
           text: shortTitle,
           style: new TextStyle({
-            fontFamily: 'Inter, system-ui, sans-serif',
-            fontSize: 10,
-            fill: isDarkMode ? 0xe6ecff : 0x101833,
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            fontSize,
+            fontWeight: fontWeight as TextStyle['fontWeight'],
+            fill: isDarkMode ? 0xf0f5ff : 0x0f172a,
+            stroke: {
+              color: isDarkMode ? 0x050811 : 0xffffff,
+              width: isDarkMode ? 3.6 : 3.0,
+              join: 'round',
+            },
             align: 'center',
           }),
         });
@@ -374,8 +559,26 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       });
 
       nodeSpritesRef.current = spritesMap;
+      nodeAuraSpritesRef.current = aurasMap;
       labelTextsRef.current = labelsMap;
       nodePositionsRef.current = posMap;
+
+      // Initialize Photons Pool for Edges
+      const photons: EdgePhoton[] = [];
+      edges.forEach((edge) => {
+        const count = Math.random() > 0.4 ? 2 : 1;
+        for (let i = 0; i < count; i++) {
+          photons.push({
+            sourceId: edge.source,
+            targetId: edge.target,
+            edgeType: edge.type || 'CONNECTS_TO',
+            progress: Math.random(),
+            speed: 0.18 + Math.random() * 0.26,
+            size: 1.8 + Math.random() * 1.4,
+          });
+        }
+      });
+      photonsRef.current = photons;
 
       // Handle Worker Output Messages (Tick)
       worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
@@ -383,11 +586,15 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         if (msg.type === 'TICK') {
           msg.positions.forEach((p) => {
             const sprite = spritesMap.get(p.id);
+            const aura = aurasMap.get(p.id);
             const label = labelsMap.get(p.id);
             posMap.set(p.id, { x: p.x, y: p.y });
 
             if (sprite) {
               sprite.position.set(p.x, p.y);
+            }
+            if (aura) {
+              aura.position.set(p.x, p.y);
             }
             if (label && sprite) {
               label.position.set(p.x, p.y + sprite.height / 2 + 3);
@@ -397,6 +604,108 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           drawEdges();
         }
       };
+
+      // Continuous 60 FPS Render Loop via app.ticker
+      let elapsedSeconds = 0;
+      app.ticker.add((ticker) => {
+        const dt = ticker.deltaTime / 60;
+        elapsedSeconds += dt;
+
+        // 1. Animate Cosmic Starfield Dust
+        starfieldGraphics.clear();
+        const starColor = isDarkMode ? 0x00f0ff : 0x0284c7;
+
+        for (let i = 0; i < stars.length; i++) {
+          const star = stars[i];
+          const twinkle = Math.sin(elapsedSeconds * star.twinkleSpeed + star.phase) * 0.15;
+          const currentAlpha = Math.max(0.05, Math.min(0.85, star.baseAlpha + twinkle));
+
+          starfieldGraphics.circle(star.x, star.y, star.radius);
+          starfieldGraphics.fill({
+            color: starColor,
+            alpha: isDarkMode ? currentAlpha : currentAlpha * 0.6,
+          });
+        }
+
+        // 2. Animate Traveling Photons & Comet Tails along Edges
+        pulseGraphics.clear();
+        const currentPhotons = photonsRef.current;
+        const focusId = hoveredNodeIdRef.current || selectedNodeIdRef.current;
+        const isFocusActive = focusId !== null;
+
+        for (let i = 0; i < currentPhotons.length; i++) {
+          const p = currentPhotons[i];
+          const isEdgeConnectedToFocus =
+            isFocusActive && (p.sourceId === focusId || p.targetId === focusId);
+
+          // Speed boost and particle size spike for focused connections
+          const currentSpeed = isEdgeConnectedToFocus ? p.speed * 2.4 : p.speed;
+          p.progress = (p.progress + currentSpeed * dt) % 1.0;
+
+          const a = posMap.get(p.sourceId);
+          const b = posMap.get(p.targetId);
+          if (!a || !b) continue;
+
+          const px = a.x + (b.x - a.x) * p.progress;
+          const py = a.y + (b.y - a.y) * p.progress;
+
+          const photonColor = isEdgeConnectedToFocus
+            ? 0x00ffcc
+            : isDarkMode
+            ? 0x00f0ff
+            : 0x0284c7;
+
+          const photonAlpha = isEdgeConnectedToFocus
+            ? 1.0
+            : isFocusActive
+            ? 0.08
+            : isDarkMode
+            ? 0.75
+            : 0.55;
+
+          const particleRadius = isEdgeConnectedToFocus ? p.size * 1.45 : p.size;
+
+          // Head of photon
+          pulseGraphics.circle(px, py, particleRadius);
+          pulseGraphics.fill({ color: photonColor, alpha: photonAlpha });
+
+          // Glowing Comet Tail
+          const tailProgress = Math.max(0, p.progress - 0.075);
+          const tx = a.x + (b.x - a.x) * tailProgress;
+          const ty = a.y + (b.y - a.y) * tailProgress;
+
+          pulseGraphics.setStrokeStyle({
+            width: isEdgeConnectedToFocus ? 2.4 : 1.2,
+            color: photonColor,
+            alpha: photonAlpha * 0.45,
+          });
+          pulseGraphics.moveTo(tx, ty);
+          pulseGraphics.lineTo(px, py);
+          pulseGraphics.stroke();
+        }
+
+        // 3. Animate Breathing Aura Glows on Hubs & Focused Nodes
+        aurasMap.forEach((auraSprite, id) => {
+          const isFocus = id === focusId;
+          const degree = hubDegreeMapRef.current.get(id) || 0;
+          const isHub = degree >= 5;
+
+          if (isFocus || isHub) {
+            auraSprite.visible = true;
+            const breath = Math.sin(elapsedSeconds * 2.8 + (id.charCodeAt(0) % 7)) * 0.2;
+            const baseScale = isFocus ? 1.45 : 1.15;
+            auraSprite.scale.set(baseScale + breath * 0.15);
+            auraSprite.alpha = isFocus
+              ? Math.min(1.0, 0.75 + breath)
+              : Math.min(0.65, 0.38 + breath * 0.4);
+          } else if (isFocusActive) {
+            auraSprite.visible = false;
+          } else {
+            auraSprite.visible = true;
+            auraSprite.alpha = 0.18;
+          }
+        });
+      });
 
       // Send initial data to Web Worker
       worker.postMessage({
@@ -414,7 +723,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
 
     initPixi();
 
-    // 6. Camera Pan & Zoom Event Handlers (Canvas Background)
+    // 8. Camera Pan & Zoom Event Handlers (Canvas Background)
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       const viewport = viewportRef.current;
@@ -439,7 +748,6 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     };
 
     const handlePointerDown = (e: PointerEvent) => {
-      // Background panning
       isPanningRef.current = true;
       panStartRef.current = { x: e.clientX, y: e.clientY };
     };
@@ -490,6 +798,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       if (circleTexture) {
         circleTexture.destroy(true);
       }
+      if (auraTexture) {
+        auraTexture.destroy(true);
+      }
 
       if (appRef.current) {
         appRef.current.destroy(true, { children: true });
@@ -498,7 +809,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     };
   }, [nodes, edges, isDarkMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 7. Update physics parameters in worker
+  // 9. Update physics parameters in worker
   const handleUpdateParams = (newParams: Partial<PhysicsParams>) => {
     setParams((prev) => {
       const merged = { ...prev, ...newParams };
@@ -512,7 +823,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     });
   };
 
-  // 8. Focus camera smoothly on a specific node
+  // 10. Focus camera smoothly on a specific node
   const handleFocusNode = (nodeId: string) => {
     const pos = nodePositionsRef.current.get(nodeId);
     const viewport = viewportRef.current;
@@ -522,7 +833,6 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     const targetNode = nodes.find((n) => n.id === nodeId);
     if (targetNode) onSelectNode(targetNode);
 
-    // Smoothly pan camera to target position
     const targetScale = 1.3;
     const targetX = container.clientWidth / 2 - pos.x * targetScale;
     const targetY = container.clientHeight / 2 - pos.y * targetScale;
@@ -534,7 +844,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     updateLabelVisibility();
   };
 
-  // 9. Reset Camera / Fit to Screen
+  // 11. Reset Camera / Fit to Screen
   const handleResetCamera = () => {
     const viewport = viewportRef.current;
     const container = containerRef.current;
@@ -547,7 +857,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     updateLabelVisibility();
   };
 
-  // 10. Reheat Simulation
+  // 12. Reheat Simulation
   const handleReheatSimulation = () => {
     if (workerRef.current) {
       workerRef.current.postMessage({
