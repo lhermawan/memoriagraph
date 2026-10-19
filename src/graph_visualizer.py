@@ -13,7 +13,10 @@ import os
 from typing import Any
 
 import dotenv
-from neo4j import GraphDatabase
+try:
+    from neo4j import GraphDatabase
+except ImportError:
+    GraphDatabase = None
 
 dotenv.load_dotenv("/opt/memoriagraph/.env")
 
@@ -45,41 +48,62 @@ LABEL_WEIGHTS = {
 
 def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = None) -> dict[str, Any]:
     """
-    Mengambil data graf dari Neo4j dan memformatnya menjadi skema 3D Three.js.
+    Mengambil data graf dari Neo4j dan memformatnya menjadi skema 3D Three.js & Cockpit Visualizer.
     """
-    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
-    
-    with driver.session() as s:
-        # 1. Ambil simpul (Nodes)
-        node_query = """
-        MATCH (n)
-        WHERE (n:Entity OR n:Episode OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern OR n:Curiosity OR n:Prototype OR n:Project)
-          AND ($bank IS NULL OR coalesce(n.bank_id, 'general') = $bank)
-        RETURN 
-            elementId(n) AS id,
-            labels(n)[0] AS primary_label,
-            coalesce(n.title, n.name, n.id, 'Unnamed') AS name,
-            coalesce(n.bank_id, 'general') AS bank,
-            coalesce(n.confidence_score, 0.7) AS confidence,
-            coalesce(n.status, 'ACTIVE') AS status
-        LIMIT $limit
-        """
-        raw_nodes = s.run(node_query, limit=limit_nodes, bank=bank_filter).data()
-        node_ids = {n["id"] for n in raw_nodes}
-        
-        # 2. Ambil relasi (Links) antar simpul yang terpilih
-        link_query = """
-        MATCH (a)-[r]->(b)
-        WHERE elementId(a) IN $ids AND elementId(b) IN $ids
-        RETURN 
-            elementId(a) AS source,
-            elementId(b) AS target,
-            type(r) AS type
-        LIMIT 300
-        """
-        raw_links = s.run(link_query, ids=list(node_ids)).data()
-
-    driver.close()
+    try:
+        driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+        with driver.session() as s:
+            # 1. Ambil simpul (Nodes) dengan atribut MemoriaGraph 3.1.2
+            node_query = """
+            MATCH (n)
+            WHERE (n:Entity OR n:Episode OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern OR n:Curiosity OR n:Prototype OR n:Project OR n:Attempt)
+              AND ($bank IS NULL OR coalesce(n.bank_id, 'general') = $bank)
+            RETURN 
+                elementId(n) AS id,
+                labels(n)[0] AS primary_label,
+                coalesce(n.title, n.name, n.id, 'Unnamed') AS name,
+                coalesce(n.bank_id, 'general') AS bank,
+                coalesce(n.confidence_score, 0.7) AS confidence,
+                coalesce(n.status, 'ACTIVE') AS status,
+                coalesce(n.provenance, 'OBSERVED') AS provenance,
+                coalesce(n.record_type, 'incident_rca') AS record_type,
+                coalesce(n.dedupe_fingerprint, '') AS dedupe_fingerprint,
+                coalesce(n.problem, '') AS problem,
+                coalesce(n.solution, '') AS solution,
+                coalesce(n.mitigation, '') AS mitigation,
+                coalesce(n.heuristic, '') AS heuristic,
+                coalesce(n.empirical_evidence, '') AS empirical_anchor,
+                coalesce(n.timestamp, '') AS created_at
+            LIMIT $limit
+            """
+            raw_nodes = s.run(node_query, limit=limit_nodes, bank=bank_filter).data()
+            node_ids = {n["id"] for n in raw_nodes}
+            
+            # 2. Ambil relasi (Links) antar simpul yang terpilih
+            link_query = """
+            MATCH (a)-[r]->(b)
+            WHERE elementId(a) IN $ids AND elementId(b) IN $ids
+            RETURN 
+                elementId(a) AS source,
+                elementId(b) AS target,
+                type(r) AS type
+            LIMIT 400
+            """
+            raw_links = s.run(link_query, ids=list(node_ids)).data()
+        driver.close()
+    except Exception as e:
+        # Fallback graceful jika Neo4j belum jalan
+        return {
+            "ok": False,
+            "error": str(e),
+            "service": "MemoriaGraph 3.1.2",
+            "total_nodes": 0,
+            "total_links": 0,
+            "bank_filter": bank_filter or "all",
+            "clusters": list(BANK_COLORS.keys()),
+            "nodes": [],
+            "links": []
+        }
 
     # Format nodes
     formatted_nodes = []
@@ -97,7 +121,16 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = No
             "color": BANK_COLORS.get(bank, "#ffaa00"),
             "val": weight,
             "confidence": n.get("confidence", 0.7),
-            "status": n.get("status", "ACTIVE")
+            "status": n.get("status", "ACTIVE"),
+            "provenance": n.get("provenance", "OBSERVED"),
+            "record_type": n.get("record_type", "incident_rca"),
+            "dedupe_fingerprint": n.get("dedupe_fingerprint", ""),
+            "problem": n.get("problem", ""),
+            "solution": n.get("solution", ""),
+            "mitigation": n.get("mitigation", ""),
+            "heuristic": n.get("heuristic", ""),
+            "empirical_anchor": n.get("empirical_anchor", ""),
+            "created_at": n.get("created_at", "")
         })
 
     # Format links
@@ -111,6 +144,7 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = No
 
     return {
         "ok": True,
+        "service": "MemoriaGraph 3.1.2",
         "total_nodes": len(formatted_nodes),
         "total_links": len(formatted_links),
         "bank_filter": bank_filter or "all",
@@ -119,7 +153,10 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = No
         "links": formatted_links
     }
 
+get_cockpit_graph_data = export_graph_for_3d_hud
+
 if __name__ == "__main__":
     data = export_graph_for_3d_hud(limit_nodes=20)
     print(f"Nodes: {data['total_nodes']}, Links: {data['total_links']}")
     print("Sample Node:", data["nodes"][0] if data["nodes"] else "None")
+

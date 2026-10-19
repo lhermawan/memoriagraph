@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #070b14;
+  --panel: #0d1424;
+  --line: #1c2740;
+  --tx: #e6ecff;
+  --mut: #8b97b8;
+  --edge: 140, 160, 210;
+}
+
+.light {
+  --bg: #f3f6fc;
+  --panel: #ffffff;
+  --line: #d9e0ef;
+  --tx: #101833;
+  --mut: #5b6785;
+  --edge: 80, 95, 140;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg);
+  color: var(--tx);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  user-select: none;
+}
+
+/* Custom Scrollbar for HUD panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mut);
+}
+
+.hud-glass {
+  backdrop-filter: blur(12px);
+  background-color: rgba(13, 20, 36, 0.75);
+}
+
+.light .hud-glass {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Subtle Sci-Fi grid background */
+.cyber-grid {
+  background-image: linear-gradient(to right, rgba(28, 39, 64, 0.25) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(28, 39, 64, 0.25) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.light .cyber-grid {
+  background-image: linear-gradient(to right, rgba(217, 224, 239, 0.5) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(217, 224, 239, 0.5) 1px, transparent 1px);
+}
