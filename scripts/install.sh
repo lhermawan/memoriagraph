@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-echo "🚀 Installing MemoriaGraph 3.0..."
+echo "🚀 Installing MemoriaGraph 3.1..."
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
@@ -23,5 +23,5 @@ fi
 echo "🧠 Initializing Neo4j Schema & Fulltext Indexes..."
 venv/bin/python -c "from src.schema_init import init_schema; init_schema()"
 
-echo "✅ MemoriaGraph 3.0 installation completed successfully!"
+echo "✅ MemoriaGraph 3.1 installation completed successfully!"
 echo "👉 Run 'venv/bin/memoria dashboard' or 'venv/bin/python benchmark_v3.py' to verify."

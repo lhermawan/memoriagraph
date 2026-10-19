@@ -4,8 +4,8 @@
   "phase": "BASELINE",
   "timestamp": "2026-10-17T01:31:00+07:00",
   "environment": {
-    "host": "vm-maskii",
-    "tailscale_ip": "100.79.34.4",
+    "host": "production-node-01",
+    "network_topology": "tailscale_mesh",
     "python_version": "3.12.3",
     "pytest_version": "9.1.1",
     "neo4j_version": "5.x Enterprise (Docker)",

@@ -85,8 +85,8 @@ def migrate_memory_banks(session):
     session.run("""
     MATCH (n)
     WHERE (n:Episode OR n:Entity OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern)
-      AND (toLower(coalesce(n.title, '')) =~ '.*(pm2|watchdog|lucky|atcs|vm-maskii|sre|patrol|ram|memory leak|tailscale).*'
-        OR toLower(coalesce(n.name, '')) =~ '.*(pm2|watchdog|lucky|atcs|vm-maskii|sre|patrol|ram|memory leak|tailscale).*')
+      AND (toLower(coalesce(n.title, '')) =~ '.*(pm2|watchdog|production|worker|server|sre|patrol|ram|memory leak|tailscale).*'
+        OR toLower(coalesce(n.name, '')) =~ '.*(pm2|watchdog|production|worker|server|sre|patrol|ram|memory leak|tailscale).*')
       AND n.bank_id IS NULL
     SET n.bank_id = 'infra-sre'
     """)
@@ -122,12 +122,14 @@ def init_schema():
             except Exception as e:
                 print(f"  ⚠️ Gagal membuat index '{name}': {e}")
                 
-        # Pastikan node Person Maskii sudah ada
+        # Pastikan default Person node sudah ada
+        actor_name = os.getenv("MEMORIAGRAPH_ACTOR_NAME", "System")
+        actor_id = actor_name.lower().replace(" ", "_")
         session.run("""
-        MERGE (p:Person {name: 'Maskii'})
-        ON CREATE SET p.id = 'maskii', p.created_at = datetime()
-        """)
-        print("  👤 Node Person 'Maskii' terverifikasi.")
+        MERGE (p:Person {name: $actor_name})
+        ON CREATE SET p.id = $actor_id, p.created_at = datetime()
+        """, actor_name=actor_name, actor_id=actor_id)
+        print(f"  👤 Node Person '{actor_name}' terverifikasi.")
 
         # Jalankan partisi Biomimetic Memory Banks
         migrate_memory_banks(session)

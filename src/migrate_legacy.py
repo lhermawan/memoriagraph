@@ -92,7 +92,7 @@ def run_migration():
         )
         mgr.add_decision(
             episode_id=ep1["id"],
-            choice="Mengirimkan alert darurat via WhatsApp ke nomor Maskii dan memverifikasi recovery",
+            choice="Mengirimkan alert darurat via saluran incident notification dan memverifikasi recovery",
             rationale="Memastikan transparansi insiden downtime dan pencatatan state",
             constraints=[{"category": "RELIABILITY", "weight": 5.0}, {"category": "TIME", "weight": 5.0}]
         )
@@ -132,7 +132,7 @@ def run_migration():
         )
         mgr.add_decision(
             episode_id=ep2["id"],
-            choice="Eksekusi notifikasi langsung dari lingkungan Linux lokal (vm-maskii) via Tailscale internal API",
+            choice="Eksekusi notifikasi langsung dari lingkungan Linux lokal via internal mesh API",
             rationale="Menghindari overhead bridging encoding Windows terminal",
             constraints=[{"category": "RELIABILITY", "weight": 5.0}, {"category": "COMPATIBILITY", "weight": 4.5}]
         )
@@ -158,7 +158,7 @@ def run_migration():
         )
         mgr.add_decision(
             episode_id=ep3["id"],
-            choice="Implementasi Ed25519 signature headers (timestamp, agentId, method, path) menggunakan Maskii Private Key",
+            choice="Implementasi Ed25519 signature headers (timestamp, agentId, method, path) menggunakan asymmetric Private Key",
             rationale="Mencegah kebocoran API token statis dan menerapkan Zero Trust antar VM",
             constraints=[{"category": "SECURITY", "weight": 5.0}, {"category": "RELIABILITY", "weight": 5.0}],
             options_considered=[
@@ -177,12 +177,12 @@ def run_migration():
     except Exception as e:
         print(f"  ⚠️ Gagal migrasi Episode 3: {e}")
 
-    # 3.4 Migrasi Security Audit SIKANDI
+    # 3.4 Migrasi Security Audit & Hardening
     try:
         ep4 = mgr.create_episode(
-            title="SIKANDI Security Audit and Hardening",
+            title="Public Service Portal Security Audit and Hardening",
             category="PROBLEM_SOLVING",
-            objective="Audit celah keamanan, review hak akses port, dan remediasi hardening pada aplikasi SIKANDI Diskominfo",
+            objective="Audit celah keamanan, review hak akses port, dan remediasi hardening pada portal layanan publik",
             context="security-audit",
             trigger="security-review"
         )

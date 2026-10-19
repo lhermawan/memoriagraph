@@ -10,10 +10,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [
-    { name = "Maskii", email = "commander@maskii.dev" }
+    { name = "MemoriaGraph Team", email = "core@memoriagraph.org" }
 ]
 maintainers = [
-    { name = "Friday", email = "ai@maskii.dev" }
+    { name = "MemoriaGraph Maintainers", email = "maintainers@memoriagraph.org" }
 ]
 keywords = [
     "mcp",

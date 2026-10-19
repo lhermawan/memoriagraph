@@ -20,7 +20,7 @@ NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
 
-def analyze_git_blast_radius(repo_path: str = "/home/maskii/Private-key", base_ref: str | None = None) -> dict[str, Any]:
+def analyze_git_blast_radius(repo_path: str = ".", base_ref: str | None = None) -> dict[str, Any]:
     """
     Menginspeksi git diff dan uncommitted changes di direktori target.
     Mengembalikan ringkasan file terdampak, blast radius severity, dan modul terkait.
@@ -136,7 +136,7 @@ def analyze_git_blast_radius(repo_path: str = "/home/maskii/Private-key", base_r
 def record_code_action_with_blast_radius(
     episode_id: str,
     action_description: str,
-    repo_path: str = "/home/maskii/Private-key",
+    repo_path: str = ".",
     base_ref: str | None = None
 ) -> dict[str, Any]:
     """

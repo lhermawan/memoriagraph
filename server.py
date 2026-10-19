@@ -545,7 +545,7 @@ def add_relation(source_name: str, target_name: str, relationship: str) -> str:
 def record_code_action(
     episode_id: str,
     action_description: str,
-    repo_path: str = "/home/maskii/Private-key",
+    repo_path: str = ".",
     base_ref: str = ""
 ) -> str:
     """[Legacy Compatibility] Mencatat Action ke dalam Episode lengkap dengan Git Blast-Radius."""

@@ -4,7 +4,7 @@
   "phase": "R2_INDEPENDENT_VERIFICATION",
   "timestamp": "2026-10-16T19:19:11.892746+00:00",
   "environment": {
-    "host": "vm-maskii",
+    "host": "production-node-01",
     "python_version": "3.12.3",
     "neo4j_version": "5.x Enterprise (Docker)",
     "embedding_model": "BAAI/bge-small-en-v1.5 (FastEmbed ONNX Int8)",

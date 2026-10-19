@@ -95,6 +95,7 @@ class EpisodeManager:
             "is_duplicate": False
         })
 
+        ep_data["actor_name"] = os.getenv("MEMORIAGRAPH_ACTOR_NAME", "User")
         query = """
         MERGE (e:Episode {id: $id})
         SET e.title = $title,
@@ -109,8 +110,10 @@ class EpisodeManager:
             e.dedupe_fingerprint = $dedupe_fingerprint,
             e.provenance = $provenance
         WITH e
-        MATCH (p:Person {name: 'Maskii'})
-        MERGE (p)-[:PARTICIPATED_IN]->(e)
+        OPTIONAL MATCH (p:Person {name: $actor_name})
+        FOREACH (_ IN CASE WHEN p IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (p)-[:PARTICIPATED_IN]->(e)
+        )
         RETURN e.id AS episode_id
         """
         with self.driver.session() as s:
@@ -419,8 +422,9 @@ class EpisodeManager:
             "timestamp": now_iso
         })
 
+        data["actor_name"] = os.getenv("MEMORIAGRAPH_ACTOR_NAME", "User")
         query = """
-        MATCH (p:Person {name: 'Maskii'})
+        MERGE (p:Person {name: $actor_name})
         CREATE (c:Curiosity {id: $cur_id, topic: $curiosity_topic, timestamp: datetime($timestamp)})
         CREATE (exp:Experiment {id: $exp_id, summary: $experiment_summary, timestamp: datetime($timestamp)})
         CREATE (pr:Prototype {id: $proto_id, name: $prototype_name, timestamp: datetime($timestamp)})

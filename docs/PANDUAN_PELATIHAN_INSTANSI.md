@@ -179,7 +179,7 @@ Jika suatu aturan atau perintah sudah tidak relevan (misal regulasi berubah atau
 Setelah otak dilatih, seluruh ASN dapat memanfaatkannya melalui antarmuka apa pun (Telegram Bot, Web Portal, Antigravity Desktop):
 
 ### 1. Pencarian Informasi Kontekstual (`recall`):
-* **Prompt Staf:** *"Friday, bagaimana alur pengajuan integrasi API aplikasi OPD ke Satu Data Ciamis?"*
+* **Prompt Staf:** *"Friday, bagaimana alur pengajuan integrasi API aplikasi OPD ke Portal Satu Data?"*
 * **Cara Kerja AI:** Memanggil `recall(query="alur pengajuan integrasi API Satu Data", bank_id="spbe-layanan")`.
 * **Output:** Jawaban padat langsung merujuk pada SOP dan Perbup yang tersimpan di memori.
 
@@ -224,4 +224,4 @@ Cetak atau bagikan template ini kepada tim teknis/staf dinas setiap kali ada pem
 
 ---
 *Dokumen ini merupakan bagian dari repositori open-source MemoriaGraph 3.1.*  
-*Inisiatif: Maskii Studio & Friday Gov-AI Research Lab.*
+*Inisiatif: Open Gov-AI & Cognitive Systems Research Lab.*

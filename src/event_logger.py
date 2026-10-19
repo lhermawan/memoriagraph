@@ -107,11 +107,15 @@ def _project_event_to_graph(event: dict[str, Any]):
             e.timestamp = datetime($timestamp),
             e.epistemic_class = $epistemic_class
         WITH e
-        MATCH (p:Person {{name: 'Maskii'}})
-        MERGE (p)-[:EXPERIENCED]->(e)
+        OPTIONAL MATCH (p:Person {{name: $actor_name}})
+        FOREACH (_ IN CASE WHEN p IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (p)-[:EXPERIENCED]->(e)
+        )
         """
+        actor_name = os.getenv("MEMORIAGRAPH_ACTOR_NAME", "User")
         with driver.session() as s:
             s.run(query,
+                  actor_name=actor_name,
                   id=event["event_id"],
                   event_type=event["event_type"],
                   description=event["description"],

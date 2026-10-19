@@ -25,7 +25,8 @@ MemoriaGraph is designed as a persistent cognitive memory substrate for autonomo
 
 | Version | Supported          | Security Patches |
 | ------- | ------------------ | ---------------- |
-| 3.0.x   | :white_check_mark: | Active           |
+| 3.1.x   | :white_check_mark: | Active           |
+| 3.0.x   | :white_check_mark: | Maintained       |
 | 2.0.x   | :x:                | Deprecated       |
 | 1.0.x   | :x:                | Unsupported      |
 
@@ -35,6 +36,6 @@ MemoriaGraph is designed as a persistent cognitive memory substrate for autonomo
 
 If you discover a security vulnerability or credential leakage vector within MemoriaGraph:
 1. **DO NOT** open a public issue.
-2. Send a report directly to the security team at `security@maskii.dev` or ping Friday via the Telegram Emergency Channel (`/alert`).
+2. Send a report privately via GitHub Security Advisories or contact `security@memoriagraph.org`.
 3. Include details of the vulnerability, proof of concept, and affected version.
 4. We aim to acknowledge receipt within 24 hours and patch critical issues within 48 hours.

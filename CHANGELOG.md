@@ -5,6 +5,41 @@ All notable changes to **MemoriaGraph** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2] - 2026-10-17
+
+### 🛡️ Ingestion Integrity Hardening, Deduplication & Shadow Mode Governance
+
+#### Added
+- **Database-Level Deduplication (`src/episode_manager.py`)**:
+  - `create_episode()` checks `dedupe_fingerprint` in Neo4j prior to insert, returning existing episode with `is_duplicate=True` if matched.
+  - 100% idempotent write operations preventing duplicate node creation across parallel workflows.
+- **Strict Empirical Success Grounding (`src/ingestion_gate.py`)**:
+  - `check_has_empirical_evidence()` strictly isolates positive completion signals (`exit code 0`, `status 200`, `tests passed`, `commit <sha>`).
+  - Eliminates false positive hallucinations; tasks claiming success without verified anchors are downgraded to `UNKNOWN`.
+- **Failure Integrity & Attempt Recovery**:
+  - Validates `FAILURE` claims against empirical failure signals (`exit code [1-9]`, `stacktrace`, `OOM`).
+  - Overrides intermediate failure labels if sequential attempts culminated in verified resolution.
+- **Active Shadow Mode Governance**:
+  - `MEMORIAGRAPH_ENFORCE_INGESTION_GATE` switches between strict blocking (`QUARANTINED`/`REJECTED`) and passive observation (`ACCEPTED_SHADOW`) with audit reason code recording.
+- **Full-Chain Provenance Tracking**:
+  - Propagates `provenance` (`OBSERVED`, `USER_REPORTED`, `INFERRED`, `ARTIFACT_VERIFIED`) and `record_type` from HTTP API & MCP facade directly to Neo4j `Episode` nodes.
+- **Legacy Write Vector Hardening**:
+  - Added credential sanitization to legacy tools like `add_entity()` and indexed `dedupe_fingerprint` in Neo4j schema.
+
+---
+
+## [3.1.1] - 2026-10-16
+
+### 🔒 Memory Ingestion Quality Gate, Anti-Slop & Cache Reliability
+
+#### Added
+- **Contract-Driven Shared Memory Ingestion Quality Gate (`src/ingestion_gate.py`)**:
+  - Deterministic chokepoint gating MCP tools and REST API against unverified claims, prompt injections, and noisy chatter.
+- **Hard Secret Quarantine**:
+  - Automated regex and entropy-based sanitization stripping API keys, tokens, and private keys before graph storage.
+- **Cross-Process Cache Reliability (`src/hybrid_recall.py`)**:
+  - Integrated `FileLock` and atomic file swapping on `.vector_cache.pkl` preventing concurrent write corruption.
+
 ---
 
 ## [3.1.0] - 2026-10-14

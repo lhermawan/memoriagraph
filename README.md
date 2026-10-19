@@ -399,5 +399,5 @@ This delivers:
 
 Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for details.
 
-**Author:** [Maskii](https://github.com/lhermawan)  
-**AI Co-Architect:** Friday (F.R.I.D.A.Y. Cognitive Partner)
+**Author:** [MemoriaGraph Contributors](https://github.com/lhermawan/memoriagraph)  
+**AI Co-Architect:** Friday Cognitive Systems & Open Source Community

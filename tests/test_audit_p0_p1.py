@@ -174,7 +174,7 @@ class TestEpistemicGroundingQualityGate(unittest.TestCase):
 
     def test_plain_tech_names_do_not_falsely_become_fact(self):
         # Menyebut nama tools saja tanpa telemetri empiris -> INFERENCE, bukan FACT
-        label, score = classify_epistemic_grounding("Docker sering restart sendiri di node lucky.")
+        label, score = classify_epistemic_grounding("Docker sering restart sendiri di node worker-prod.")
         self.assertEqual(label, "INFERENCE")
         self.assertLess(score, 0.90)
 
@@ -193,7 +193,7 @@ class TestBankSlugification(unittest.TestCase):
     """Memverifikasi perbaikan P1-3: Sanitasi nama memory bank."""
 
     def test_slugify_long_sentence_bank(self):
-        raw = "migrasi bot sandikami di node lucky dari whatsapp-web.js ke baileys"
+        raw = "migrasi bot notification di node worker-prod dari lib-a ke lib-b"
         slug = slugify_bank_id(raw)
         self.assertTrue(len(slug) <= 32)
         self.assertRegex(slug, r"^[a-z0-9\-]+$")

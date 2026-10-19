@@ -1,8 +1,8 @@
 # 🧠 MEMORIAGRAPH 3.1: Cognitive Substrate & Retrieval Engine Roadmap
-> **Status:** 🟢 PRODUCTION RELEASE & ACTIVE DEPLOYMENT (V3.1.0)  
-> **Target System:** Neo4j Local Instance (`memoriagraph-neo4j`) & `/opt/memoriagraph`  
-> **Author:** Maskii  
-> **Version:** 3.1.0
+> **Status:** 🟢 PRODUCTION RELEASE & ACTIVE DEPLOYMENT (V3.1.2)  
+> **Target System:** Neo4j Enterprise Instance (`bolt://127.0.0.1:7687`) & `/opt/memoriagraph`  
+> **Author:** MemoriaGraph Core Contributors  
+> **Version:** 3.1.2
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## 1. VISI SISTEM
 
-MemoriaGraph berevolusi dari sekadar sistem memori statis (*"Apa yang pernah dilakukan?"*) menjadi sistem observasi dan analisis mendalam terhadap **proses berpikir, problem-solving, eksplorasi, dan pengambilan keputusan personal Maskii** (*"Bagaimana prosesnya, mengapa keputusan tersebut diambil, dan apa dampaknya?"*).
+MemoriaGraph berevolusi dari sekadar sistem memori statis (*"Apa yang pernah dilakukan?"*) menjadi sistem observasi dan analisis mendalam terhadap **proses berpikir, problem-solving, eksplorasi, dan pengambilan keputusan engineering** (*"Bagaimana prosesnya, mengapa keputusan tersebut diambil, dan apa dampaknya?"*).
 
 ```
 Memory ──▶ Context ──▶ Problem ──▶ Investigation ──▶ Hypothesis ──▶ Experiment
@@ -52,7 +52,7 @@ Membentuk **Personal Cognitive Model** yang menggambarkan pola eksplorasi, heuri
 
 ## 2. PRINSIP UTAMA: MENANGKAP PROSES, BUKAN HANYA HASIL
 
-Sistem dilarang keras hanya mencatat hasil akhir (misal: *"Maskii memperbaiki tool Nuclei"*). Setiap episode kognitif wajib menangkap rantai penalaran:
+Sistem dilarang keras hanya mencatat hasil akhir (misal: *"Developer memperbaiki tool Nuclei"*). Setiap episode kognitif wajib menangkap rantai penalaran:
 
 | Tahap | Contoh Nyata |
 | :--- | :--- |
@@ -72,7 +72,7 @@ Sistem dilarang keras hanya mencatat hasil akhir (misal: *"Maskii memperbaiki to
 Sistem harus mampu menjawab pertanyaan reflektif berikut secara obyektif melalui query data:
 
 ### A. Problem Solving
-1. Bagaimana gaya Maskii dalam memecahkan masalah sistem/infrastruktur?
+1. Bagaimana gaya engineer dalam memecahkan masalah sistem/infrastruktur?
 2. Tindakan apa yang paling sering dilakukan pertama kali (cek log, langsung coba CLI, atau cari dokumentasi)?
 3. Apa yang dilakukan ketika solusi pertama gagal (ganti pendekatan, periksa dependensi, atau re-install)?
 4. Seberapa sering menggunakan pendekatan *trial-and-error* versus *analisis mendalam* sebelum eksekusi?
@@ -202,7 +202,7 @@ Episode
 
 ```mermaid
 graph TD
-    Person([Person: Maskii]) -->|PARTICIPATED_IN| Ep([Episode])
+    Person([Actor: Engineer]) -->|PARTICIPATED_IN| Ep([Episode])
     Ep -->|TRIGGERED_BY| Prob([Problem])
     Ep -->|HAS_GOAL| Goal([Goal])
     
@@ -343,7 +343,7 @@ Mencegah kesimpulan prematur (*premature conclusion bias*):
 | `HIGH CONFIDENCE PATTERN` | $\ge 15$ kali | Heuristik inti yang sangat stabil dan terbukti. |
 
 *Contoh:*
-- Observasi 3x: *"Maskii cenderung melakukan tes langsung di terminal."* $\to$ Status: `CANDIDATE PATTERN` (Confidence: Low/Medium).
+- Observasi 3x: *"Developer cenderung melakukan tes langsung di terminal."* $\to$ Status: `CANDIDATE PATTERN` (Confidence: Low/Medium).
 - Observasi 27x: $\to$ Status: `HIGH CONFIDENCE PATTERN`.
 
 ---
@@ -403,7 +403,7 @@ Tujuannya agar **fakta** dan **interpretasi AI** tidak pernah tercampur aduk.
 
 ## 16. PERSONAL DECISION SUPPORT SYSTEM (DSS)
 
-Ketika Maskii menghadapi masalah atau situasi baru di masa depan:
+Ketika tim engineering menghadapi masalah atau situasi baru di masa depan:
 
 ```
 [Situasi Saat Ini] ──▶ Historical Retrieval ──▶ Pattern Detection ──▶ Context Matching ──▶ Personal DSS
@@ -580,6 +580,6 @@ Data proses berpikir adalah data berharga dan sensitif tingkat tinggi.
 ## 25. PRINSIP AKHIR
 
 > *"MemoriaGraph tidak bertujuan mendikte seperti apa seseorang seharusnya berpikir.*  
-> *MemoriaGraph bertujuan menjawab: Dari data yang benar-benar terjadi secara empiris, bagaimana pola proses berpikir, eksplorasi, pemecahan masalah, dan pengambilan keputusan Maskii terlihat?"*
+> *MemoriaGraph bertujuan menjawab: Dari data yang benar-benar terjadi secara empiris, bagaimana pola proses berpikir, eksplorasi, pemecahan masalah, dan pengambilan keputusan tim engineering terlihat?"*
 
-**Bukan AI yang berpura-pura menjadi Maskii, melainkan sistem observasi cerdas yang mampu menjelaskan dan merekonstruksi kebijaksanaan keputusan Maskii berdasarkan sejarah nyata.**
+**Bukan AI yang berpura-pura menjadi manusia, melainkan sistem observasi cerdas yang mampu menjelaskan dan merekonstruksi kebijaksanaan keputusan sistemik berdasarkan sejarah nyata.**

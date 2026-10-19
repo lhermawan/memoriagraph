@@ -17,7 +17,7 @@ Thank you for your interest in contributing to **MemoriaGraph**! MemoriaGraph is
 ### 2. Environment Setup
 ```bash
 # Clone the repository
-git clone https://github.com/maskii/memoriagraph.git
+git clone https://github.com/lhermawan/memoriagraph.git
 cd memoriagraph
 
 # Create virtual environment

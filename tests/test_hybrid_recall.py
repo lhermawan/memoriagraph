@@ -4,7 +4,7 @@ Menguji akurasi dan latensi pencarian pada kata-kata kunci sulit:
 1. 'friday-hologram-hud' (compound token & hyphen)
 2. 'agenda besok senin 28 september' (temporal + entity match)
 3. 'strix ai security' (security sandbox project)
-4. 'lucky production watchdog' (infrastructure SRE)
+4. 'production worker watchdog' (infrastructure SRE)
 5. 'solusi memory leak pm2 restart' (conceptual problem-solving)
 """
 
@@ -26,7 +26,7 @@ def run_benchmarks():
         "friday-hologram-hud",
         "agenda besok senin 28 september",
         "strix ai security sandbox",
-        "lucky production watchdog pm2",
+        "production worker watchdog pm2",
         "solusi restart memory leak high ram"
     ]
     
