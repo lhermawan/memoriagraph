@@ -116,3 +116,12 @@ export const BANK_CONFIG: Record<BankId, { name: string; color: string; desc: st
     desc: 'Core Epistemology, Common Entities & Persistent Memory',
   },
 };
+
+
+export interface PhysicsParams {
+  repelStrength: number;
+  linkDistance: number;
+  centerGravity: number;
+  collideRadius: number;
+  nodeSizeMult: number;
+}

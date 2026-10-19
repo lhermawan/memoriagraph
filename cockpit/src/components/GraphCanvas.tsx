@@ -1,5 +1,16 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import type { GraphNode, GraphEdge } from '../types/graph';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { 
+  Application, 
+  Container, 
+  Graphics, 
+  Sprite, 
+  Text, 
+  TextStyle, 
+  Texture 
+} from 'pixi.js';
+import type { GraphNode, GraphEdge, PhysicsParams } from '../types/graph';
+import type { WorkerInMessage, WorkerOutMessage } from '../workers/graphPhysics.worker';
+import { GraphControls } from './GraphControls';
 
 interface GraphCanvasProps {
   nodes: GraphNode[];
@@ -12,13 +23,6 @@ interface GraphCanvasProps {
   isDarkMode: boolean;
 }
 
-interface Particle {
-  edge: GraphEdge;
-  t: number;
-  dir: number;
-  speed: number;
-}
-
 export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   nodes,
   edges,
@@ -29,502 +33,549 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   onHoverNode,
   isDarkMode,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const appRef = useRef<Application | null>(null);
+  const viewportRef = useRef<Container | null>(null);
+  const edgesGraphicsRef = useRef<Graphics | null>(null);
 
-  // Pan & Zoom state
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  // Sprite & Label references by Node ID
+  const nodeSpritesRef = useRef<Map<string, Sprite>>(new Map());
+  const labelTextsRef = useRef<Map<string, Text>>(new Map());
+  const nodePositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
+  // Interaction State
+  const [showLabels, setShowLabels] = useState(true);
+  const [params, setParams] = useState<PhysicsParams>({
+    repelStrength: -280,
+    linkDistance: 110,
+    centerGravity: 0.06,
+    collideRadius: 18,
+    nodeSizeMult: 1.0,
+  });
+
   const isPanningRef = useRef(false);
-  const startPanRef = useRef({ x: 0, y: 0 });
+  const panStartRef = useRef({ x: 0, y: 0 });
+  const hoveredNodeIdRef = useRef<string | null>(null);
+  const selectedNodeIdRef = useRef<string | null>(null);
 
-  // Dragging state
-  const dragNodeRef = useRef<GraphNode | null>(null);
-  const hasMovedRef = useRef(false);
-  const particlesRef = useRef<Particle[]>([]);
-  const lastSpawnRef = useRef(0);
-  const animFrameRef = useRef<number | null>(null);
-
-  // Node Map by ID
-  const nodeMapRef = useRef<Map<string, GraphNode>>(new Map());
-
-  // Initialize node physics properties
+  // Sync selectedNode to ref
   useEffect(() => {
-    const nodeMap = new Map<string, GraphNode>();
-    nodes.forEach((n) => {
-      nodeMap.set(n.id, n);
-      if (n.r === undefined) n.r = 8 + (n.val || 10) * 0.45;
-      if (n.ph === undefined) n.ph = Math.random();
-      if (n.x === undefined || n.y === undefined) {
-        n.x = (window.innerWidth / 2) + (Math.random() - 0.5) * 400;
-        n.y = (window.innerHeight / 2) + (Math.random() - 0.5) * 400;
-        n.vx = 0;
-        n.vy = 0;
-        n.flash = 0;
-      }
-    });
-    nodeMapRef.current = nodeMap;
+    selectedNodeIdRef.current = selectedNode ? selectedNode.id : null;
+  }, [selectedNode]);
 
-    // Attach node references to edges
+  // Sync hoveredNode to ref
+  useEffect(() => {
+    hoveredNodeIdRef.current = hoveredNode ? hoveredNode.id : null;
+  }, [hoveredNode]);
+
+  // 1. Pre-computed Adjacency Map (1-hop neighbors)
+  const adjacencyMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    nodes.forEach((n) => map.set(n.id, new Set()));
     edges.forEach((e) => {
-      e.a = nodeMap.get(e.source);
-      e.b = nodeMap.get(e.target);
+      map.get(e.source)?.add(e.target);
+      map.get(e.target)?.add(e.source);
     });
+    return map;
   }, [nodes, edges]);
 
-  // Particle Spawner
-  const spawnParticle = useCallback((edge: GraphEdge) => {
-    if (!edge || !edge.a || !edge.b) return;
-    particlesRef.current.push({
-      edge,
-      t: 0,
-      dir: Math.random() < 0.5 ? 1 : -1,
-      speed: 0.007 + Math.random() * 0.008,
-    });
-  }, []);
+  // Convert hex color to number
+  const hexToNumber = (hex: string) => {
+    if (!hex || !hex.startsWith('#')) return 0x00f0ff;
+    return parseInt(hex.slice(1), 16);
+  };
 
-  // Neighbors lookup
-  const getNeighbors = useCallback(
-    (targetNode: GraphNode) => {
-      return edges.filter((e) => e.a === targetNode || e.b === targetNode);
-    },
-    [edges]
-  );
+  // 2. Zoom-Based Label Opacity (Level of Detail)
+  const updateLabelVisibility = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
 
-  // Draw node shape
-  const drawNodeShape = (ctx: CanvasRenderingContext2D, n: GraphNode, r: number) => {
-    ctx.beginPath();
-    const x = n.x || 0;
-    const y = n.y || 0;
+    const scale = viewport.scale.x;
+    const hoveredId = hoveredNodeIdRef.current;
+    const neighbors = hoveredId ? adjacencyMap.get(hoveredId) : null;
 
-    if (n.label === 'Decision') {
-      // Diamond
-      ctx.moveTo(x, y - r * 1.3);
-      ctx.lineTo(x + r * 1.3, y);
-      ctx.lineTo(x, y + r * 1.3);
-      ctx.lineTo(x - r * 1.3, y);
-      ctx.closePath();
-    } else if (n.label === 'Attempt') {
-      // Square
-      ctx.rect(x - r * 0.9, y - r * 0.9, r * 1.8, r * 1.8);
-    } else if (n.label === 'Entity') {
-      // Rounded Rectangle
-      if (ctx.roundRect) {
-        ctx.roundRect(x - r * 1.1, y - r * 0.8, r * 2.2, r * 1.6, 6);
+    labelTextsRef.current.forEach((label, id) => {
+      const isSpotlight = id === hoveredId || (neighbors && neighbors.has(id));
+
+      if (isSpotlight) {
+        label.visible = true;
+        label.alpha = 1.0;
+        return;
+      }
+
+      if (!showLabels || scale < 0.38) {
+        label.visible = false;
+        label.alpha = 0;
       } else {
-        ctx.rect(x - r * 1.1, y - r * 0.8, r * 2.2, r * 1.6);
+        label.visible = true;
+        label.alpha = Math.min(1, (scale - 0.38) / 0.45);
       }
-    } else if (n.label === 'Pattern') {
-      // Hexagon
-      const sides = 6;
-      for (let i = 0; i < sides; i++) {
-        const angle = (i * 2 * Math.PI) / sides;
-        const px = x + r * 1.25 * Math.cos(angle);
-        const py = y + r * 1.25 * Math.sin(angle);
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
+    });
+  }, [adjacencyMap, showLabels]);
+
+  // 3. Batch Draw Edges
+  const drawEdges = useCallback(() => {
+    const graphics = edgesGraphicsRef.current;
+    if (!graphics) return;
+
+    graphics.clear();
+
+    const hoveredId = hoveredNodeIdRef.current;
+    const selectedId = selectedNodeIdRef.current;
+    const focusId = hoveredId || selectedId;
+    const neighbors = focusId ? adjacencyMap.get(focusId) : null;
+
+    const posMap = nodePositionsRef.current;
+    const edgeBaseColor = isDarkMode ? 0x8b97b8 : 0x5b6785;
+
+    edges.forEach((edge) => {
+      const a = posMap.get(edge.source);
+      const b = posMap.get(edge.target);
+      if (!a || !b) return;
+
+      const isConnectedToFocus =
+        focusId !== null &&
+        (edge.source === focusId || edge.target === focusId);
+
+      const isConnectedToNeighbor =
+        focusId !== null &&
+        neighbors &&
+        neighbors.has(edge.source) &&
+        neighbors.has(edge.target);
+
+      const isHighlighted =
+        highlightedIds &&
+        highlightedIds.has(edge.source) &&
+        highlightedIds.has(edge.target);
+
+      if (isConnectedToFocus || isHighlighted) {
+        graphics.setStrokeStyle({
+          width: 2.2,
+          color: 0x00f0ff,
+          alpha: 0.95,
+        });
+      } else if (isConnectedToNeighbor) {
+        graphics.setStrokeStyle({
+          width: 1.5,
+          color: 0x00ff88,
+          alpha: 0.7,
+        });
+      } else if (focusId !== null) {
+        graphics.setStrokeStyle({
+          width: 0.8,
+          color: edgeBaseColor,
+          alpha: 0.05,
+        });
+      } else {
+        graphics.setStrokeStyle({
+          width: 1.0,
+          color: edgeBaseColor,
+          alpha: 0.22,
+        });
       }
-      ctx.closePath();
-    } else {
-      // Circle for Episode, Problem, Reflection, etc.
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-    }
-  };
 
-  // Convert hex color to rgba
-  const hexToRgba = (hex: string, alpha: number) => {
-    if (!hex || !hex.startsWith('#')) return `rgba(0, 240, 255, ${alpha})`;
-    const n = parseInt(hex.slice(1), 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-  };
+      graphics.moveTo(a.x, a.y);
+      graphics.lineTo(b.x, b.y);
+      graphics.stroke();
+    });
+  }, [edges, adjacencyMap, highlightedIds, isDarkMode]);
 
-  // Physics simulation tick
-  const tickPhysics = useCallback(
-    (width: number, height: number) => {
-      const centerX = width / 2;
-      const centerY = height / 2;
+  // 4. Update Node Spotlight Alpha
+  const updateSpotlight = useCallback(() => {
+    const hoveredId = hoveredNodeIdRef.current;
+    const selectedId = selectedNodeIdRef.current;
+    const focusId = hoveredId || selectedId;
+    const neighbors = focusId ? adjacencyMap.get(focusId) : null;
 
-      // 1. Repulsion between nodes
-      for (let i = 0; i < nodes.length; i++) {
-        const a = nodes[i];
-        if (a.x === undefined || a.y === undefined) continue;
+    nodeSpritesRef.current.forEach((sprite, id) => {
+      const isFocus = id === focusId;
+      const isNeighbor = neighbors && neighbors.has(id);
+      const isHigh = highlightedIds && highlightedIds.has(id);
 
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j];
-          if (b.x === undefined || b.y === undefined) continue;
-
-          let dx = a.x - b.x;
-          let dy = a.y - b.y;
-          const d2 = dx * dx + dy * dy + 60;
-          const d = Math.sqrt(d2);
-          const force = 4800 / d2;
-          dx /= d;
-          dy /= d;
-
-          a.vx = (a.vx || 0) + dx * force;
-          a.vy = (a.vy || 0) + dy * force;
-          b.vx = (b.vx || 0) - dx * force;
-          b.vy = (b.vy || 0) - dy * force;
-        }
-
-        // Center gravity
-        a.vx = (a.vx || 0) + (centerX - a.x) * 0.0018;
-        a.vy = (a.vy || 0) + (centerY - a.y) * 0.0018;
+      if (focusId === null && (!highlightedIds || highlightedIds.size === 0)) {
+        sprite.alpha = 1.0;
+        sprite.scale.set(params.nodeSizeMult);
+      } else if (isFocus) {
+        sprite.alpha = 1.0;
+        sprite.scale.set(params.nodeSizeMult * 1.35);
+      } else if (isNeighbor || isHigh) {
+        sprite.alpha = 1.0;
+        sprite.scale.set(params.nodeSizeMult * 1.15);
+      } else {
+        sprite.alpha = 0.15;
+        sprite.scale.set(params.nodeSizeMult * 0.9);
       }
+    });
 
-      // 2. Spring forces along edges
-      edges.forEach((e) => {
-        if (!e.a || !e.b || e.a.x === undefined || e.b.x === undefined) return;
-        const dx = e.b.x - e.a.x;
-        const dy = (e.b.y || 0) - (e.a.y || 0);
-        const d = Math.hypot(dx, dy) || 1;
-        const springForce = (d - 130) * 0.014;
-        const fx = (dx / d) * springForce;
-        const fy = (dy / d) * springForce;
+    drawEdges();
+    updateLabelVisibility();
+  }, [adjacencyMap, highlightedIds, params.nodeSizeMult, drawEdges, updateLabelVisibility]);
 
-        e.a.vx = (e.a.vx || 0) + fx;
-        e.a.vy = (e.a.vy || 0) + fy;
-        e.b.vx = (e.b.vx || 0) - fx;
-        e.b.vy = (e.b.vy || 0) - fy;
-      });
-
-      // 3. Integration & Damping
-      nodes.forEach((n) => {
-        if (n === dragNodeRef.current) {
-          n.vx = 0;
-          n.vy = 0;
-          return;
-        }
-        n.vx = (n.vx || 0) * 0.85;
-        n.vy = (n.vy || 0) * 0.85;
-        n.x = (n.x || 0) + (n.vx || 0);
-        n.y = (n.y || 0) + (n.vy || 0);
-
-        // Bounding
-        n.x = Math.max(40, Math.min(width - 40, n.x));
-        n.y = Math.max(40, Math.min(height - 40, n.y));
-      });
-    },
-    [nodes, edges]
-  );
-
-  // Main Render Loop
+  // 5. Initialize PixiJS Application & Web Worker
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    let animId: number;
+    let isDestroyed = false;
 
-    const render = (time: number) => {
-      const width = canvas.clientWidth;
-      const height = canvas.clientHeight;
-      const dpr = window.devicePixelRatio || 1;
+    // Create Web Worker
+    const worker = new Worker(
+      new URL('../workers/graphPhysics.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    workerRef.current = worker;
 
-      if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-      }
+    // Create PixiJS Application
+    const app = new Application();
+    appRef.current = app;
 
-      ctx.save();
-      ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, pan.x * dpr, pan.y * dpr);
-      ctx.clearRect(
-        -pan.x / zoom,
-        -pan.y / zoom,
-        width / zoom,
-        height / zoom
-      );
+    let circleTexture: Texture | null = null;
 
-      // Advance physics
-      tickPhysics(width, height);
-
-      // Determine active focus neighborhood
-      const focus = selectedNode || hoveredNode;
-      const focusNeighbors = focus ? new Set([focus, ...getNeighbors(focus).flatMap((e) => [e.a, e.b])]) : null;
-
-      const edgeBaseColor = isDarkMode ? '140, 160, 210' : '80, 95, 140';
-
-      // 1. Draw Edges
-      edges.forEach((e) => {
-        if (!e.a || !e.b || e.a.x === undefined || e.b.x === undefined) return;
-        const isFocusLink =
-          focusNeighbors &&
-          focusNeighbors.has(e.a) &&
-          focusNeighbors.has(e.b) &&
-          (e.a === focus || e.b === focus);
-
-        const isHighlighted =
-          highlightedIds && highlightedIds.has(e.a.id) && highlightedIds.has(e.b.id);
-
-        let strokeColor = `rgba(${edgeBaseColor}, 0.15)`;
-        let lineWidth = 1.0;
-
-        if (isFocusLink || isHighlighted) {
-          strokeColor = hexToRgba(e.a.color || '#00f0ff', 0.65);
-          lineWidth = 2.2;
-        } else if (focus) {
-          strokeColor = `rgba(${edgeBaseColor}, 0.05)`;
-        }
-
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = lineWidth;
-        ctx.beginPath();
-        ctx.moveTo(e.a.x, e.a.y || 0);
-        ctx.lineTo(e.b.x, e.b.y || 0);
-        ctx.stroke();
-
-        // Edge label if hovered / focused
-        if (isFocusLink) {
-          const midX = (e.a.x + e.b.x) / 2;
-          const midY = ((e.a.y || 0) + (e.b.y || 0)) / 2;
-          ctx.font = '10px monospace';
-          ctx.fillStyle = isDarkMode ? 'rgba(230, 236, 255, 0.7)' : 'rgba(16, 24, 51, 0.7)';
-          ctx.textAlign = 'center';
-          ctx.fillText(e.type, midX, midY - 4);
-        }
+    const initPixi = async () => {
+      await app.init({
+        antialias: true,
+        autoDensity: true,
+        resolution: window.devicePixelRatio || 1,
+        backgroundColor: isDarkMode ? 0x070b14 : 0xf3f6fc,
+        resizeTo: container,
       });
 
-      // 2. Spawn and Draw Synaptic Particles
-      if (time - lastSpawnRef.current > 320 && edges.length > 0) {
-        lastSpawnRef.current = time;
-        const randomEdge = edges[Math.floor(Math.random() * edges.length)];
-        spawnParticle(randomEdge);
+      if (isDestroyed) {
+        app.destroy(true, { children: true });
+        return;
       }
 
-      for (let i = particlesRef.current.length - 1; i >= 0; i--) {
-        const p = particlesRef.current[i];
-        p.t += p.speed;
+      container.appendChild(app.canvas);
 
-        if (p.t >= 1) {
-          const target = p.dir > 0 ? p.edge.b : p.edge.a;
-          if (target) target.flash = 1;
-          particlesRef.current.splice(i, 1);
-          continue;
-        }
+      // Pre-generate Sharp Circle Texture once for all nodes
+      const circleGraphics = new Graphics();
+      circleGraphics.circle(32, 32, 32);
+      circleGraphics.fill({ color: 0xffffff });
+      circleTexture = app.renderer.generateTexture(circleGraphics);
+      circleGraphics.destroy();
 
-        if (!p.edge.a || !p.edge.b || p.edge.a.x === undefined || p.edge.b.x === undefined) continue;
+      // Camera Viewport Container
+      const viewport = new Container();
+      viewport.position.set(container.clientWidth / 2, container.clientHeight / 2);
+      viewport.scale.set(0.85);
+      app.stage.addChild(viewport);
+      viewportRef.current = viewport;
 
-        const fraction = p.dir > 0 ? p.t : 1 - p.t;
-        const px = p.edge.a.x + (p.edge.b.x - p.edge.a.x) * fraction;
-        const py = (p.edge.a.y || 0) + ((p.edge.b.y || 0) - (p.edge.a.y || 0)) * fraction;
-        const source = p.dir > 0 ? p.edge.a : p.edge.b;
+      // 1. Edges Graphics Layer
+      const edgesGraphics = new Graphics();
+      viewport.addChild(edgesGraphics);
+      edgesGraphicsRef.current = edgesGraphics;
 
-        ctx.fillStyle = source.color || '#00f0ff';
-        ctx.shadowColor = source.color || '#00f0ff';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(px, py, 2.8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
+      // 2. Nodes Sprites Layer
+      const nodesContainer = new Container();
+      viewport.addChild(nodesContainer);
 
-      // 3. Draw Nodes
+      // 3. Labels Container Layer
+      const labelsContainer = new Container();
+      viewport.addChild(labelsContainer);
+
+      // Populate Node Sprites & Labels
+      const spritesMap = new Map<string, Sprite>();
+      const labelsMap = new Map<string, Text>();
+      const posMap = new Map<string, { x: number; y: number }>();
+
       nodes.forEach((n) => {
-        if (n.x === undefined || n.y === undefined) return;
+        const radius = (6 + (n.val || 10) * 0.35);
+        const nodeColor = hexToNumber(n.color);
 
-        const isDim =
-          (focus && focusNeighbors && !focusNeighbors.has(n)) ||
-          (highlightedIds && highlightedIds.size > 0 && !highlightedIds.has(n.id));
+        // Sprite
+        const sprite = new Sprite(circleTexture!);
+        sprite.anchor.set(0.5);
+        sprite.tint = nodeColor;
+        sprite.width = radius * 2;
+        sprite.height = radius * 2;
+        sprite.eventMode = 'static';
+        sprite.cursor = 'pointer';
 
-        const isFailed = n.status === 'FAILED';
-        const alpha = isDim ? 0.16 : 1.0;
-        const radius = n.r || 14;
+        // Interactive Events
+        let isNodeDragging = false;
 
-        n.flash = (n.flash || 0) * 0.94;
+        sprite.on('pointerover', () => {
+          hoveredNodeIdRef.current = n.id;
+          onHoverNode(n);
+          updateSpotlight();
+        });
 
-        // Expanding Pulse Aura (if not failed and not dimmed)
-        if (!isDim && !isFailed) {
-          const phase = ((time / 1600) + (n.ph || 0)) % 1;
-          ctx.strokeStyle = hexToRgba(n.color, (1 - phase) * 0.6);
-          ctx.lineWidth = 1.6;
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, radius + phase * 24, 0, Math.PI * 2);
-          ctx.stroke();
-        }
+        sprite.on('pointerout', () => {
+          if (hoveredNodeIdRef.current === n.id) {
+            hoveredNodeIdRef.current = null;
+            onHoverNode(null);
+            updateSpotlight();
+          }
+        });
 
-        // Flash Glow
-        if ((n.flash || 0) > 0.02 && !isDim) {
-          ctx.fillStyle = hexToRgba(n.color, (n.flash || 0) * 0.4);
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, radius + 8 + (1 - (n.flash || 0)) * 14, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        sprite.on('pointerdown', (e) => {
+          e.stopPropagation();
+          isNodeDragging = true;
+          onSelectNode(n);
+          updateSpotlight();
 
-        // Main Node Body
-        const effectiveRadius = radius * (1 + (n.flash || 0) * 0.16);
-        ctx.shadowColor = n.color;
-        ctx.shadowBlur = isDim ? 0 : isFailed ? 3 : 16;
+          // Transform mouse position to world coordinates
+          const localPos = viewport.toLocal(e.global);
+          worker.postMessage({
+            type: 'DRAG_START',
+            id: n.id,
+            x: localPos.x,
+            y: localPos.y,
+          } as WorkerInMessage);
+        });
 
-        drawNodeShape(ctx, n, effectiveRadius);
-        ctx.fillStyle = isFailed
-          ? `rgba(100, 116, 139, ${alpha})`
-          : hexToRgba(n.color, 0.28 * alpha + 0.08);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        const handleGlobalMove = (e: any) => {
+          if (!isNodeDragging) return;
+          const localPos = viewport.toLocal(e.global);
+          worker.postMessage({
+            type: 'DRAG_MOVE',
+            id: n.id,
+            x: localPos.x,
+            y: localPos.y,
+          } as WorkerInMessage);
+        };
 
-        // Node Outline
-        ctx.lineWidth = n === selectedNode ? 3.2 : 1.8;
-        ctx.strokeStyle = isFailed
-          ? `rgba(148, 163, 184, ${alpha})`
-          : hexToRgba(n.color, alpha);
-        ctx.stroke();
+        const handleGlobalUp = () => {
+          if (!isNodeDragging) return;
+          isNodeDragging = false;
+          worker.postMessage({
+            type: 'DRAG_END',
+            id: n.id,
+          } as WorkerInMessage);
+        };
 
-        // Node Label
-        if (
-          !isDim &&
-          (n.label === 'Episode' ||
-            n === hoveredNode ||
-            n === selectedNode ||
-            (focusNeighbors && focusNeighbors.has(n)) ||
-            (highlightedIds && highlightedIds.has(n.id)))
-        ) {
-          ctx.font = '11px system-ui, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillStyle = isDarkMode ? '#e6ecff' : '#101833';
+        sprite.on('globalpointermove', handleGlobalMove);
+        sprite.on('pointerup', handleGlobalUp);
+        sprite.on('pointerupoutside', handleGlobalUp);
 
-          const text = n.name.split(': ').slice(1).join(': ') || n.name;
-          const truncated = text.length > 30 ? text.slice(0, 28) + '…' : text;
-          ctx.fillText(truncated, n.x, n.y + effectiveRadius + 15);
-        }
+        nodesContainer.addChild(sprite);
+        spritesMap.set(n.id, sprite);
+
+        // Text Label
+        const titleText = n.name.split(': ').slice(1).join(': ') || n.name;
+        const shortTitle = titleText.length > 28 ? titleText.slice(0, 26) + '…' : titleText;
+
+        const label = new Text({
+          text: shortTitle,
+          style: new TextStyle({
+            fontFamily: 'Inter, system-ui, sans-serif',
+            fontSize: 10,
+            fill: isDarkMode ? 0xe6ecff : 0x101833,
+            align: 'center',
+          }),
+        });
+        label.anchor.set(0.5, 0);
+        labelsContainer.addChild(label);
+        labelsMap.set(n.id, label);
+
+        posMap.set(n.id, { x: 0, y: 0 });
       });
 
-      ctx.restore();
-      animId = requestAnimationFrame(render);
+      nodeSpritesRef.current = spritesMap;
+      labelTextsRef.current = labelsMap;
+      nodePositionsRef.current = posMap;
+
+      // Handle Worker Output Messages (Tick)
+      worker.onmessage = (e: MessageEvent<WorkerOutMessage>) => {
+        const msg = e.data;
+        if (msg.type === 'TICK') {
+          msg.positions.forEach((p) => {
+            const sprite = spritesMap.get(p.id);
+            const label = labelsMap.get(p.id);
+            posMap.set(p.id, { x: p.x, y: p.y });
+
+            if (sprite) {
+              sprite.position.set(p.x, p.y);
+            }
+            if (label && sprite) {
+              label.position.set(p.x, p.y + sprite.height / 2 + 3);
+            }
+          });
+
+          drawEdges();
+        }
+      };
+
+      // Send initial data to Web Worker
+      worker.postMessage({
+        type: 'INIT_GRAPH',
+        nodes: nodes.map((n) => ({ id: n.id, val: n.val })),
+        links: edges.map((e) => ({ source: e.source, target: e.target, type: e.type })),
+        params,
+        width: container.clientWidth,
+        height: container.clientHeight,
+      } as WorkerInMessage);
+
+      // Initial Label Visibility
+      updateLabelVisibility();
     };
 
-    animId = requestAnimationFrame(render);
-    animFrameRef.current = animId;
+    initPixi();
+
+    // 6. Camera Pan & Zoom Event Handlers (Canvas Background)
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const zoomFactor = e.deltaY < 0 ? 1.14 : 1 / 1.14;
+      const currentScale = viewport.scale.x;
+      const newScale = Math.min(4.5, Math.max(0.18, currentScale * zoomFactor));
+
+      const worldX = (mouseX - viewport.x) / currentScale;
+      const worldY = (mouseY - viewport.y) / currentScale;
+
+      viewport.scale.set(newScale);
+      viewport.x = mouseX - worldX * newScale;
+      viewport.y = mouseY - worldY * newScale;
+
+      updateLabelVisibility();
+    };
+
+    const handlePointerDown = (e: PointerEvent) => {
+      // Background panning
+      isPanningRef.current = true;
+      panStartRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isPanningRef.current) return;
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      const dx = e.clientX - panStartRef.current.x;
+      const dy = e.clientY - panStartRef.current.y;
+      panStartRef.current = { x: e.clientX, y: e.clientY };
+
+      viewport.x += dx;
+      viewport.y += dy;
+    };
+
+    const handlePointerUp = () => {
+      isPanningRef.current = false;
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    container.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+
+    // ResizeObserver
+    const resizeObserver = new ResizeObserver(() => {
+      if (appRef.current && appRef.current.renderer) {
+        appRef.current.renderer.resize(container.clientWidth, container.clientHeight);
+      }
+    });
+    resizeObserver.observe(container);
 
     return () => {
-      cancelAnimationFrame(animId);
+      isDestroyed = true;
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      resizeObserver.disconnect();
+
+      if (workerRef.current) {
+        workerRef.current.terminate();
+        workerRef.current = null;
+      }
+
+      if (circleTexture) {
+        circleTexture.destroy(true);
+      }
+
+      if (appRef.current) {
+        appRef.current.destroy(true, { children: true });
+        appRef.current = null;
+      }
     };
-  }, [
-    nodes,
-    edges,
-    selectedNode,
-    hoveredNode,
-    highlightedIds,
-    isDarkMode,
-    zoom,
-    pan,
-    tickPhysics,
-    getNeighbors,
-    spawnParticle,
-  ]);
+  }, [nodes, edges, isDarkMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pointer Picking Math
-  const pickNode = (clientX: number, clientY: number): GraphNode | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    const rect = canvas.getBoundingClientRect();
-    const x = (clientX - rect.left - pan.x) / zoom;
-    const y = (clientY - rect.top - pan.y) / zoom;
-
-    for (let i = nodes.length - 1; i >= 0; i--) {
-      const n = nodes[i];
-      if (n.x === undefined || n.y === undefined) continue;
-      const hitRadius = (n.r || 14) + 8;
-      const dist = Math.hypot(n.x - x, n.y - y);
-      if (dist <= hitRadius) {
-        return n;
+  // 7. Update physics parameters in worker
+  const handleUpdateParams = (newParams: Partial<PhysicsParams>) => {
+    setParams((prev) => {
+      const merged = { ...prev, ...newParams };
+      if (workerRef.current) {
+        workerRef.current.postMessage({
+          type: 'UPDATE_PARAMS',
+          params: newParams,
+        } as WorkerInMessage);
       }
-    }
-    return null;
+      return merged;
+    });
   };
 
-  // Pointer Event Listeners
-  const handlePointerDown = (e: React.PointerEvent) => {
-    const picked = pickNode(e.clientX, e.clientY);
-    hasMovedRef.current = false;
+  // 8. Focus camera smoothly on a specific node
+  const handleFocusNode = (nodeId: string) => {
+    const pos = nodePositionsRef.current.get(nodeId);
+    const viewport = viewportRef.current;
+    const container = containerRef.current;
+    if (!pos || !viewport || !container) return;
 
-    if (picked) {
-      dragNodeRef.current = picked;
-      if (canvasRef.current) {
-        canvasRef.current.setPointerCapture(e.pointerId);
-        canvasRef.current.style.cursor = 'grabbing';
-      }
-    } else {
-      // Pan canvas
-      isPanningRef.current = true;
-      startPanRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-      if (canvasRef.current) {
-        canvasRef.current.style.cursor = 'move';
-      }
-    }
+    const targetNode = nodes.find((n) => n.id === nodeId);
+    if (targetNode) onSelectNode(targetNode);
+
+    // Smoothly pan camera to target position
+    const targetScale = 1.3;
+    const targetX = container.clientWidth / 2 - pos.x * targetScale;
+    const targetY = container.clientHeight / 2 - pos.y * targetScale;
+
+    viewport.scale.set(targetScale);
+    viewport.position.set(targetX, targetY);
+
+    updateSpotlight();
+    updateLabelVisibility();
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (dragNodeRef.current) {
-      hasMovedRef.current = true;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      dragNodeRef.current.x = (e.clientX - rect.left - pan.x) / zoom;
-      dragNodeRef.current.y = (e.clientY - rect.top - pan.y) / zoom;
-    } else if (isPanningRef.current) {
-      setPan({
-        x: e.clientX - startPanRef.current.x,
-        y: e.clientY - startPanRef.current.y,
-      });
-    } else {
-      const hovered = pickNode(e.clientX, e.clientY);
-      onHoverNode(hovered);
-      if (canvasRef.current) {
-        canvasRef.current.style.cursor = hovered ? 'pointer' : 'grab';
-      }
-    }
+  // 9. Reset Camera / Fit to Screen
+  const handleResetCamera = () => {
+    const viewport = viewportRef.current;
+    const container = containerRef.current;
+    if (!viewport || !container) return;
+
+    viewport.scale.set(0.85);
+    viewport.position.set(container.clientWidth / 2, container.clientHeight / 2);
+
+    updateSpotlight();
+    updateLabelVisibility();
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (!hasMovedRef.current && !isPanningRef.current) {
-      const clicked = pickNode(e.clientX, e.clientY);
-      onSelectNode(clicked);
-      if (clicked) clicked.flash = 1;
+  // 10. Reheat Simulation
+  const handleReheatSimulation = () => {
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'REHEAT',
+        alpha: 0.5,
+      } as WorkerInMessage);
     }
-    dragNodeRef.current = null;
-    isPanningRef.current = false;
-    if (canvasRef.current) {
-      canvasRef.current.style.cursor = 'grab';
-    }
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom((prev) => Math.min(2.5, Math.max(0.4, prev * zoomFactor)));
-  };
-
-  const handleResetView = () => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full cyber-grid overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full block touch-none cursor-grab"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onWheel={handleWheel}
-      />
+    <div className="relative w-full h-full cyber-grid overflow-hidden">
+      {/* PixiJS WebGL Canvas Container */}
+      <div ref={containerRef} className="w-full h-full block touch-none cursor-grab" />
 
-      {/* Canvas Viewport HUD Controls */}
-      <div className="absolute left-4 bottom-4 flex items-center gap-2 bg-cyber-panel/85 hud-glass border border-cyber-border rounded-lg px-3 py-1.5 text-xs text-cyber-muted shadow-lg">
-        <span>Zoom: {Math.round(zoom * 100)}%</span>
-        <button
-          onClick={handleResetView}
-          className="ml-2 hover:text-cyan-400 border border-cyber-border/70 rounded px-2 py-0.5 transition-colors"
-          title="Reset Pan & Zoom"
-        >
-          Reset View
-        </button>
-        <span className="text-[11px] opacity-75 hidden md:inline ml-2">
-          | Drag simpul · Scroll zoom · Drag background geser
-        </span>
-      </div>
+      {/* Obsidian-Style Floating Controls */}
+      <GraphControls
+        nodes={nodes}
+        params={params}
+        onUpdateParams={handleUpdateParams}
+        onFocusNode={handleFocusNode}
+        onResetCamera={handleResetCamera}
+        onReheatSimulation={handleReheatSimulation}
+        showLabels={showLabels}
+        onToggleLabels={() => {
+          setShowLabels((prev) => !prev);
+          updateLabelVisibility();
+        }}
+      />
     </div>
   );
 };

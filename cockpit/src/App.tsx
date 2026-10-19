@@ -41,8 +41,8 @@ export const App: React.FC = () => {
   }, [isDarkMode]);
 
   // Load Graph Data
-  const loadData = useCallback(async (bank?: BankId | 'all') => {
-    setIsRefreshing(true);
+  const loadData = useCallback(async (bank?: BankId | 'all', isManualRefresh = false) => {
+    if (isManualRefresh) setIsRefreshing(true);
     try {
       const { data, isLive: liveStatus } = await fetchCockpitGraph(
         bank && bank !== 'all' ? bank : undefined
@@ -59,19 +59,29 @@ export const App: React.FC = () => {
     } catch (err) {
       console.error('Failed to load cockpit graph data:', err);
     } finally {
-      setIsRefreshing(false);
+      if (isManualRefresh) setIsRefreshing(false);
     }
   }, [selectedNode]);
 
   useEffect(() => {
-    loadData(selectedBank);
-  }, [selectedBank, loadData]);
+    let ignore = false;
+    fetchCockpitGraph(selectedBank !== 'all' ? selectedBank : undefined).then(({ data, isLive: liveStatus }) => {
+      if (!ignore) {
+        setNodes(data.nodes);
+        setEdges(data.links);
+        setIsLive(liveStatus);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [selectedBank]);
 
   // Auto-Sync Polling setiap 12 detik jika Live
   useEffect(() => {
     if (!autoSync || !isLive) return;
     const interval = setInterval(() => {
-      loadData(selectedBank);
+      loadData(selectedBank, false);
     }, 12000);
     return () => clearInterval(interval);
   }, [autoSync, isLive, selectedBank, loadData]);
@@ -116,7 +126,7 @@ export const App: React.FC = () => {
         isLive={isLive}
         isDarkMode={isDarkMode}
         onToggleTheme={() => setIsDarkMode((prev) => !prev)}
-        onRefresh={() => loadData(selectedBank)}
+        onRefresh={() => loadData(selectedBank, true)}
         onOpenSearch={() => setIsSearchOpen(true)}
         onOpenIngest={() => setIsIngestOpen(true)}
         isRefreshing={isRefreshing}
