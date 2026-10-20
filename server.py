@@ -348,9 +348,22 @@ def reflect(
 
 # ==========================================
 # 🔗 BACKWARD-COMPATIBILITY ALIASES (100% FAIL-SAFE)
+# Pilar 1: Canonical Facade Pruning
+# Default: Only 3 Canonical Facades (retain, recall, reflect) are exported via MCP.
+# Legacy compatibility aliases are callable internally in Python, and can be
+# exported to MCP if MEMORIAGRAPH_ENABLE_LEGACY_TOOLS=true is set in environment.
 # ==========================================
 
-@mcp.tool()
+ENABLE_LEGACY_MCP_TOOLS = os.getenv("MEMORIAGRAPH_ENABLE_LEGACY_TOOLS", "false").lower() in ("true", "1", "yes")
+
+def legacy_tool():
+    def decorator(fn):
+        if ENABLE_LEGACY_MCP_TOOLS:
+            return mcp.tool()(fn)
+        return fn
+    return decorator
+
+@legacy_tool()
 def record_cognitive_episode(
     title: str,
     category: str = "PROBLEM_SOLVING",
@@ -377,7 +390,7 @@ def record_cognitive_episode(
         async_mode=True
     )
 
-@mcp.tool()
+@legacy_tool()
 def log_event(
     event_type: str,
     description: str,
@@ -396,7 +409,7 @@ def log_event(
     except Exception as err:
         return f"? Gagal mencatat event: {err}"
 
-@mcp.tool()
+@legacy_tool()
 def query_dss(situation: str, category: str = "", context: str = "") -> str:
     """[Legacy Compatibility] Meminta bantuan Personal Decision Support System (DSS)."""
     try:
@@ -439,7 +452,7 @@ def query_dss(situation: str, category: str = "", context: str = "") -> str:
     except Exception as err:
         return f"❌ Gagal query DSS: {err}"
 
-@mcp.tool()
+@legacy_tool()
 def get_cognitive_dashboard() -> str:
     """[Legacy Compatibility] Mengambil metrik analitik proses kognitif bulanan."""
     try:
@@ -463,7 +476,7 @@ def get_cognitive_dashboard() -> str:
     except Exception as err:
         return f"? Gagal mengambil metrik kognitif: {err}"
 
-@mcp.tool()
+@legacy_tool()
 def reinforce_belief_tool(identifier: str, details: str = "") -> str:
     """[Legacy Compatibility] Memperkuat heuristik/keyakinan kognitif."""
     from src.belief_revision import reinforce_belief
@@ -475,7 +488,7 @@ def reinforce_belief_tool(identifier: str, details: str = "") -> str:
         return f"✅ Keyakinan '{res['id']}' diperkuat! Score: {res['previous_score']} -> {res['new_score']} (Evidence: {res['evidence_count']}, Status: {res['belief_status']}){c_msg}"
     return f"✅ {res.get('message', 'Gagal memperkuat keyakinan.')}"
 
-@mcp.tool()
+@legacy_tool()
 def challenge_belief_tool(identifier: str, reason: str = "") -> str:
     """[Legacy Compatibility] Menantang heuristik/keyakinan kognitif."""
     from src.belief_revision import challenge_belief
@@ -486,7 +499,7 @@ def challenge_belief_tool(identifier: str, reason: str = "") -> str:
         return f"⚠️ Keyakinan '{res['id']}' ditantang! Score: {res['previous_score']} -> {res['new_score']} (Counter-evidence: {res['counter_evidence_count']}, Status: {res['belief_status']}). Alasan: {reason}"
     return f"❌ {res.get('message', 'Gagal menantang keyakinan.')}"
 
-@mcp.tool()
+@legacy_tool()
 def list_cognitive_beliefs(status_filter: str = "") -> str:
     """[Legacy Compatibility] Mengambil daftar heuristik & keyakinan kognitif."""
     from src.belief_revision import list_beliefs
@@ -504,7 +517,7 @@ def list_cognitive_beliefs(status_filter: str = "") -> str:
     lines.append("--------------------------------------------")
     return "\n".join(lines)
 
-@mcp.tool()
+@legacy_tool()
 def add_entity(name: str, entity_type: str, description: str = "") -> str:
     """[Legacy Compatibility] Menambahkan entitas generik ke dalam MemoriaGraph."""
     if not driver:
@@ -523,7 +536,7 @@ def add_entity(name: str, entity_type: str, description: str = "") -> str:
         session.run(query, name=name, type=entity_type, description=clean_desc)
         return f"Berhasil: Entitas '{name}' (Tipe: {entity_type}) telah disimpan di MemoriaGraph."
 
-@mcp.tool()
+@legacy_tool()
 def add_relation(source_name: str, target_name: str, relationship: str) -> str:
     """[Legacy Compatibility] Menghubungkan dua entitas dengan relasi."""
     if not driver:
@@ -541,7 +554,7 @@ def add_relation(source_name: str, target_name: str, relationship: str) -> str:
              return "Error: Gagal membuat relasi. Pastikan entitas sudah dibuat sebelumnya."
         return f"Berhasil: Relasi [{source_name}] --({relationship})--> [{target_name}] telah dicatat."
 
-@mcp.tool()
+@legacy_tool()
 def record_code_action(
     episode_id: str,
     action_description: str,
@@ -561,7 +574,7 @@ def record_code_action(
     b = res["blast_radius"]
     return f"🚀 [Action] Berhasil dicatat [ID: {res['action_id']}]. Blast Severity: {b.get('blast_severity')}, Files Changed: {b.get('total_files_changed')}, Affected Areas: {', '.join(b.get('affected_areas', []))}."
 
-@mcp.tool()
+@legacy_tool()
 def get_context(topic: str) -> str:
     """[Legacy Compatibility] Mengambil konteks memori di sekitar sebuah topik."""
     if not driver:
