@@ -11,7 +11,8 @@ Menguji akurasi dan latensi pencarian pada kata-kata kunci sulit:
 import sys
 import time
 
-sys.path.insert(0, "/opt/memoriagraph")
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.hybrid_recall import HybridRecallEngine
 
 

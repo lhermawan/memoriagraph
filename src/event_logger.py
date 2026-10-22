@@ -15,12 +15,7 @@ from neo4j import GraphDatabase
 from src.sanitizer import sanitize_data
 from src.semantic_sanitizer import classify_epistemic_grounding, strip_conversational_fluff
 
-dotenv.load_dotenv("/opt/memoriagraph/.env")
-
-EVENTS_DIR = "/opt/memoriagraph/events"
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
+from src.config import EVENTS_DIR, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
 os.makedirs(EVENTS_DIR, exist_ok=True)
 

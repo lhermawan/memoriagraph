@@ -10,7 +10,7 @@
   },
   "command": "python",
   "args": [
-    "/opt/memoriagraph/server.py"
+    "server.py"
   ],
   "env": {
     "NEO4J_URI": "bolt://127.0.0.1:7687",

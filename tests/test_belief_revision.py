@@ -9,10 +9,7 @@ Menguji:
 import os
 import uuid
 
-import dotenv
-from neo4j import GraphDatabase
-
-dotenv.load_dotenv("/opt/memoriagraph/.env")
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
 from src.belief_revision import (
     calculate_challenged_score,

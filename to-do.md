@@ -1,8 +1,8 @@
-# 🧠 MEMORIAGRAPH 3.1: Cognitive Substrate & Retrieval Engine Roadmap
-> **Status:** 🟢 PRODUCTION RELEASE & ACTIVE DEPLOYMENT (V3.1.2)  
-> **Target System:** Neo4j Enterprise Instance (`bolt://127.0.0.1:7687`) & `/opt/memoriagraph`  
+# 🧠 MEMORIAGRAPH 3.2: Cognitive Substrate & Retrieval Engine Roadmap
+> **Status:** 🟢 PRODUCTION RELEASE & ACTIVE DEPLOYMENT (V3.2.0)  
+> **Target System:** Neo4j (Docker / Local / Remote) & Standalone Multi-Platform  
 > **Author:** MemoriaGraph Core Contributors  
-> **Version:** 3.1.2
+> **Version:** 3.2.0
 
 ---
 
@@ -10,7 +10,7 @@
 
 - [x] **Phase 1 — Data Capture & Ingestion Foundation** *(Status: Selesai Diimplementasi & Teruji)*
   - [x] Implementasi Regex & Entropy Secret Redaction Engine (`src/sanitizer.py`).
-  - [x] Pembuatan schema append-only JSONL event stream (`/opt/memoriagraph/events/YYYY-MM.jsonl`).
+  - [x] Pembuatan schema append-only JSONL event stream (`events/YYYY-MM.jsonl`).
   - [x] Integrasi Noise Filter & Relevancy Gate (`src/event_logger.py`).
   - [x] Pencatatan dasar `Episode`, `Event`, `Context`, `Timestamp`, dan `Source`.
 - [x] **Phase 2 — Cognitive Structure & Graph Modeling** *(Status: Selesai Diimplementasi & Teruji)*
@@ -32,6 +32,16 @@
   - [x] 3 Canonical Facades (`retain`, `recall`, `reflect`).
   - [x] In-Memory LRU Cache (<1ms query repeated).
   - [x] HTTP Microservice (FastAPI Port 8085) & AI Gateway Pre-Injection.
+- [x] **Phase 6 — Universal Portability & Zero-Infra Containerization** *(Status: Selesai di V3.2.0)*
+  - [x] Dynamic Root Path Resolution (`src/config.py`): Eliminasi path statis absolut `/opt/memoriagraph`.
+  - [x] Adaptive Security Network Gateway (`SECURITY_NETWORK_MODE=private|tailscale|all`).
+  - [x] One-Click Docker Containerization (`Dockerfile` multi-stage & `docker-compose.yml`).
+  - [x] One-Line Installer Script (`scripts/docker-run.sh`).
+  - [x] Relative path MCP Server preset (`server.json`).
+- [ ] **Phase 7 — Developer Experience & Cross-Agent Ecosystem** *(Target V3.3)*
+  - [ ] **Git-Markdown Projection (Obsidian Mirror)**: Background exporter dari Neo4j ke flat-file Markdown (`.md`) untuk integrasi Obsidian Graph View.
+  - [ ] **Universal Terminal Hook (`memoria hook`)**: Silent observer shell script untuk auto-capture aktivitas koding Claude Code, Cursor, Codex, dan Antigravity.
+  - [ ] **Zero-LLM Memory Decay & Compaction**: Penuaan memori dingin deterministik tanpa memakan token API.
 
 ---
 

@@ -32,12 +32,7 @@ import dotenv
 import numpy as np
 from neo4j import GraphDatabase
 
-dotenv.load_dotenv("/opt/memoriagraph/.env")
-
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
-VECTOR_CACHE_FILE = os.getenv("VECTOR_CACHE_FILE", "/opt/memoriagraph/.vector_cache.pkl")
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, VECTOR_CACHE_FILE
 
 # Lazy-loaded singleton FastEmbed model
 _EMBED_MODEL = None

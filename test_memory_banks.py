@@ -12,18 +12,19 @@ import uuid
 
 from neo4j import GraphDatabase
 
-if "/opt/memoriagraph" not in sys.path:
-    sys.path.insert(0, "/opt/memoriagraph")
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from src.dss_engine import query_personal_dss
 from src.episode_manager import EpisodeManager
 from src.hybrid_recall import HybridRecallEngine
 
 
 def run_tests():
-    neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
-    neo4j_password = os.getenv("NEO4J_PASSWORD", "your_secure_password")
+    neo4j_uri = NEO4J_URI
+    neo4j_user = NEO4J_USER
+    neo4j_password = NEO4J_PASSWORD
     driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
     engine = HybridRecallEngine(auto_sync_vectors=False)
 

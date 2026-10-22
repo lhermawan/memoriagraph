@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🧠 MemoriaGraph 3.1.2
+# 🧠 MemoriaGraph 3.2.0
 
-[![Version](https://img.shields.io/badge/version-3.1.2-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
+[![Version](https://img.shields.io/badge/version-3.2.0-blue.svg?style=for-the-badge)](https://github.com/lhermawan/memoriagraph)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-brightgreen.svg?style=for-the-badge)](https://www.python.org/)
 [![Protocol](https://img.shields.io/badge/MCP-Standard%202.2-orange.svg?style=for-the-badge)](https://modelcontextprotocol.io/)
 [![Database](https://img.shields.io/badge/Neo4j-Graph%20Engine-008CC1.svg?style=for-the-badge&logo=neo4j)](https://neo4j.com/)
@@ -180,52 +180,61 @@ Starting Agenda 3: 5 Pillars Overhead Elimination!'"]
 
 ## 🚀 Quickstart & Setup Guide
 
-### 1. Requirements & Prerequisites
-- **Operating System:** Linux (Ubuntu 22.04 / 24.04 recommended), macOS, or Windows WSL2.
-- **Python:** 3.10, 3.11, or 3.12.
-- **Database:** Neo4j Community or Enterprise 5.x (via Docker).
-- **RAM:** Minimum 4 GB (8 GB recommended).
-- **Hardware Acceleration:** Zero GPU required (FastEmbed runs quantized Int8 ONNX natively on CPU).
+### Method 1: One-Line Docker Deployment (Recommended)
 
-### 2. Start Neo4j Database
-Run Neo4j with Docker in one command:
+Get MemoriaGraph and Neo4j running in under 60 seconds with Docker Compose:
+
 ```bash
-docker run -d   --name memoriagraph-neo4j   --restart unless-stopped   -p 127.0.0.1:7474:7474   -p 127.0.0.1:7687:7687   -e NEO4J_AUTH=neo4j/your_secure_password   -e NEO4J_PLUGINS='["apoc"]'   -v /var/lib/neo4j/data:/data   neo4j:5.26-community
+# Clone and launch all services with healthchecks
+git clone https://github.com/lhermawan/memoriagraph.git
+cd memoriagraph
+docker compose up -d
 ```
 
-### 3. Clone & Install Dependencies
+That's it!
+* 🌐 **Cybernetic Cockpit & REST API**: [http://localhost:8085](http://localhost:8085)
+* 🗄️ **Neo4j Browser UI**: [http://localhost:7474](http://localhost:7474) (`user: neo4j`, `pass: memoriagraph_pass`)
+
+---
+
+### Method 2: Local Python & Virtualenv Setup
+
+#### 1. Prerequisites
+- **Python**: 3.10, 3.11, or 3.12.
+- **Neo4j Database**: Local, remote, or containerized (`bolt://127.0.0.1:7687`).
+- **Hardware Acceleration**: Zero GPU required (FastEmbed runs quantized Int8 ONNX natively on CPU).
+
+#### 2. Clone & Setup Virtualenv
 ```bash
-git clone https://github.com/lhermawan/memoriagraph.git /opt/memoriagraph
-cd /opt/memoriagraph
+git clone https://github.com/lhermawan/memoriagraph.git
+cd memoriagraph
 
 # Create and activate Python virtual environment
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows: .\venv\Scripts\Activate.ps1
 
 # Install package in editable mode
-pip install -e .
+pip install -e ".[dev]"
 ```
 
-### 4. Configure Environment
-Copy the example environment configuration:
+#### 3. Configure Environment
 ```bash
 cp .env.example .env
 ```
-Edit `.env` to match your credentials:
+Edit `.env` to match your Neo4j credentials:
 ```env
 NEO4J_URI=bolt://127.0.0.1:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_secure_password
+SECURITY_NETWORK_MODE=private
 ```
 
-### 5. Initialize Schema & Fulltext Indexes
-Run the schema initialization script to create constraints and the Lucene fulltext search index:
+#### 4. Initialize Schema & Indexes
 ```bash
-python3 src/schema_init.py
+python src/schema_init.py
 ```
 
-### 6. Verify Installation
-Run the automated test suite:
+#### 5. Verify Installation
 ```bash
 pytest tests/
 ```
@@ -316,8 +325,9 @@ Connect MemoriaGraph to any MCP-compliant client (Claude Desktop, Cursor, Gemini
 {
   "mcpServers": {
     "memoriagraph": {
-      "command": "/opt/memoriagraph/venv/bin/python",
-      "args": ["/opt/memoriagraph/server.py"],
+      "command": "python",
+      "args": ["-m", "server"],
+      "cwd": "/path/to/memoriagraph",
       "env": {
         "NEO4J_URI": "bolt://127.0.0.1:7687",
         "NEO4J_USER": "neo4j",
@@ -333,8 +343,9 @@ Connect MemoriaGraph to any MCP-compliant client (Claude Desktop, Cursor, Gemini
 {
   "mcpServers": {
     "memoriagraph": {
-      "command": "/opt/memoriagraph/venv/bin/python",
-      "args": ["/opt/memoriagraph/server.py"]
+      "command": "python",
+      "args": ["-m", "server"],
+      "cwd": "/path/to/memoriagraph"
     }
   }
 }
@@ -347,11 +358,14 @@ Connect MemoriaGraph to any MCP-compliant client (Claude Desktop, Cursor, Gemini
 For multi-agent networks, n8n automations, or web applications, run the dedicated HTTP microservice:
 
 ```bash
-# Start HTTP Daemon (via virtualenv)
-/opt/memoriagraph/venv/bin/python /opt/memoriagraph/http_service.py
+# Option 1: Via Docker Compose (Recommended)
+docker compose up -d
 
-# Or manage permanently with PM2:
-pm2 start /opt/memoriagraph/venv/bin/python3 --name memoriagraph-http -- /opt/memoriagraph/http_service.py
+# Option 2: Direct Python Execution
+python http_service.py
+
+# Option 3: Process Manager (PM2)
+pm2 start python3 --name memoriagraph-http -- http_service.py
 pm2 save
 ```
 

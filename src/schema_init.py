@@ -5,16 +5,8 @@ Mengonfigurasi constraints dan indexes di Neo4j untuk integritas & performa grap
 import os
 import sys
 
-if "/opt/memoriagraph" not in sys.path:
-    sys.path.insert(0, "/opt/memoriagraph")
-import dotenv
 from neo4j import GraphDatabase
-
-dotenv.load_dotenv("/opt/memoriagraph/.env")
-
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
 CONSTRAINTS = [
     ("Episode_id", "CREATE CONSTRAINT episode_id_unique IF NOT EXISTS FOR (e:Episode) REQUIRE e.id IS UNIQUE"),

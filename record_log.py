@@ -9,15 +9,9 @@ import sys
 import dotenv
 from neo4j import GraphDatabase
 
-# Tambahkan src ke path
-sys.path.insert(0, "/opt/memoriagraph")
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from src.event_logger import log_raw_event
 from src.sanitizer import sanitize_data
-
-dotenv.load_dotenv("/opt/memoriagraph/.env")
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
 
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 

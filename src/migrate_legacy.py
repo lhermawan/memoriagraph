@@ -12,17 +12,11 @@ import sys
 import dotenv
 from neo4j import GraphDatabase
 
-sys.path.insert(0, "/opt/memoriagraph")
+from src.config import ROOT_DIR, MEMORIAGRAPH_HOME, NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from src.episode_manager import EpisodeManager
 from src.sanitizer import sanitize_string
 
-dotenv.load_dotenv("/opt/memoriagraph/.env")
-
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
-
-BACKUP_FILE = "/opt/memoriagraph/backup_legacy_pre_2.0.json"
+BACKUP_FILE = os.getenv("BACKUP_FILE", str(MEMORIAGRAPH_HOME / "backup_legacy_pre_2.0.json"))
 
 def run_migration():
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))

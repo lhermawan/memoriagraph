@@ -16,14 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-import dotenv
-dotenv.load_dotenv(BASE_DIR / ".env")
-
-from neo4j import GraphDatabase
-
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
 def upgrade_memoriagraph():
     print("🚀 Memulai pembaruan dan pengayaan kognitif MemoriaGraph 3.0...")

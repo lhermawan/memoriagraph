@@ -17,12 +17,7 @@ from src.semantic_sanitizer import strip_conversational_fluff, slugify_bank_id
 from src.harvester import harvester
 from src.ingestion_gate import ingestion_gate, detect_critical_secrets
 
-# Load environment variables
-load_dotenv("/opt/memoriagraph/.env")
-
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
 mcp = MCPServer("MemoriaGraph")
 

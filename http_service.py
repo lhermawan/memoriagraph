@@ -13,16 +13,9 @@ from starlette.staticfiles import StaticFiles
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
-import dotenv
+from src.config import ROOT_DIR, SECURITY_NETWORK_MODE
 
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-if CURRENT_DIR not in sys.path:
-    sys.path.insert(0, CURRENT_DIR)
-if '/opt/memoriagraph' not in sys.path:
-    sys.path.insert(0, '/opt/memoriagraph')
-
-dotenv.load_dotenv(os.path.join(CURRENT_DIR, ".env"))
-dotenv.load_dotenv("/opt/memoriagraph/.env")
+CURRENT_DIR = str(ROOT_DIR)
 
 try:
     import server
@@ -35,12 +28,14 @@ from src.graph_visualizer import get_cockpit_graph_data
 # Tailscale CGNAT subnet (100.64.0.0 - 100.127.255.255)
 TAILSCALE_SUBNET = ipaddress.ip_network("100.64.0.0/10")
 
-class TailscaleSecurityMiddleware:
+class AdaptiveSecurityMiddleware:
     """
-    Law of Security-First:
-    Membatasi akses API Gateway & Cockpit HANYA untuk client yang berada di jaringan Tailscale mesh
-    (subnet 100.64.0.0/10) atau loopback lokal (127.0.0.1 / localhost).
-    Permintaan dari public IP / non-Tailscale langsung ditolak dengan HTTP 403 Forbidden.
+    Law of Security-First & Universal Portability:
+    Membatasi akses API Gateway & Cockpit berdasarkan SECURITY_NETWORK_MODE:
+    - 'private' (default): Mengizinkan loopback, Tailscale mesh, dan seluruh subnet privat RFC 1918
+      (Docker bridge 172.16.0.0/12, LAN 192.168.0.0/16, 10.0.0.0/8).
+    - 'tailscale': Mode ketat, hanya mengizinkan loopback dan subnet Tailscale (100.64.0.0/10).
+    - 'all': Mengizinkan semua client (khusus setup di balik reverse proxy / auth gateway).
     """
     def __init__(self, app):
         self.app = app
@@ -59,10 +54,16 @@ class TailscaleSecurityMiddleware:
             is_allowed = False
             if client_ip_str in ("127.0.0.1", "::1", "localhost", "testclient", ""):
                 is_allowed = True
+            elif SECURITY_NETWORK_MODE == "all":
+                is_allowed = True
             else:
                 try:
                     ip_obj = ipaddress.ip_address(client_ip_str)
-                    if ip_obj.is_loopback or ip_obj in TAILSCALE_SUBNET:
+                    if ip_obj.is_loopback:
+                        is_allowed = True
+                    elif ip_obj in TAILSCALE_SUBNET:
+                        is_allowed = True
+                    elif SECURITY_NETWORK_MODE == "private" and ip_obj.is_private:
                         is_allowed = True
                 except ValueError:
                     is_allowed = False
@@ -71,7 +72,7 @@ class TailscaleSecurityMiddleware:
                 response = JSONResponse(
                     {
                         "error": "403 Forbidden: Akses Ditolak.",
-                        "reason": "MemoriaGraph Cockpit & API hanya dapat diakses melalui jaringan privat Tailscale Mesh (100.x.x.x).",
+                        "reason": f"Akses ditolak oleh Security Middleware (mode: {SECURITY_NETWORK_MODE}). IP {client_ip_str} tidak berada di jaringan yang diizinkan.",
                         "client_ip": client_ip_str
                     },
                     status_code=403
@@ -173,9 +174,9 @@ if os.path.isdir(dist_dir):
     routes.append(Mount("/cockpit", StaticFiles(directory=dist_dir, html=True), name="cockpit"))
     routes.append(Route("/", root_redirect))
 
-# Enable Tailscale Security and CORS middlewares
+# Enable Adaptive Security and CORS middlewares
 middleware = [
-    Middleware(TailscaleSecurityMiddleware),
+    Middleware(AdaptiveSecurityMiddleware),
     Middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -190,6 +191,6 @@ app = Starlette(routes=routes, middleware=middleware)
 if __name__ == "__main__":
     host = os.getenv("MEMORIAGRAPH_HTTP_HOST", "0.0.0.0")
     port = int(os.getenv("MEMORIAGRAPH_HTTP_PORT", "8085"))
-    print(f"🚀 MemoriaGraph 3.1.2 HTTP API & Cockpit listening on http://{host}:{port}", file=sys.stderr)
-    print("🔒 Protected by Tailscale Mesh Firewall (100.64.0.0/10 & Localhost Only)", file=sys.stderr)
+    print(f"🚀 MemoriaGraph 3.2.0 HTTP API & Cockpit listening on http://{host}:{port}", file=sys.stderr)
+    print(f"🔒 Protected by Adaptive Security Firewall (mode: {SECURITY_NETWORK_MODE})", file=sys.stderr)
     uvicorn.run(app, host=host, port=port, log_level="warning")
