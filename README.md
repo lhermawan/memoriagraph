@@ -11,7 +11,7 @@
 
 *The Biomimetic Cognitive Substrate & Long-Term Memory Engine for Autonomous AI Agents and Pair Programmers.*
 
-[What is it?](#-what-is-memoriagraph) • [What's New in v3.1.2](#-whats-new-in-v312) • [v3.1 Turbo](#-the-5-pillars-of-overhead-elimination-v31-turbo) • [Evaluation & Benchmark](#-memoriagraph-31-vs-vanilla-ai-comparative-evaluation) • [Quickstart](#-quickstart--setup-guide) • [Canonical Facades](#-the-3-canonical-facades) • [Integration](#-integration-guides)
+[What is it?](#-what-is-memoriagraph) • [What's New in v3.2.0](#-whats-new-in-v320) • [v3.1 Turbo](#-the-5-pillars-of-overhead-elimination-v31-turbo) • [Evaluation & Benchmark](#-memoriagraph-31-vs-vanilla-ai-comparative-evaluation) • [Quickstart](#-quickstart--setup-guide) • [Canonical Facades](#-the-3-canonical-facades) • [Integration](#-integration-guides)
 </div>
 
 ---
@@ -39,27 +39,27 @@ flowchart LR
 
 ---
 
-## 🚀 What's New in v3.1.2
+## 🚀 What's New in v3.2.0
 
-MemoriaGraph **v3.1.2** delivers **Ingestion Integrity Hardening, Graph Deduplication, and Shadow Mode Governance**:
+MemoriaGraph **v3.2.0** brings **Universal Portability, Zero-Infra Decoupling, and One-Click Containerization**:
 
-| Feature / Hardening | Description | Impact |
+| Feature / Upgrade | Description | Impact |
 | :--- | :--- | :--- |
-| **Database-Level Deduplication** | `EpisodeManager.create_episode()` checks `dedupe_fingerprint` in Neo4j prior to insert. Returns existing episode with `is_duplicate=True` if matched. | 100% idempotent write operations; duplicate node creation is physically eliminated. |
-| **Strict Empirical Success Grounding** | `check_has_empirical_evidence()` strictly isolates positive completion signals (`exit code 0`, `status 200`, `tests passed`, `commit <sha>`). Eliminates false positives from arbitrary strings or error codes. | Halts outcome hallucination; tasks claiming success without verified anchors are safely downgraded to `UNKNOWN`. |
-| **Failure Integrity & Attempt Recovery** | Validates `FAILURE` claims against empirical failure signals (`exit code [1-9]`, `stacktrace`, `OOM`). Overrides intermediate failure labels if sequential attempts culminated in verified resolution. | Prevents transient troubleshooting attempts from polluting the system as terminal failures. |
-| **Active Shadow Mode Governance** | `MEMORIAGRAPH_ENFORCE_INGESTION_GATE` actively switches between strict blocking (`QUARANTINED`/`REJECTED`) and passive observation (`ACCEPTED_SHADOW`) with full audit reason code recording. | Safe zero-downtime evaluation of gate policies in staging and production environments. |
-| **Full-Chain Provenance Tracking** | `provenance` (`OBSERVED`, `USER_REPORTED`, `INFERRED`, `ARTIFACT_VERIFIED`) and `record_type` parameters are propagated from HTTP API & MCP facade directly to Neo4j `Episode` nodes. | Complete end-to-end auditability and origin transparency for every memory node in the graph. |
-| **Sealed Write Vector Bypasses** | Added critical credential sanitization to legacy tools like `add_entity()` and indexed `dedupe_fingerprint` in Neo4j schema. | Comprehensive defense-in-depth across both primary facades and secondary utility entry points. |
+| **Dynamic Root Path Decoupling** | Centralized in `src/config.py` using `Path(__file__)` resolution. All hardcoded static server paths (`/opt/memoriagraph`) are completely removed. | 100% portable out-of-the-box across Linux, macOS, Windows, and container environments. |
+| **Adaptive Security Network Gateway** | Upgraded `http_service.py` with `AdaptiveSecurityMiddleware` controlled by `SECURITY_NETWORK_MODE` (`private`, `tailscale`, `all`). | Automatic support for Docker bridge networks (`172.16.0.0/12`) and local LANs (`192.168.x.x`), eliminating 403 Forbidden blocks for developers. |
+| **One-Click Docker Compose Ecosystem** | Packaged `Dockerfile` and `docker-compose.yml` orchestrating Neo4j 5 Community (with APOC & healthcheck) and MemoriaGraph Microservice. | Developers can launch the entire cognitive memory stack and Cockpit UI with a single command: `docker compose up -d`. |
+| **Pre-Baked ONNX Model Image** | Quantized Int8 FastEmbed model (`BAAI/bge-small-en-v1.5`) is pre-warmed during Docker build. | Zero startup latency; no downloading models during first container boot. |
+| **Relative MCP Presets** | Updated `server.json` and client presets to dynamic execution (`python -m server`). | Seamless one-step pairing with Claude Desktop, Cursor IDE, Windsurf, and VS Code. |
 
 ---
 
-### Prior Release Highlights (v3.1.1)
+### Prior Release Highlights (v3.1.2)
 
-MemoriaGraph **v3.1.1** introduced the initial contract-driven **Shared Memory Ingestion Quality Gate** and enterprise-grade cache reliability:
-- Deterministic Ingestion Gate chokepoint gating MCP tools and REST API.
-- Hard secret quarantine and Anti-Slop conversation fluff stripper.
-- Cross-process `FileLock` and atomic file swapping on `.vector_cache.pkl`.
+MemoriaGraph **v3.1.2** delivered **Ingestion Integrity Hardening, Graph Deduplication, and Shadow Mode Governance**:
+- **Database-Level Deduplication**: `create_episode()` checks `dedupe_fingerprint` in Neo4j prior to insert.
+- **Strict Empirical Success Grounding**: Isolates positive completion signals (`exit code 0`, `status 200`, `commit <sha>`).
+- **Failure Integrity & Attempt Recovery**: Validates failure claims and overrides intermediate failure labels upon verified recovery.
+- **Full-Chain Provenance Tracking**: Tracks `provenance` (`OBSERVED`, `USER_REPORTED`, `INFERRED`, `ARTIFACT_VERIFIED`).
 
 ---
 

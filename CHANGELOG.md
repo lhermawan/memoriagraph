@@ -5,6 +5,27 @@ All notable changes to **MemoriaGraph** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-10-22
+
+### 🌐 Universal Portability, Zero-Infra Decoupling & One-Click Containerization
+
+#### Added
+- **Centralized Portable Configuration (`src/config.py`)**:
+  - Dynamically resolves repository root via `Path(__file__)`, eliminating all hardcoded `/opt/memoriagraph` path assumptions.
+  - Native cross-platform compatibility across Linux, macOS, Windows, and Docker.
+- **Adaptive Security Gateway (`http_service.py`)**:
+  - Replaced strict Tailscale-only firewall with `AdaptiveSecurityMiddleware`.
+  - Added `SECURITY_NETWORK_MODE` (`private`, `tailscale`, `all`). Mode `private` (default) permits loopback, Tailscale, and all RFC 1918 subnets (Docker `172.16.0.0/12`, LAN `192.168.0.0/16`, `10.0.0.0/8`).
+- **One-Click Containerization**:
+  - Added multi-stage `Dockerfile` with pre-baked FastEmbed ONNX Int8 model (`BAAI/bge-small-en-v1.5`) for zero-download cold starts.
+  - Added `docker-compose.yml` orchestrating Neo4j 5 Community (with APOC & healthchecks) and MemoriaGraph Microservice.
+- **One-Line Installer Script (`scripts/docker-run.sh`)**:
+  - Automated bash installer allowing one-command deployment via `curl -fsSL ... | bash`.
+- **Portable MCP Presets (`server.json`)**:
+  - Decoupled server execution paths to relative commands (`python -m server`), making Claude Desktop and Cursor setup instant.
+
+---
+
 ## [3.1.2] - 2026-10-17
 
 ### 🛡️ Ingestion Integrity Hardening, Deduplication & Shadow Mode Governance
