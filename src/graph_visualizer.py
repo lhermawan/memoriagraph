@@ -17,7 +17,7 @@ from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from src.bank_manager import bank_manager
 
 def get_bank_colors() -> dict[str, str]:
-    colors = {b_id: info.get("color", "#ffaa00") for b_id, info in bank_manager.list_banks().items()}
+    colors = {b.get("id", ""): b.get("color", "#ffaa00") for b in bank_manager.list_banks() if b.get("id")}
     legacy_fallbacks = {
         "ai-hud": "#00f0ff",
         "infra-sre": "#00ff88",
