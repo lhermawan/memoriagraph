@@ -286,6 +286,12 @@ Or manually configure your client's MCP configuration (`claude_desktop_config.js
 ```
 *(For ChatGPT / Custom GPTs, import `http://localhost:8085/openapi.json` into GPT Actions).*
 
+#### 5. Enable Proactive Autonomous Mode (Zero-Prompt Auto-Use)
+Instruct your coding assistants (Cursor, Copilot, Antigravity, Windsurf) to automatically query and persist memories without manual prompting:
+```bash
+python cli.py setup-rules
+```
+
 ---
 
 ### 🌐 Option 2: Server / Team Hub (Full Docker Compose)

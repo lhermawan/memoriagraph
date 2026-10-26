@@ -184,6 +184,28 @@ Untuk menghubungkan **ChatGPT Plus/Team/Enterprise** ke MemoriaGraph:
 
 ---
 
+### D. Mode Otonom Proaktif (Zero-Prompt Auto-Recall & Auto-Retain)
+
+Agar AI coding assistant di **Cursor IDE**, **VS Code / GitHub Copilot**, **Windsurf**, dan **Google Antigravity** otomatis menggunakan MemoriaGraph tanpa perlu Anda suruh:
+
+Cukup jalankan perintah:
+```bash
+python cli.py setup-rules
+```
+Atau pilih opsi **`[6] Pasang Proactive Rules`** pada installer interaktif.
+
+Perintah ini akan menyuntikkan *Proactive Cognitive Memory Protocol*:
+* **Cursor IDE**: `.cursor/rules/memoriagraph.mdc`
+* **VS Code & Copilot**: `.github/copilot-instructions.md`
+* **Windsurf IDE**: `.windsurfrules`
+* **Google Antigravity**: `~/.gemini/config/rules/memoriagraph.md`
+
+AI Anda sekarang akan otomatis:
+1. **Auto-Recall (Pre-Action)**: Menelusuri preseden masa lalu, arsitektur, dan blast-radius sebelum mulai menulis kode.
+2. **Auto-Retain (Post-Action)**: Menyimpan solusi dan heuristik yang terverifikasi begitu pekerjaan selesai.
+
+---
+
 ## 5. Taskbar Tray Companion & Windows Auto-Startup
 
 Bagi pengguna awam, melihat visualisasi memori graf (Cybernetic Cockpit) kini tidak lagi memerlukan jendela terminal hitam yang mengganggu:

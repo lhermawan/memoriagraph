@@ -103,10 +103,15 @@ def retain(
     async_mode: bool = True
 ) -> str:
     """
-    [MemoriaGraph 3.2.0 Facade] Menyimpan unit memori/pengetahuan/episode ke Memory Bank spesifik.
-    Bank aktif: 'general', 'codebase', 'operations', 'research' (atau kategori custom via banks.json).
-    Outcome status: 'SUCCESS', 'FAILURE', 'PARTIAL', 'UNKNOWN'.
-    Mendukung async background harvesting (Pilar 2) untuk inferensi ultra-cepat.
+    [PROACTIVE POST-ACTION TRIGGER - MemoriaGraph 3.2.0]
+    MANDATORY POST-ACTION: Automatically persist solutions, bugfixes, architectural decisions,
+    and proven engineering heuristics into the long-term cognitive graph upon task completion.
+    Call this tool whenever you solve an issue or finish implementing a feature so future sessions
+    will remember without amnesia.
+
+    Bank IDs: 'general', 'codebase', 'operations', 'research' (or custom banks in banks.json).
+    Outcome status: 'SUCCESS' (verified fix/implementation), 'FAILURE', 'PARTIAL', 'UNKNOWN'.
+    Supports asynchronous background vector harvesting (<30ms write latency).
     """
     # Shared Memory Ingestion Quality Gate (Security-First Guardrail)
     val = ingestion_gate.validate(
@@ -209,12 +214,17 @@ def recall(
     compact: bool = True
 ) -> str:
     """
-    [MemoriaGraph 3.2.0 Facade] 4-Way Hybrid Recall Engine dengan RRF, Context Isolation, & Result Pruning.
-    Mode:
-    - 'hybrid': 4-Way BM25 + Graph + Temporal + Vector RRF (Pilar 3: Kompresi Hemat Token).
-    - 'context': Graph topic context traversal (pengganti get_context).
-    - 'dss': Precedent & decision support (pengganti query_dss).
-    - 'beliefs': Cognitive beliefs & heuristics ranking (pengganti list_cognitive_beliefs).
+    [PROACTIVE PRE-ACTION TRIGGER - MemoriaGraph 3.2.0]
+    MANDATORY PRE-ACTION: Query long-term cognitive memory proactively at the start of any
+    non-trivial query, debugging session, code planning, or technical question.
+    ALWAYS retrieve relevant historical context, previous architectural decisions, and proven
+    solutions BEFORE forming plans or modifying files. DO NOT wait for the user to explicitly ask.
+
+    Modes:
+    - 'hybrid' (default): 4-Way BM25 + Graph Traversal + Temporal Decay + Int8 Vector RRF.
+    - 'context': Graph topic context expansion around entities.
+    - 'dss': Precedents and trade-off rationales for decisions.
+    - 'beliefs': Active cognitive beliefs and heuristics ranking.
     """
     mode_clean = mode.strip().lower() if mode else "hybrid"
 
@@ -277,12 +287,13 @@ def reflect(
     reason: str = ""
 ) -> str:
     """
-    [MemoriaGraph 3.2.0 Facade] Refleksi kognitif & kalibrasi keyakinan/heuristik.
-    Action:
-    - 'reflect' (default): Sintesis solusi masa lalu & pola berpikir terkristalisasi.
-    - 'reinforce': Memperkuat heuristik/keyakinan (target_id diisi ID/teks keyakinan).
-    - 'challenge': Menantang heuristik dengan counter-evidence (target_id & reason).
-    - 'dashboard': Mengambil metrik observasi kognitif bulanan.
+    [PROACTIVE BELIEF CALIBRATION - MemoriaGraph 3.2.0]
+    Cognitive reflection and mathematical belief revision engine.
+    Invoke to synthesize trajectories or calibrate heuristics:
+    - 'reflect' (default): Synthesizes past problem-solving trajectories & crystallized patterns.
+    - 'reinforce': Strengthens a belief/heuristic when empirical test/fix verifies it.
+    - 'challenge': Weakens a belief/heuristic when unexpected failure or counter-evidence occurs.
+    - 'dashboard': Retrieves cognitive telemetry metrics and exploration pipeline.
     """
     act = action.strip().lower() if action else "reflect"
 

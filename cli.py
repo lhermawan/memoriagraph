@@ -218,6 +218,13 @@ def cmd_setup_ai():
     else:
         print("❌ installer.py tidak ditemukan.")
 
+def cmd_setup_rules():
+    inst_script = BASE_DIR / "installer.py"
+    if inst_script.exists():
+        subprocess.run([sys.executable, str(inst_script), "--mode", "rules"])
+    else:
+        print("❌ installer.py tidak ditemukan.")
+
 def main():
     parser = argparse.ArgumentParser(description="MemoriaGraph 3.2.0 - Cognitive Substrate CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -228,6 +235,7 @@ def main():
     subparsers.add_parser("install", help="Jalankan Universal Interactive Installer")
     subparsers.add_parser("setup-ai", help="Hubungkan ke AI Assistant (Antigravity, Claude, Cursor, Copilot, Windsurf)")
     subparsers.add_parser("setup-claude", help="Konfigurasi Claude Desktop MCP secara otomatis (Alias setup-ai)")
+    subparsers.add_parser("setup-rules", help="Pasang Proactive Rules ke Cursor, Copilot, Antigravity, Windsurf (Zero-Prompt Mode)")
 
     # Banks subcommand
     p_banks = subparsers.add_parser("banks", help="Kelola kategori Memory Bank dinamis")
@@ -281,6 +289,8 @@ def main():
         cmd_install()
     elif args.command in ("setup-ai", "setup-claude"):
         cmd_setup_ai()
+    elif args.command == "setup-rules":
+        cmd_setup_rules()
     else:
         cmd_dashboard()
 
