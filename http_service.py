@@ -193,4 +193,12 @@ if __name__ == "__main__":
     port = int(os.getenv("MEMORIAGRAPH_HTTP_PORT", "8085"))
     print(f"🚀 MemoriaGraph 3.2.0 HTTP API & Cockpit listening on http://{host}:{port}", file=sys.stderr)
     print(f"🔒 Protected by Adaptive Security Firewall (mode: {SECURITY_NETWORK_MODE})", file=sys.stderr)
+
+    # Auto-initialize Neo4j schema & memory banks if Neo4j is reachable
+    try:
+        from src.schema_init import init_schema
+        init_schema()
+    except Exception as e:
+        print(f"ℹ️ [http_service] Neo4j schema init skipped/deferred: {e}", file=sys.stderr)
+
     uvicorn.run(app, host=host, port=port, log_level="warning")

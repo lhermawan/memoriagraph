@@ -40,6 +40,7 @@ services:
       - memoriagraph_data:/app/data
       - ./events:/app/events
       - ./logs:/app/logs
+      - ./banks.json:/app/banks.json
 
 volumes:
   neo4j_data:
