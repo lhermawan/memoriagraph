@@ -3,8 +3,8 @@ import { BANK_CONFIG } from '../types/graph';
 
 export const MOCK_GRAPH_DATA: CockpitGraphData = {
   ok: true,
-  service: "MemoriaGraph 3.1.2",
-  version: "3.1.2",
+  service: "MemoriaGraph 3.2.0",
+  version: "3.2.0",
   total_nodes: 15,
   total_links: 16,
   bank_filter: "all",

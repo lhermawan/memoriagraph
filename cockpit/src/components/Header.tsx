@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
               MemoriaGraph
             </h1>
             <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-              v3.1.2
+              v3.2.0
             </span>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-cyber-muted">

@@ -44,7 +44,7 @@ export async function fetchCockpitGraph(bankFilter?: string): Promise<{ data: Co
     }
     throw new Error('Empty or invalid response from backend');
   } catch (err) {
-    console.warn('[Cockpit API] Live backend unavailable, fallback to v3.1.2 mock data:', err);
+    console.warn('[Cockpit API] Live backend unavailable, fallback to v3.2.0 mock data:', err);
     // Filter mock data by bank if requested
     if (bankFilter && bankFilter !== 'all') {
       const filteredNodes = MOCK_GRAPH_DATA.nodes.filter(n => n.bank === bankFilter);

@@ -67,7 +67,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         </div>
 
         <div className="pt-4 border-t border-cyber-border text-[11px] text-cyber-muted/80 flex items-center justify-between">
-          <span>MemoriaGraph 3.1.2</span>
+          <span>MemoriaGraph 3.2.0</span>
           <span className="flex items-center gap-1 text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" /> Substrate Ready
           </span>
@@ -196,7 +196,7 @@ export const InspectorDrawer: React.FC<InspectorDrawerProps> = ({
         </div>
       </div>
 
-      {/* Empirical Anchor Verification (v3.1.2 Grounding) */}
+      {/* Empirical Anchor Verification (v3.2.0 Grounding) */}
       {node.empirical_anchor && (
         <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-lg space-y-1.5">
           <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wide flex items-center gap-1.5">

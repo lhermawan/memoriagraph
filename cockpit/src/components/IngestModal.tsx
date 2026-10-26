@@ -171,7 +171,7 @@ export const IngestModal: React.FC<IngestModalProps> = ({
           <div className="flex items-center gap-2">
             <PlusCircle className="w-5 h-5 text-cyan-400" />
             <h3 className="text-sm font-bold uppercase tracking-wider text-cyber-text font-mono">
-              Ingest Kognisi (POST /retain) · Ingestion Gate v3.1.2
+              Ingest Kognisi (POST /retain) · Ingestion Gate v3.2.0
             </h3>
           </div>
           <button
