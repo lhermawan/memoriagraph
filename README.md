@@ -239,7 +239,7 @@ If you prefer setting up manually without the interactive wizard:
 docker run -d \
   --name memoriagraph-neo4j \
   -p 7687:7687 -p 7474:7474 \
-  -e NEO4J_AUTH=neo4j/memoriagraph_pass \
+  -e NEO4J_AUTH=neo4j/your_secure_password \
   -e NEO4J_PLUGINS='["apoc"]' \
   -v memoriagraph_neo4j_data:/data \
   neo4j:5-community
@@ -277,7 +277,7 @@ Or manually configure your client's MCP configuration (`claude_desktop_config.js
       "env": {
         "NEO4J_URI": "bolt://127.0.0.1:7687",
         "NEO4J_USER": "neo4j",
-        "NEO4J_PASSWORD": "memoriagraph_pass",
+        "NEO4J_PASSWORD": "your_secure_password",
         "PYTHONIOENCODING": "utf-8"
       }
     }
@@ -297,7 +297,7 @@ docker compose up -d
 ```
 
 * 🌐 **Cybernetic Cockpit & REST API**: [http://localhost:8085](http://localhost:8085)
-* 🗄️ **Neo4j Browser UI**: [http://localhost:7474](http://localhost:7474) (`user: neo4j`, `pass: memoriagraph_pass`)
+* 🗄️ **Neo4j Browser UI**: [http://localhost:7474](http://localhost:7474) (credentials configured in `.env` / setup)
 
 ---
 

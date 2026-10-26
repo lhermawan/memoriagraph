@@ -8,8 +8,10 @@ import argparse
 import json
 import os
 import platform
+import secrets
 import shutil
 import socket
+import string
 import subprocess
 import sys
 import time
@@ -207,13 +209,92 @@ def is_docker_available() -> bool:
         return False
 
 
-def start_docker_neo4j(dry_run: bool = False) -> bool:
+def generate_secure_password(length: int = 16) -> str:
+    """Menghasilkan password acak berkeamanan tinggi yang ramah shell."""
+    chars = string.ascii_letters + string.digits + "_-@#"
+    return "".join(secrets.choice(chars) for _ in range(length))
+
+
+def prompt_neo4j_credentials(default_user: str = "neo4j", default_pass: str = None) -> tuple[str, str]:
+    """
+    Meminta username & password Neo4j secara interaktif.
+    Menghilangkan default hardcoded password. Jika user menekan Enter,
+    otomatis dibuatkan password acak aman 16-karakter.
+    """
+    print(f"\n{CYAN}{BORDER_SUB}")
+    print("🔒 KONFIGURASI KREDENSIAL DATABASE NEO4J")
+    print(f"{BORDER_SUB}{RESET}")
+    print("Atur username dan password database untuk keamanan maksimal:\n")
+
+    user_inp = safe_input(f"Username Neo4j [default: {default_user}]: ").strip()
+    user = user_inp if user_inp else default_user
+
+    generated_pw = default_pass or generate_secure_password()
+    print(f"💡 Tips: Tekan Enter untuk menggunakan password acak aman:")
+    print(f"   Password yang disarankan: {BOLD}{GREEN}{generated_pw}{RESET}")
+
+    prompt_label = f"Password Neo4j [Enter untuk '{generated_pw}']: "
+    pass_inp = safe_input(prompt_label).strip()
+    passw = pass_inp if pass_inp else generated_pw
+
+    print(f"\n{GREEN}{SYM_OK} Kredensial aktif: User '{BOLD}{user}{RESET}', Password tersimpan aman.{RESET}")
+    return user, passw
+
+
+def save_env_credentials(uri: str, user: str, passw: str, env_path: Path = None):
+    """Menyimpan atau memperbarui NEO4J_URI, NEO4J_USER, dan NEO4J_PASSWORD di file .env."""
+    if env_path is None:
+        env_path = ROOT_DIR / ".env"
+
+    env_lines = []
+    keys_found = {"NEO4J_URI": False, "NEO4J_USER": False, "NEO4J_PASSWORD": False}
+
+    if env_path.exists():
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    stripped = line.strip()
+                    if stripped.startswith("NEO4J_URI="):
+                        env_lines.append(f"NEO4J_URI={uri}\n")
+                        keys_found["NEO4J_URI"] = True
+                    elif stripped.startswith("NEO4J_USER="):
+                        env_lines.append(f"NEO4J_USER={user}\n")
+                        keys_found["NEO4J_USER"] = True
+                    elif stripped.startswith("NEO4J_PASSWORD="):
+                        env_lines.append(f"NEO4J_PASSWORD={passw}\n")
+                        keys_found["NEO4J_PASSWORD"] = True
+                    else:
+                        env_lines.append(line)
+        except Exception:
+            pass
+
+    if not keys_found["NEO4J_URI"]:
+        env_lines.append(f"NEO4J_URI={uri}\n")
+    if not keys_found["NEO4J_USER"]:
+        env_lines.append(f"NEO4J_USER={user}\n")
+    if not keys_found["NEO4J_PASSWORD"]:
+        env_lines.append(f"NEO4J_PASSWORD={passw}\n")
+
+    try:
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(env_lines)
+        print(f"📄 Konfigurasi kredensial berhasil disimpan di: {env_path.name}")
+    except Exception as e:
+        print(f"{YELLOW}{SYM_WARN} Gagal menyimpan ke .env: {e}{RESET}")
+
+    # Sinkronisasi ke runtime environment
+    os.environ["NEO4J_URI"] = uri
+    os.environ["NEO4J_USER"] = user
+    os.environ["NEO4J_PASSWORD"] = passw
+
+
+def start_docker_neo4j(user: str = "neo4j", passw: str = "memoriagraph_pass", dry_run: bool = False) -> bool:
     """Menjalankan container Neo4j di Docker untuk Local Mode."""
     container_name = "memoriagraph-neo4j"
     print(f"\n{SYM_DOCKER} Memeriksa container Neo4j di Docker...")
 
     if dry_run:
-        print(f"  [DRY RUN] Would start container '{container_name}'")
+        print(f"  [DRY RUN] Would start container '{container_name}' with user '{user}'")
         return True
 
     # Cek apakah container sudah ada
@@ -225,13 +306,13 @@ def start_docker_neo4j(dry_run: bool = False) -> bool:
         print(f"  Container '{container_name}' ditemukan. Menyalakan container...")
         subprocess.run(["docker", "start", container_name], check=True)
     else:
-        print(f"  Membuat dan menjalankan container '{container_name}'...")
+        print(f"  Membuat dan menjalankan container '{container_name}' dengan user '{user}'...")
         run_cmd = [
             "docker", "run", "-d",
             "--name", container_name,
             "-p", "7687:7687",
             "-p", "7474:7474",
-            "-e", "NEO4J_AUTH=neo4j/memoriagraph_pass",
+            "-e", f"NEO4J_AUTH={user}/{passw}",
             "-e", "NEO4J_PLUGINS=[\"apoc\"]",
             "-v", "memoriagraph_neo4j_data:/data",
             "neo4j:5-community"
@@ -254,9 +335,12 @@ def start_docker_neo4j(dry_run: bool = False) -> bool:
 # 🌐 UNIVERSAL MULTI-AI ASSISTANT & MCP CLIENT INTEGRATION
 # =====================================================================
 
-def get_ai_clients(uri: str = "bolt://127.0.0.1:7687",
-                   user: str = "neo4j", passw: str = "memoriagraph_pass") -> dict[str, dict]:
+def get_ai_clients(uri: str = None,
+                   user: str = None, passw: str = None) -> dict[str, dict]:
     """Mengembalikan registry AI Assistant & IDE yang didukung untuk koneksi MCP."""
+    target_uri = uri or os.environ.get("NEO4J_URI", "bolt://127.0.0.1:7687")
+    target_user = user or os.environ.get("NEO4J_USER", "neo4j")
+    target_pass = passw or os.environ.get("NEO4J_PASSWORD", "memoriagraph_pass")
     is_win = sys.platform == "win32"
     app_data = Path(os.getenv("APPDATA", "")) if is_win else Path.home()
     venv_py = get_venv_python().resolve()
@@ -268,9 +352,9 @@ def get_ai_clients(uri: str = "bolt://127.0.0.1:7687",
         "cwd": str(repo_dir),
         "env": {
             "PYTHONIOENCODING": "utf-8",
-            "NEO4J_URI": uri,
-            "NEO4J_USER": user,
-            "NEO4J_PASSWORD": passw
+            "NEO4J_URI": target_uri,
+            "NEO4J_USER": target_user,
+            "NEO4J_PASSWORD": target_pass
         }
     }
 
@@ -506,10 +590,10 @@ def run_local_mode(dry_run: bool = False):
         return
     venv_py = ensure_virtualenv(dry_run=dry_run)
 
-    # 2. Cek Neo4j
+    # 2. Konfigurasi Kredensial Neo4j
     neo_uri = "bolt://127.0.0.1:7687"
-    neo_user = "neo4j"
-    neo_pass = "memoriagraph_pass"
+    neo_user, neo_pass = prompt_neo4j_credentials()
+    save_env_credentials(neo_uri, neo_user, neo_pass)
 
     print(f"\n{SYM_SEARCH} Memeriksa koneksi Neo4j di {neo_uri}...", end=" ")
     is_live = test_neo4j_socket("127.0.0.1", 7687)
@@ -520,12 +604,11 @@ def run_local_mode(dry_run: bool = False):
         print(f"{YELLOW}OFFLINE!{RESET}")
         if is_docker_available():
             print(f"{SYM_DOCKER} {GREEN}Docker terdeteksi aktif di sistem ini!{RESET}")
-            resp = safe_input(f"Ingin menjalankan Neo4j di Docker secara otomatis? [Y/n]: ").lower()
+            resp = safe_input(f"Ingin menjalankan Neo4j di Docker secara otomatis dengan user '{neo_user}'? [Y/n]: ").lower()
             if resp in ("", "y", "yes"):
-                start_docker_neo4j(dry_run=dry_run)
+                start_docker_neo4j(user=neo_user, passw=neo_pass, dry_run=dry_run)
         else:
             print(f"{YELLOW}{SYM_WARN} Docker tidak terdeteksi. Pastikan Neo4j Desktop / Server sudah berjalan di port 7687.{RESET}")
-            neo_pass = safe_input(f"Masukkan password Neo4j Anda [default: {neo_pass}]: ") or neo_pass
 
     # 3. Inisialisasi Skema Neo4j
     print(f"\n{SYM_BRAIN} Menginisialisasi Skema Graph & Fulltext Indexes di Neo4j...")
@@ -581,7 +664,11 @@ def run_server_mode(dry_run: bool = False):
         print(f"{RED}{SYM_FAIL} Docker daemon tidak terdeteksi. Silakan instal atau jalankan Docker Desktop terlebih dahulu.{RESET}")
         return
 
-    print(f"{SYM_DOCKER} Menjalankan seluruh stack (Neo4j + MemoriaGraph HTTP Microservice)...")
+    # Atur kredensial kustom untuk compose
+    neo_user, neo_pass = prompt_neo4j_credentials()
+    save_env_credentials("bolt://127.0.0.1:7687", neo_user, neo_pass)
+
+    print(f"\n{SYM_DOCKER} Menjalankan seluruh stack (Neo4j + MemoriaGraph HTTP Microservice)...")
     cmd = ["docker", "compose", "up", "-d"]
     if dry_run:
         print(f"  [DRY RUN] Would execute: {' '.join(cmd)}")
@@ -591,7 +678,7 @@ def run_server_mode(dry_run: bool = False):
         subprocess.run(cmd, cwd=str(ROOT_DIR), check=True)
         print(f"\n{GREEN}{SYM_OK} Seluruh container berhasil dijalankan di background!{RESET}")
         print(f"• Web Cockpit & REST API : http://localhost:8085")
-        print(f"• Neo4j Browser UI      : http://localhost:7474")
+        print(f"• Neo4j Browser UI      : http://localhost:7474 (user: {neo_user})")
         print(f"• Neo4j Bolt Gateway     : bolt://localhost:7687")
         print(f"• OpenAPI Schema (GPT)  : http://localhost:8085/openapi.json")
     except Exception as e:

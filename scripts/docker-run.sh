@@ -31,7 +31,7 @@ echo "==========================================================================
 echo "🎉 MemoriaGraph 3.2 is up and running!"
 echo "=============================================================================="
 echo "🌐 Cybernetic Cockpit & API : http://localhost:8085"
-echo "🗄️ Neo4j Database Browser   : http://localhost:7474 (user: neo4j, pass: memoriagraph_pass)"
+echo "🗄️ Neo4j Database Browser   : http://localhost:7474 (credentials configured in .env)"
 echo "⚡ MCP Server endpoint       : Integrated stdio / HTTP microservice"
 echo ""
 echo "To check container logs:"

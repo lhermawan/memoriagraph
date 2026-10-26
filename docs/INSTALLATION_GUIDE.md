@@ -95,7 +95,7 @@ Jika Anda ingin menjalankan MemoriaGraph di server, VM headless (`vm-maskii`), a
    ```
 3. Akses layanan:
    * 🌐 **Cybernetic Cockpit & REST API**: [http://localhost:8085](http://localhost:8085)
-   * 🗄️ **Neo4j Browser UI**: [http://localhost:7474](http://localhost:7474) (`user: neo4j`, `pass: memoriagraph_pass`)
+   * 🗄️ **Neo4j Browser UI**: [http://localhost:7474](http://localhost:7474) (Sesuai kredensial yang dibuat saat setup / di `.env`)
    * 🔌 **Bolt Gateway**: `bolt://localhost:7687`
 
 ---
@@ -124,7 +124,7 @@ python cli.py setup-ai
 ```
 Atau melalui installer interaktif:
 * Pilih opsi **`[5] Hubungkan AI Assistant`**
-* Tekan **`[A]`** untuk **Hubungkan SEMUA Client Terdeteksi Sekaligus**. Installer akan memindai AI assistant yang terpasang di komputer Anda, membuat backup aman (`.bak.<timestamp>`), dan mendaftarkan `mcpServers.memoriagraph` secara otomatis.
+* Tekan **`[A]`** untuk **Hubungkan SEMUA Client Terdeteksi Sekaligus**. Installer akan memindai AI assistant yang terpasang di komputer Anda, membuat backup aman (`.bak.<timestamp>`), dan mendaftarkan `mcpServers.memoriagraph` dengan kredensial kustom Anda secara otomatis.
 
 ---
 
@@ -143,7 +143,7 @@ File konfigurasi: `~/.gemini/config/mcp_config.json`
         "PYTHONIOENCODING": "utf-8",
         "NEO4J_URI": "bolt://127.0.0.1:7687",
         "NEO4J_USER": "neo4j",
-        "NEO4J_PASSWORD": "memoriagraph_pass"
+        "NEO4J_PASSWORD": "your_secure_password"
       }
     }
   }

@@ -1,6 +1,6 @@
 # ⚡ 4-Way Hybrid Recall Engine
 
-**MemoriaGraph 3.1** implements a **4-Way Reciprocal Rank Fusion (RRF)** retrieval engine that achieves both high precision and broad semantic recall in under 150ms, boosted by in-memory LRU caching and async background vectorization.
+**MemoriaGraph 3.2** implements a **4-Way Reciprocal Rank Fusion (RRF)** retrieval engine that achieves both high precision and broad semantic recall in under 150ms, boosted by in-memory LRU caching, dynamic memory banks, and async background vectorization.
 
 ---
 

@@ -19,15 +19,23 @@ MemoriaGraph is designed as a persistent cognitive memory substrate for autonomo
 3. **Semantic Anti-Slop Immune System**:
    - MemoriaGraph includes an active `SemanticSanitizer` preventing hallucinated metrics, unverified exit codes, and circular AI fluff from entering the long-term cognitive substrate.
 
+4. **Zero-Default-Credential Policy & Entropy Generation**:
+   - Starting with v3.2.0, MemoriaGraph strictly eliminates unauthenticated or default-password database states (`memoriagraph_pass`).
+   - The universal installer mandates user-defined credentials or generates 16-character cryptographically secure passwords (`secrets.choice`), persisting them strictly in local `.env` and host MCP configs (ignored by `.gitignore` and `.dockerignore`).
+
+5. **Adaptive Network Security Gateway**:
+   - The HTTP microservice (`http_service.py`) incorporates `AdaptiveSecurityMiddleware` (`SECURITY_NETWORK_MODE`: `private`, `tailscale`, `all`), blocking public unauthorized traffic while allowing Docker bridge (`172.16.0.0/12`) and Tailscale mesh peers.
+
 ---
 
 ## 🛡️ Supported Versions
 
 | Version | Supported          | Security Patches |
 | ------- | ------------------ | ---------------- |
-| 3.1.x   | :white_check_mark: | Active           |
-| 3.0.x   | :white_check_mark: | Maintained       |
-| 2.0.x   | :x:                | Deprecated       |
+| 3.2.x   | :white_check_mark: | Active           |
+| 3.1.x   | :white_check_mark: | Maintained       |
+| 3.0.x   | :x:                | Deprecated       |
+| 2.0.x   | :x:                | Unsupported      |
 | 1.0.x   | :x:                | Unsupported      |
 
 ---

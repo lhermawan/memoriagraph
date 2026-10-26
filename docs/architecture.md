@@ -1,10 +1,10 @@
 # 🏛️ MemoriaGraph Architecture: Cognitive Substrate & Retrieval Engine
 
-**MemoriaGraph 3.1** unifies three core engineering pillars into a resilient, biomimetic cognitive memory substrate for autonomous AI agents, enterprise pipelines, and multi-agent swarms:
+**MemoriaGraph 3.2** unifies three core engineering pillars into a resilient, sovereign, biomimetic cognitive memory substrate for autonomous AI agents, enterprise pipelines, and multi-agent swarms:
 
 ```
                   ┌──────────────────────────────────────────────┐
-                  │              MemoriaGraph 3.1                │
+                  │              MemoriaGraph 3.2                │
                   │   Cognitive Substrate & Retrieval Engine     │
                   └──────────────────────┬───────────────────────┘
                                          │
@@ -36,9 +36,10 @@
                ▼
 ┌────────────────────────────────────────────────────────┐
 │             INTEGRATION & SERVING LAYER                │
-│ • Standard Model Context Protocol (MCP stdio)          │
+│ • Universal MCP (Antigravity, Claude, Cursor, Copilot) │
 │ • High-Performance HTTP Microservice (Port 8085)       │
-│ • Zero-Roundtrip AI Gateway Pre-Injection (9Router)    │
+│ • OpenAPI 3.1.0 for ChatGPT Custom GPT Actions         │
+│ • Cybernetic Cockpit 3D Visualizer & Taskbar Tray      │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -51,13 +52,13 @@
 1. **Episodic & Semantic Dual-Store**:
    - **Episodes**: Capture temporal, multi-attempt problem-solving trajectories (`Attempt 1 -> Fail -> Attempt 2 -> Success`), recording decisions, constraints, and root causes.
    - **Semantics**: Extract timeless concepts, interconnected domain entities, and operational constraints in the Neo4j property graph.
-2. **Biomimetic Memory Banks**:
-   Memory banks provide strict context isolation so information from one domain never pollutes another:
-   - `production-infra`: Server topologies, process managers, TLS certificates, watchdog incidents.
-   - `core-dev`: Architecture decisions, AST modifications, code actions, blast radiuses.
-   - `security-audit`: CVE reports, penetration testing observations, firewall configurations.
-   - `research-experiments`: Model evaluations, benchmark results, cognitive tracking.
-   - `general`: Cross-domain common sense and system heuristics.
+2. **Dynamic Universal Memory Banks**:
+   Memory banks provide strict context isolation so information from one domain never pollutes another, dynamically managed via `banks.json` and CLI (`python cli.py banks`):
+   - `general`: Cross-domain common sense, general dialogue, and heuristics.
+   - `codebase`: Code architecture, bug fixes, refactoring, and AST blast radius.
+   - `operations`: DevOps, Docker, server topologies, system monitoring, and incidents.
+   - `research`: Emerging tech exploration, papers, benchmark evaluations, and prototypes.
+   - *Custom Banks*: Freely defined by users and teams for dedicated projects without hardcoded partition limits.
 3. **Consolidation & Crystallization**:
    - Candidate observations (`CANDIDATE`) graduate to confirmed heuristics (`OBSERVED`) and eventually crystallize into permanent cognitive patterns (`HIGH_CONFIDENCE`).
 
@@ -91,15 +92,15 @@
 
 ---
 
-## 4. ⚡ High-Performance Retrieval & Serving (Version 3.1)
+## 4. ⚡ High-Performance Retrieval & Serving (Version 3.2)
 
 ### 3 Canonical Facades
-Consolidates 14 granular tools down to 3 unified, intuitive facades:
-- `retain()`: Ingests structured episodes, SOPs, and facts into isolated memory banks with automatic asynchronous background vectorization.
+Consolidates granular operations down to 3 unified, intuitive facades:
+- `retain()`: Ingests structured episodes, SOPs, and facts into dynamic memory banks with automatic asynchronous background vectorization.
 - `recall()`: Executes 4-Way Hybrid Recall with Reciprocal Rank Fusion (RRF), compact result pruning, and sub-millisecond in-memory caching.
 - `reflect()`: Synthesizes past problem-solving trajectories and executes mathematical belief calibration (`action="reinforce"` or `action="challenge"`).
 
 ### Serving & Integration Modes
-- **MCP Stdio**: Native standard input/output interface for Claude Desktop, Cursor, Gemini CLI, and Windsurf.
-- **HTTP Microservice (Port 8085)**: RESTful API for multi-agent swarms, n8n automations, and web backends (`/health`, `/recall`, `/retain`, `/reflect`).
-- **AI Gateway Pre-Injection**: Zero-tool roundtrip interception via `x-memoriagraph-inject` header in AI proxies (9Router, LiteLLM), inserting relevant context directly into the system prompt.
+- **Universal MCP Stdio**: Native standard input/output interface with 1-click configuration for Google Antigravity, Anthropic Claude Desktop, Cursor IDE, VS Code / Copilot, and Windsurf.
+- **HTTP Microservice & OpenAPI 3.1 (Port 8085)**: RESTful API for multi-agent swarms, n8n automations, and native ChatGPT Custom GPT Actions (`/openapi.json`, `/health`, `/recall`, `/retain`).
+- **Cybernetic Cockpit & Taskbar Companion**: Live 3D force-directed graph visualization and silent background system tray monitor for desktop environments.

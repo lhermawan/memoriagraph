@@ -1,6 +1,6 @@
 # 🧠 Dynamic Belief Revision & Evidence Engine
 
-**MemoriaGraph 3.1** models human cognitive belief calibration:
+**MemoriaGraph 3.2** models human cognitive belief calibration:
 - **Fast learning** on early observations.
 - **Logarithmic diminishing returns** on repeated confirmations.
 - **Asymmetric hysteresis** preventing a single outlier from destroying a well-proven heuristic.
