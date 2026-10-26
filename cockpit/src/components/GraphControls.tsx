@@ -154,13 +154,13 @@ export const GraphControls: React.FC<GraphControlsProps> = ({
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
                 <span>Node Scale:</span>
-                <span className="text-cyan-400 font-bold">{params.nodeSizeMult.toFixed(1)}x</span>
+                <span className="text-cyan-400 font-bold">{params.nodeSizeMult.toFixed(2)}x</span>
               </div>
               <input
                 type="range"
-                min="0.5"
-                max="2.2"
-                step="0.1"
+                min="0.3"
+                max="1.8"
+                step="0.05"
                 value={params.nodeSizeMult}
                 onChange={(e) => onUpdateParams({ nodeSizeMult: Number(e.target.value) })}
                 className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"

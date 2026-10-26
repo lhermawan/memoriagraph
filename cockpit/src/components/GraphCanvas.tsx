@@ -90,6 +90,10 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     collideRadius: 18,
     nodeSizeMult: 1.0,
   });
+  const paramsRef = useRef<PhysicsParams>(params);
+  useEffect(() => {
+    paramsRef.current = params;
+  }, [params]);
 
   const isPanningRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
@@ -298,36 +302,50 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     updateEdgeBadges();
   }, [edges, adjacencyMap, highlightedIds, isDarkMode, updateEdgeBadges]);
 
-  // 5. Update Node Spotlight Alpha
+  // 5. Update Node Spotlight Alpha & Proportional Scale
   const updateSpotlight = useCallback(() => {
     const hoveredId = hoveredNodeIdRef.current;
     const selectedId = selectedNodeIdRef.current;
     const focusId = hoveredId || selectedId;
     const neighbors = focusId ? adjacencyMap.get(focusId) : null;
+    const currentMult = paramsRef.current.nodeSizeMult;
 
     nodeSpritesRef.current.forEach((sprite, id) => {
       const isFocus = id === focusId;
       const isNeighbor = neighbors && neighbors.has(id);
       const isHigh = highlightedIds && highlightedIds.has(id);
+      const baseScale = (sprite as any).baseScale || 0.18;
 
       if (focusId === null && (!highlightedIds || highlightedIds.size === 0)) {
         sprite.alpha = 1.0;
-        sprite.scale.set(params.nodeSizeMult);
+        sprite.scale.set(baseScale * currentMult);
       } else if (isFocus) {
         sprite.alpha = 1.0;
-        sprite.scale.set(params.nodeSizeMult * 1.4);
+        sprite.scale.set(baseScale * currentMult * 1.35);
       } else if (isNeighbor || isHigh) {
         sprite.alpha = 1.0;
-        sprite.scale.set(params.nodeSizeMult * 1.18);
+        sprite.scale.set(baseScale * currentMult * 1.15);
       } else {
         sprite.alpha = 0.14;
-        sprite.scale.set(params.nodeSizeMult * 0.88);
+        sprite.scale.set(baseScale * currentMult * 0.85);
+      }
+    });
+
+    nodeAuraSpritesRef.current.forEach((auraSprite, id) => {
+      const isFocus = id === focusId;
+      const baseAura = (auraSprite as any).baseScale || 0.18;
+      if (focusId === null) {
+        auraSprite.scale.set(baseAura * currentMult);
+      } else if (isFocus) {
+        auraSprite.scale.set(baseAura * currentMult * 1.35);
+      } else {
+        auraSprite.scale.set(baseAura * currentMult);
       }
     });
 
     drawEdges();
     updateLabelVisibility();
-  }, [adjacencyMap, highlightedIds, params.nodeSizeMult, drawEdges, updateLabelVisibility]);
+  }, [adjacencyMap, highlightedIds, drawEdges, updateLabelVisibility]);
 
   // 6. Pre-generate Textures
   const createCircleTexture = (app: Application, radius = 32): Texture => {
@@ -370,25 +388,27 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       nodesContainer: Container,
       labelsContainer: Container
     ) => {
-      const radius = 6 + (n.val || 10) * 0.35;
+      const radius = 3.5 + (n.val || 5) * 0.28;
       const nodeColor = hexToNumber(n.color);
       const isHub = deg >= 5 || (n.val || 10) >= 20;
 
-      // Aura Sprite
+      // Aura Sprite (Texture has radius 56 -> width/height 112)
+      const baseAuraScale = (radius * 3.4) / 112;
       const auraSprite = new Sprite(auraTexture);
       auraSprite.anchor.set(0.5);
       auraSprite.tint = nodeColor;
-      auraSprite.width = radius * 3.8;
-      auraSprite.height = radius * 3.8;
+      (auraSprite as any).baseScale = baseAuraScale;
+      auraSprite.scale.set(baseAuraScale * paramsRef.current.nodeSizeMult);
       auraSprite.alpha = isHub ? 0.55 : 0.22;
       aurasContainer.addChild(auraSprite);
 
-      // Core Node Sprite
+      // Core Node Sprite (Texture has radius 32 -> width/height 64)
+      const baseNodeScale = (radius * 2) / 64;
       const sprite = new Sprite(circleTexture);
       sprite.anchor.set(0.5);
       sprite.tint = nodeColor;
-      sprite.width = radius * 2;
-      sprite.height = radius * 2;
+      (sprite as any).baseScale = baseNodeScale;
+      sprite.scale.set(baseNodeScale * paramsRef.current.nodeSizeMult);
       sprite.eventMode = 'static';
       sprite.cursor = 'pointer';
 
@@ -542,7 +562,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       // B. Camera Viewport Container
       const viewport = new Container();
       viewport.position.set(container.clientWidth / 2, container.clientHeight / 2);
-      viewport.scale.set(0.85);
+      viewport.scale.set(0.68);
       app.stage.addChild(viewport);
       viewportRef.current = viewport;
 
@@ -741,9 +761,10 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
 
           if (isFocus || isHub) {
             auraSprite.visible = true;
-            const breath = Math.sin(elapsedSeconds * 2.8 + (id.charCodeAt(0) % 7)) * 0.2;
-            const baseScale = isFocus ? 1.45 : 1.15;
-            auraSprite.scale.set(baseScale + breath * 0.15);
+            const breath = Math.sin(elapsedSeconds * 2.8 + (id.charCodeAt(0) % 7)) * 0.18;
+            const baseAura = (auraSprite as any).baseScale || 0.18;
+            const targetScale = baseAura * paramsRef.current.nodeSizeMult * (isFocus ? 1.35 : 1.15);
+            auraSprite.scale.set(targetScale + breath * 0.03);
             auraSprite.alpha = isFocus
               ? Math.min(1.0, 0.75 + breath)
               : Math.min(0.65, 0.38 + breath * 0.4);
@@ -981,10 +1002,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     updateLabelVisibility();
   }, [nodes, edges, degreeMap, createNodeVisuals, drawEdges, updateSpotlight, updateLabelVisibility]);
 
-  // 9. Update physics parameters in worker
+  // 9. Update physics parameters in worker & immediately update canvas visuals
   const handleUpdateParams = (newParams: Partial<PhysicsParams>) => {
     setParams((prev) => {
       const merged = { ...prev, ...newParams };
+      paramsRef.current = merged;
       if (workerRef.current) {
         workerRef.current.postMessage({
           type: 'UPDATE_PARAMS',
@@ -993,6 +1015,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       }
       return merged;
     });
+    updateSpotlight();
   };
 
   // 10. Focus camera smoothly on a specific node
@@ -1022,7 +1045,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     const container = containerRef.current;
     if (!viewport || !container) return;
 
-    viewport.scale.set(0.85);
+    viewport.scale.set(0.68);
     viewport.position.set(container.clientWidth / 2, container.clientHeight / 2);
 
     updateSpotlight();
