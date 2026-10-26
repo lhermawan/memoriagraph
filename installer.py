@@ -83,21 +83,56 @@ def init_terminal_colors():
 CYAN, GREEN, YELLOW, RED, RESET, BOLD = init_terminal_colors()
 
 
+# Terminal emoji support detection
+SUPPORTS_EMOJI = bool(
+    os.environ.get("WT_SESSION") or 
+    os.environ.get("TERM_PROGRAM") in ("vscode", "hyper", "iTerm.app", "WezTerm", "Alacritty") or
+    (sys.platform != "win32" and "UTF-8" in os.environ.get("LANG", "").upper())
+)
+USE_EMOJI = SUPPORTS_EMOJI and not os.environ.get("PLAIN_TEXT")
+
+SYM_BRAIN = "🧠" if USE_EMOJI else "[MG]"
+SYM_LOCAL = "💻" if USE_EMOJI else "[LOCAL]"
+SYM_SERVER = "🌐" if USE_EMOJI else "[SERVER]"
+SYM_TRAY = "🖥️" if USE_EMOJI else "[TRAY]"
+SYM_BANKS = "🏦" if USE_EMOJI else "[BANKS]"
+SYM_AI = "🤖" if USE_EMOJI else "[AI]"
+SYM_OK = "✅" if USE_EMOJI else "[OK]"
+SYM_FAIL = "❌" if USE_EMOJI else "[FAIL]"
+SYM_WARN = "⚠️" if USE_EMOJI else "[!]"
+SYM_SEARCH = "🔍" if USE_EMOJI else "[*]"
+SYM_DOCKER = "🐳" if USE_EMOJI else "[DOCKER]"
+SYM_SUCCESS = "🎉" if USE_EMOJI else "[SUCCESS]"
+SYM_PKG = "📦" if USE_EMOJI else "[PKG]"
+SYM_INFO = "ℹ️" if USE_EMOJI else "[INFO]"
+BORDER = "═" * 65 if USE_EMOJI else "=" * 65
+BORDER_SUB = "═" * 50 if USE_EMOJI else "=" * 50
+
+
+def safe_input(prompt: str = "") -> str:
+    """Membaca input terminal dengan aman dari UTF-8 BOM PowerShell dan EOF."""
+    try:
+        raw = input(prompt)
+        return raw.strip().lstrip("\ufeff")
+    except (EOFError, KeyboardInterrupt):
+        return ""
+
+
 def print_banner():
-    print(f"\n{CYAN}{'═' * 65}")
-    print(f"🧠 MEMORIAGRAPH v{VERSION} - UNIVERSAL MODULAR INSTALLER")
-    print(f"{'═' * 65}{RESET}\n")
+    print(f"\n{CYAN}{BORDER}")
+    print(f"{SYM_BRAIN} MEMORIAGRAPH v{VERSION} - UNIVERSAL MODULAR INSTALLER")
+    print(f"{BORDER}{RESET}\n")
 
 
 def check_python_version() -> bool:
     """Memastikan Python host memenuhi syarat minimal >= 3.10."""
     v = sys.version_info
-    print(f"🔍 Memeriksa versi Python host: {v.major}.{v.minor}.{v.micro}...", end=" ")
+    print(f"{SYM_SEARCH} Memeriksa versi Python host: {v.major}.{v.minor}.{v.micro}...", end=" ")
     if v.major < 3 or (v.major == 3 and v.minor < 10):
         print(f"{RED}GAGAL!{RESET}")
-        print(f"❌ MemoriaGraph membutuhkan Python 3.10 atau lebih baru.")
+        print(f"{SYM_FAIL} MemoriaGraph membutuhkan Python 3.10 atau lebih baru.")
         return False
-    print(f"{GREEN}OK!{RESET}")
+    print(f"{GREEN}{SYM_OK}{RESET}")
     return True
 
 
@@ -121,20 +156,20 @@ def ensure_virtualenv(dry_run: bool = False) -> Path:
     venv_python = get_venv_python()
 
     if not venv_dir.exists() and not (ROOT_DIR / "venv").exists():
-        print(f"📦 Membuat virtual environment baru di {venv_dir}...")
+        print(f"{SYM_PKG} Membuat virtual environment baru di {venv_dir}...")
         if not dry_run:
             subprocess.run([sys.executable, "-m", "venv", str(venv_dir)], check=True)
             venv_python = get_venv_python()
-            print(f"✅ Virtual environment berhasil dibuat.")
+            print(f"{SYM_OK} Virtual environment berhasil dibuat.")
 
-    print(f"📦 Memastikan dependensi utama terinstal...")
+    print(f"{SYM_PKG} Memastikan dependensi utama terinstal...")
     if not dry_run:
         pip_cmd = [str(venv_python), "-m", "pip", "install", "-e", "."]
         try:
             subprocess.run(pip_cmd, cwd=str(ROOT_DIR), check=True)
-            print(f"{GREEN}✅ Dependensi MemoriaGraph terverifikasi lengkap!{RESET}")
+            print(f"{GREEN}{SYM_OK} Dependensi MemoriaGraph terverifikasi lengkap!{RESET}")
         except Exception as e:
-            print(f"{YELLOW}⚠️ Catatan instalasi pip: {e}{RESET}")
+            print(f"{YELLOW}{SYM_WARN} Catatan instalasi pip: {e}{RESET}")
 
     return venv_python
 
@@ -175,7 +210,7 @@ def is_docker_available() -> bool:
 def start_docker_neo4j(dry_run: bool = False) -> bool:
     """Menjalankan container Neo4j di Docker untuk Local Mode."""
     container_name = "memoriagraph-neo4j"
-    print(f"\n🐳 Memeriksa container Neo4j di Docker...")
+    print(f"\n{SYM_DOCKER} Memeriksa container Neo4j di Docker...")
 
     if dry_run:
         print(f"  [DRY RUN] Would start container '{container_name}'")
@@ -203,10 +238,10 @@ def start_docker_neo4j(dry_run: bool = False) -> bool:
         ]
         subprocess.run(run_cmd, check=True)
 
-    print(f"  ⏳ Menunggu database Neo4j siap menerima koneksi", end="", flush=True)
+    print(f"  Menunggu database Neo4j siap menerima koneksi", end="", flush=True)
     for _ in range(15):
         if test_neo4j_socket("127.0.0.1", 7687):
-            print(f" {GREEN}SIAP!{RESET}")
+            print(f" {GREEN}{SYM_OK}{RESET}")
             return True
         time.sleep(1)
         print(".", end="", flush=True)
@@ -215,35 +250,21 @@ def start_docker_neo4j(dry_run: bool = False) -> bool:
     return test_neo4j_socket("127.0.0.1", 7687)
 
 
-def get_claude_config_path() -> Path | None:
-    """Menemukan letak file claude_desktop_config.json sesuai sistem operasi."""
-    os_name = platform.system()
-    if os_name == "Windows":
-        app_data = os.getenv("APPDATA")
-        if app_data:
-            return Path(app_data) / "Claude" / "claude_desktop_config.json"
-    elif os_name == "Darwin":  # macOS
-        return Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
-    else:  # Linux
-        return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
-    return None
+# =====================================================================
+# 🌐 UNIVERSAL MULTI-AI ASSISTANT & MCP CLIENT INTEGRATION
+# =====================================================================
 
-
-def configure_claude_desktop(dry_run: bool = False, uri: str = "bolt://127.0.0.1:7687",
-                             user: str = "neo4j", passw: str = "memoriagraph_pass") -> bool:
-    """Menginjeksi konfigurasi MCP MemoriaGraph ke Claude Desktop secara otomatis."""
-    cfg_path = get_claude_config_path()
-    if not cfg_path:
-        print(f"{YELLOW}⚠️ Path Claude Desktop tidak dapat dideteksi di OS ini.{RESET}")
-        return False
-
+def get_ai_clients(uri: str = "bolt://127.0.0.1:7687",
+                   user: str = "neo4j", passw: str = "memoriagraph_pass") -> dict[str, dict]:
+    """Mengembalikan registry AI Assistant & IDE yang didukung untuk koneksi MCP."""
+    is_win = sys.platform == "win32"
+    app_data = Path(os.getenv("APPDATA", "")) if is_win else Path.home()
     venv_py = get_venv_python().resolve()
     repo_dir = ROOT_DIR.resolve()
 
-    # Struktur mcpServers entry
     mcp_entry = {
         "command": str(venv_py),
-        "args": ["server.py"],
+        "args": ["-m", "server"],
         "cwd": str(repo_dir),
         "env": {
             "PYTHONIOENCODING": "utf-8",
@@ -253,43 +274,194 @@ def configure_claude_desktop(dry_run: bool = False, uri: str = "bolt://127.0.0.1
         }
     }
 
-    print(f"\n🤖 {BOLD}Konfigurasi Claude Desktop MCP:{RESET}")
-    print(f"  File Target: {cfg_path}")
-    print(f"  Executable : {venv_py}")
-    print(f"  Working Dir: {repo_dir}")
+    if is_win:
+        claude_path = app_data / "Claude" / "claude_desktop_config.json"
+    elif sys.platform == "darwin":
+        claude_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    else:
+        claude_path = Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
+
+    antigravity_path = Path.home() / ".gemini" / "config" / "mcp_config.json"
+    cursor_path = Path.home() / ".cursor" / "mcp.json"
+    vscode_path = repo_dir / ".vscode" / "mcp.json"
+    windsurf_path = Path.home() / ".codeium" / "windsurf" / "mcp_config.json"
+
+    return {
+        "antigravity": {
+            "name": "Google Antigravity",
+            "path": antigravity_path,
+            "desc": "Google DeepMind Advanced Agentic Assistant",
+            "detected": (Path.home() / ".gemini").exists(),
+            "entry": mcp_entry
+        },
+        "claude": {
+            "name": "Claude Desktop",
+            "path": claude_path,
+            "desc": "Anthropic Claude Desktop MCP Client",
+            "detected": claude_path.parent.exists(),
+            "entry": mcp_entry
+        },
+        "cursor": {
+            "name": "Cursor IDE",
+            "path": cursor_path,
+            "desc": "Cursor AI Code Editor (Global)",
+            "detected": (Path.home() / ".cursor").exists(),
+            "entry": mcp_entry
+        },
+        "vscode": {
+            "name": "VS Code & GitHub Copilot",
+            "path": vscode_path,
+            "desc": "Workspace MCP Configuration (.vscode/mcp.json)",
+            "detected": (repo_dir / ".vscode").exists() or shutil.which("code") is not None,
+            "entry": mcp_entry
+        },
+        "windsurf": {
+            "name": "Windsurf IDE",
+            "path": windsurf_path,
+            "desc": "Codeium Windsurf AI Code Editor",
+            "detected": (Path.home() / ".codeium" / "windsurf").exists(),
+            "entry": mcp_entry
+        }
+    }
+
+
+def sync_mcp_config(cfg_path: Path, mcp_entry: dict, client_name: str, dry_run: bool = False) -> bool:
+    """Menginjeksi atau memperbarui entry memoriagraph di file konfigurasi MCP target secara aman."""
+    print(f"\n{SYM_AI} {BOLD}Konfigurasi {client_name} MCP:{RESET}")
+    print(f"  Target File: {cfg_path}")
 
     if dry_run:
-        print(f"  [DRY RUN] Snippet yang akan ditulis:\n{json.dumps({'mcpServers': {'memoriagraph': mcp_entry}}, indent=2)}")
+        print(f"  [DRY RUN] Snippet konfigurasi:\n{json.dumps({'mcpServers': {'memoriagraph': mcp_entry}}, indent=2)}")
         return True
 
-    # Buat direktori jika belum ada
-    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        cfg_path.parent.mkdir(parents=True, exist_ok=True)
+        config_data = {}
+        if cfg_path.exists():
+            try:
+                # Backup file lama
+                bak_path = cfg_path.with_suffix(f".bak.{int(time.time())}")
+                shutil.copy2(cfg_path, bak_path)
+                print(f"  Backup konfigurasi lama: {bak_path.name}")
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    content = json.load(f)
+                    if isinstance(content, dict):
+                        config_data = content
+            except Exception as e:
+                print(f"  {SYM_WARN} Catatan: file lama tidak valid ({e}), membuat struktur baru.")
+                config_data = {}
 
-    data = {"mcpServers": {}}
-    if cfg_path.exists():
-        try:
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                content = json.load(f)
-                if isinstance(content, dict):
-                    data = content
-                    if "mcpServers" not in data:
-                        data["mcpServers"] = {}
-            # Backup file lama
-            bak_path = cfg_path.with_suffix(".json.bak")
-            shutil.copy2(cfg_path, bak_path)
-            print(f"  📁 Backup dibuat di: {bak_path}")
-        except Exception as e:
-            print(f"  ⚠️ File config lama tidak valid ({e}), membuat struktur baru.")
-            data = {"mcpServers": {}}
+        if "mcpServers" not in config_data or not isinstance(config_data["mcpServers"], dict):
+            config_data["mcpServers"] = {}
 
-    data["mcpServers"]["memoriagraph"] = mcp_entry
+        config_data["mcpServers"]["memoriagraph"] = mcp_entry
 
-    with open(cfg_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(config_data, f, indent=2, ensure_ascii=False)
 
-    print(f"{GREEN}✅ Claude Desktop berhasil dikonfigurasi secara otomatis!{RESET}")
-    print(f"👉 {BOLD}Cukup Restart Claude Desktop Anda untuk mulai menggunakannya.{RESET}")
-    return True
+        print(f"  {GREEN}{SYM_OK} {client_name} berhasil dikonfigurasi!{RESET}")
+        return True
+    except Exception as e:
+        print(f"  {RED}{SYM_FAIL} Gagal mengonfigurasi {client_name}: {e}{RESET}")
+        return False
+
+
+def configure_claude_desktop(dry_run: bool = False, uri: str = "bolt://127.0.0.1:7687",
+                             user: str = "neo4j", passw: str = "memoriagraph_pass") -> bool:
+    """Shortcut backward-compatible untuk konfigurasi Claude Desktop."""
+    clients = get_ai_clients(uri=uri, user=user, passw=passw)
+    claude = clients.get("claude")
+    if claude:
+        return sync_mcp_config(claude["path"], claude["entry"], claude["name"], dry_run=dry_run)
+    return False
+
+
+def sync_all_ai_clients(dry_run: bool = False, uri: str = "bolt://127.0.0.1:7687",
+                        user: str = "neo4j", passw: str = "memoriagraph_pass") -> list[str]:
+    """Menghubungkan MemoriaGraph ke seluruh AI client dan IDE yang terdeteksi di sistem."""
+    clients = get_ai_clients(uri=uri, user=user, passw=passw)
+    connected = []
+    print(f"\n{BOLD}{SYM_AI} Menjalankan Sinkronisasi Universal Multi-AI...{RESET}")
+
+    for key, c in clients.items():
+        if c["detected"]:
+            ok = sync_mcp_config(c["path"], c["entry"], c["name"], dry_run=dry_run)
+            if ok:
+                connected.append(c["name"])
+
+    # Juga selalu buat workspace-level configs (.vscode & .cursor) agar project portable
+    for ws_key, ws_name in [("vscode", "VS Code Workspace"), ("cursor", "Cursor Workspace")]:
+        ws_path = ROOT_DIR / f".{ws_key.lower()}" / "mcp.json"
+        if ws_name not in connected:
+            sync_mcp_config(ws_path, clients[ws_key]["entry"], ws_name, dry_run=dry_run)
+            connected.append(ws_name)
+
+    return connected
+
+
+def show_chatgpt_and_rest_guide():
+    """Menampilkan panduan integrasi untuk ChatGPT, OpenAI GPTs, dan REST API clients."""
+    print(f"\n{CYAN}{BORDER_SUB}")
+    print(f"{SYM_AI} INTEGRASI CHATGPT, OPENAI GPTs & REST API")
+    print(f"{BORDER_SUB}{RESET}")
+    print("""
+Untuk menghubungkan MemoriaGraph ke ChatGPT Web / Custom GPT / n8n / Agents:
+
+1. Jalankan MemoriaGraph HTTP Microservice (Port 8085):
+   python http_service.py   (atau jalankan via Docker Compose)
+
+2. ChatGPT Custom Actions (OpenAPI Schema):
+   • Buka editor Custom GPT Anda di ChatGPT
+   • Masukkan URL Schema berikut pada tab Actions:
+     http://localhost:8085/openapi.json
+
+3. Endpoints REST API Langsung:
+   • Recall Memory : GET  http://localhost:8085/recall?query=database+issue&compact=true
+   • Ingest Memory : POST http://localhost:8085/retain
+     Payload: {"content": "Solusi bug auth", "bank_id": "codebase", "title": "Auth Fix"}
+   • Health Check  : GET  http://localhost:8085/health
+   • Cyber Cockpit : http://localhost:8085/cockpit
+""")
+    safe_input("Tekan Enter untuk kembali ke menu...")
+
+
+def manage_ai_menu(dry_run: bool = False):
+    """Sub-menu interaktif untuk memilih dan mengonfigurasi AI assistants & IDEs."""
+    clients = get_ai_clients()
+    while True:
+        print(f"\n{CYAN}{BORDER_SUB}")
+        print(f"{SYM_AI} SINKRONISASI AI ASSISTANT & MCP CLIENTS")
+        print(f"{BORDER_SUB}{RESET}")
+        print("Pilih AI Assistant atau IDE yang ingin Anda hubungkan:\n")
+
+        keys = list(clients.keys())
+        for idx, k in enumerate(keys, 1):
+            c = clients[k]
+            status = f"{GREEN}[TERDETEKSI]{RESET}" if c["detected"] else f"{YELLOW}[TERSEDIA]{RESET}"
+            print(f" [{idx}] {BOLD}{c['name']:<25}{RESET} {status} ({c['desc']})")
+
+        print(f"\n [{BOLD}A{RESET}] {GREEN}HUBUNGKAN SEMUA CLIENT TERDETEKSI SEKALIGUS (1-Click Universal Sync){RESET}")
+        print(f" [{BOLD}C{RESET}] {CYAN}Panduan ChatGPT Custom GPT, OpenAI & REST API (Port 8085){RESET}")
+        print(f" [{BOLD}B{RESET}] Kembali ke Menu Utama")
+
+        pilihan = safe_input("\nMasukkan pilihan Anda [1-5/A/C/B]: ").upper()
+
+        if pilihan == "A":
+            sync_all_ai_clients(dry_run=dry_run)
+            safe_input("\nTekan Enter untuk kembali ke menu...")
+            break
+        elif pilihan == "C":
+            show_chatgpt_and_rest_guide()
+        elif pilihan == "B":
+            break
+        elif pilihan.isdigit() and 1 <= int(pilihan) <= len(keys):
+            target_key = keys[int(pilihan) - 1]
+            c = clients[target_key]
+            sync_mcp_config(c["path"], c["entry"], c["name"], dry_run=dry_run)
+            safe_input("\nTekan Enter untuk kembali ke menu...")
+        else:
+            print("Pilihan tidak valid, silakan coba lagi.")
+            time.sleep(1)
 
 
 def setup_windows_startup(dry_run: bool = False) -> bool:
@@ -306,7 +478,7 @@ def setup_windows_startup(dry_run: bool = False) -> bool:
     vbs_src = ROOT_DIR / "scripts" / "start_cockpit_silent.vbs"
     target_link = startup_dir / "MemoriaGraphCockpit.vbs"
 
-    print(f"\n🚀 Menyiapkan Auto-Startup Cockpit di Taskbar:")
+    print(f"\n{SYM_TRAY} Menyiapkan Auto-Startup Cockpit di Taskbar:")
     print(f"  Target: {target_link}")
 
     if dry_run:
@@ -315,18 +487,18 @@ def setup_windows_startup(dry_run: bool = False) -> bool:
 
     try:
         shutil.copy2(vbs_src, target_link)
-        print(f"{GREEN}✅ Cockpit berhasil didaftarkan ke Windows Startup!{RESET}")
-        print(f"💡 Setiap kali PC dinyalakan, Cockpit otomatis standby di Taskbar tanpa jendela terminal hitam.")
+        print(f"{GREEN}{SYM_OK} Cockpit berhasil didaftarkan ke Windows Startup!{RESET}")
+        print(f"{SYM_INFO} Setiap kali PC dinyalakan, Cockpit otomatis standby di Taskbar tanpa jendela terminal hitam.")
         return True
     except Exception as e:
-        print(f"⚠️ Gagal mendaftarkan ke Startup: {e}")
+        print(f"{YELLOW}{SYM_WARN} Gagal mendaftarkan ke Startup: {e}{RESET}")
         return False
 
 
 def run_local_mode(dry_run: bool = False):
     """Menjalankan alur lengkap Local Mode (PC/Laptop untuk Claude Desktop / Cursor)."""
     print_banner()
-    print(f"{BOLD}▶️ MENJALANKAN MODE 1: LOCAL SETUP (Claude Desktop + Docker Neo4j){RESET}")
+    print(f"{BOLD}[*] MENJALANKAN MODE 1: LOCAL SETUP (AI Assistants + Docker Neo4j){RESET}")
     print("━" * 65)
 
     # 1. Cek Python & Virtualenv
@@ -339,7 +511,7 @@ def run_local_mode(dry_run: bool = False):
     neo_user = "neo4j"
     neo_pass = "memoriagraph_pass"
 
-    print(f"\n🔍 Memeriksa koneksi Neo4j di {neo_uri}...", end=" ")
+    print(f"\n{SYM_SEARCH} Memeriksa koneksi Neo4j di {neo_uri}...", end=" ")
     is_live = test_neo4j_socket("127.0.0.1", 7687)
 
     if is_live:
@@ -347,38 +519,56 @@ def run_local_mode(dry_run: bool = False):
     else:
         print(f"{YELLOW}OFFLINE!{RESET}")
         if is_docker_available():
-            print(f"🐳 {GREEN}Docker terdeteksi aktif di sistem ini!{RESET}")
-            resp = input(f"Ingin menjalankan Neo4j di Docker secara otomatis? [Y/n]: ").strip().lower()
+            print(f"{SYM_DOCKER} {GREEN}Docker terdeteksi aktif di sistem ini!{RESET}")
+            resp = safe_input(f"Ingin menjalankan Neo4j di Docker secara otomatis? [Y/n]: ").lower()
             if resp in ("", "y", "yes"):
                 start_docker_neo4j(dry_run=dry_run)
         else:
-            print(f"⚠️ Docker tidak terdeteksi. Pastikan Neo4j Desktop / Server sudah berjalan di port 7687.")
-            neo_pass = input(f"Masukkan password Neo4j Anda [default: {neo_pass}]: ").strip() or neo_pass
+            print(f"{YELLOW}{SYM_WARN} Docker tidak terdeteksi. Pastikan Neo4j Desktop / Server sudah berjalan di port 7687.{RESET}")
+            neo_pass = safe_input(f"Masukkan password Neo4j Anda [default: {neo_pass}]: ") or neo_pass
 
     # 3. Inisialisasi Skema Neo4j
-    print(f"\n🧠 Menginisialisasi Skema Graph & Fulltext Indexes di Neo4j...")
+    print(f"\n{SYM_BRAIN} Menginisialisasi Skema Graph & Fulltext Indexes di Neo4j...")
     if not dry_run:
         try:
             init_cmd = [str(venv_py), "-c", "from src.schema_init import init_schema; init_schema()"]
             subprocess.run(init_cmd, cwd=str(ROOT_DIR), check=True)
         except Exception as e:
-            print(f"{YELLOW}⚠️ Inisialisasi skema dilewati / selesai dengan catatan: {e}{RESET}")
+            print(f"{YELLOW}{SYM_WARN} Inisialisasi skema dilewati / selesai dengan catatan: {e}{RESET}")
 
-    # 4. Hubungkan ke Claude Desktop
-    configure_claude_desktop(dry_run=dry_run, uri=neo_uri, user=neo_user, passw=neo_pass)
+    # 4. Hubungkan ke AI Assistant & IDE
+    print(f"\n{BOLD}{SYM_AI} LANGKAH 4: HUBUNGKAN KE AI ASSISTANT & IDE{RESET}")
+    print(f"Pilih integrasi yang Anda butuhkan:")
+    print(f" [{BOLD}A{RESET}] {GREEN}Hubungkan SEMUA yang Terdeteksi (Rekomendasi: Antigravity, Claude, Cursor, Copilot){RESET}")
+    print(f" [1] Google Antigravity")
+    print(f" [2] Claude Desktop")
+    print(f" [3] Cursor IDE")
+    print(f" [4] VS Code & GitHub Copilot")
+    print(f" [5] Windsurf IDE")
+    print(f" [S] Lewati (Atur nanti)")
+
+    ai_choice = safe_input(f"Pilihan Anda [A/1-5/S, default: A]: ").upper() or "A"
+    if ai_choice == "A":
+        sync_all_ai_clients(dry_run=dry_run, uri=neo_uri, user=neo_user, passw=neo_pass)
+    elif ai_choice in ("1", "2", "3", "4", "5"):
+        ai_keys = ["antigravity", "claude", "cursor", "vscode", "windsurf"]
+        chosen_key = ai_keys[int(ai_choice) - 1]
+        clients = get_ai_clients(uri=neo_uri, user=neo_user, passw=neo_pass)
+        c = clients[chosen_key]
+        sync_mcp_config(c["path"], c["entry"], c["name"], dry_run=dry_run)
 
     # 5. Opsi Taskbar Tray & Startup Windows
     if sys.platform == "win32":
-        resp_tray = input(f"\n🚀 Ingin Cockpit otomatis berjalan di Taskbar saat Windows dinyalakan? [Y/n]: ").strip().lower()
+        resp_tray = safe_input(f"\n{SYM_TRAY} Ingin Cockpit otomatis berjalan di Taskbar saat Windows dinyalakan? [Y/n]: ").lower()
         if resp_tray in ("", "y", "yes"):
             setup_windows_startup(dry_run=dry_run)
 
-    print(f"\n{GREEN}{'═' * 65}")
-    print(f"🎉 INSTALASI LOCAL MODE SELESAI DENGAN SUKSES!")
-    print(f"{'═' * 65}{RESET}")
-    print(f"• Claude Desktop : Siap digunakan (Restart Claude Desktop)")
-    print(f"• Cybernetic UI  : Buka 'scripts/cockpit_tray.py' untuk taskbar icon")
-    print(f"• Web Cockpit    : http://localhost:8085 (jika service aktif)\n")
+    print(f"\n{GREEN}{BORDER}")
+    print(f"{SYM_SUCCESS} INSTALASI LOCAL MODE SELESAI DENGAN SUKSES!")
+    print(f"{BORDER}{RESET}")
+    print(f"• AI Assistants : Antigravity, Claude Desktop, Cursor, Copilot siap digunakan")
+    print(f"• Cybernetic UI : Buka 'scripts/cockpit_tray.py' untuk taskbar icon")
+    print(f"• Web Cockpit   : http://localhost:8085 (jika service aktif)\n")
 
 
 def run_server_mode(dry_run: bool = False):
@@ -388,10 +578,10 @@ def run_server_mode(dry_run: bool = False):
     print("━" * 65)
 
     if not is_docker_available():
-        print(f"{RED}❌ Docker daemon tidak terdeteksi. Silakan instal atau jalankan Docker Desktop terlebih dahulu.{RESET}")
+        print(f"{RED}{SYM_FAIL} Docker daemon tidak terdeteksi. Silakan instal atau jalankan Docker Desktop terlebih dahulu.{RESET}")
         return
 
-    print(f"🐳 Menjalankan seluruh stack (Neo4j + MemoriaGraph HTTP Microservice)...")
+    print(f"{SYM_DOCKER} Menjalankan seluruh stack (Neo4j + MemoriaGraph HTTP Microservice)...")
     cmd = ["docker", "compose", "up", "-d"]
     if dry_run:
         print(f"  [DRY RUN] Would execute: {' '.join(cmd)}")
@@ -399,12 +589,13 @@ def run_server_mode(dry_run: bool = False):
 
     try:
         subprocess.run(cmd, cwd=str(ROOT_DIR), check=True)
-        print(f"\n{GREEN}✅ Seluruh container berhasil dijalankan di background!{RESET}")
-        print(f"• 🌐 Web Cockpit & REST API : http://localhost:8085")
-        print(f"• 🗄️ Neo4j Browser UI      : http://localhost:7474")
-        print(f"• 🔌 Neo4j Bolt Gateway     : bolt://localhost:7687")
+        print(f"\n{GREEN}{SYM_OK} Seluruh container berhasil dijalankan di background!{RESET}")
+        print(f"• Web Cockpit & REST API : http://localhost:8085")
+        print(f"• Neo4j Browser UI      : http://localhost:7474")
+        print(f"• Neo4j Bolt Gateway     : bolt://localhost:7687")
+        print(f"• OpenAPI Schema (GPT)  : http://localhost:8085/openapi.json")
     except Exception as e:
-        print(f"❌ Gagal menjalankan Docker Compose: {e}")
+        print(f"{SYM_FAIL} Gagal menjalankan Docker Compose: {e}")
 
 
 def interactive_menu():
@@ -412,19 +603,19 @@ def interactive_menu():
     while True:
         print_banner()
         print("Pilih tipe instalasi yang Anda butuhkan:\n")
-        print(f" {BOLD}[1]{RESET} 💻 {GREEN}LOCAL MODE (Rekomendasi Laptop/PC){RESET}")
-        print("     -> Untuk Claude Desktop, Cursor IDE & Taskbar Tray.")
+        print(f" {BOLD}[1]{RESET} {SYM_LOCAL} {GREEN}LOCAL MODE (Rekomendasi Laptop/PC){RESET}")
+        print("     -> Untuk Antigravity, Claude Desktop, Cursor, Copilot & Tray.")
         print("     -> Neo4j di Docker, MemoriaGraph di Host.")
-        print("     -> Otomatis hubungkan ke Claude tanpa edit JSON!\n")
-        print(f" {BOLD}[2]{RESET} 🌐 {CYAN}SERVER MODE (Production / Headless){RESET}")
-        print("     -> Untuk Server, VM, n8n, Multi-Agent & Web Cockpit.")
+        print("     -> Otomatis hubungkan ke AI Assistant tanpa edit JSON!\n")
+        print(f" {BOLD}[2]{RESET} {SYM_SERVER} {CYAN}SERVER MODE (Production / Headless){RESET}")
+        print("     -> Untuk Server, VM, n8n, Multi-Agent, ChatGPT & Web Cockpit.")
         print("     -> Menjalankan Neo4j + MemoriaGraph HTTP di Docker Compose.\n")
-        print(f" {BOLD}[3]{RESET} 🖥️  Setup Taskbar Tray & Auto-Startup Windows Saja")
-        print(f" {BOLD}[4]{RESET} 🏦 Kelola Kategori Memory Bank (Tambah/Hapus bank_id)")
-        print(f" {BOLD}[5]{RESET} 🔧 Repair / Sync Konfigurasi Claude Desktop Saja")
+        print(f" {BOLD}[3]{RESET} {SYM_TRAY}  Setup Taskbar Tray & Auto-Startup Windows Saja")
+        print(f" {BOLD}[4]{RESET} {SYM_BANKS} Kelola Kategori Memory Bank (Tambah/Hapus bank_id)")
+        print(f" {BOLD}[5]{RESET} {SYM_AI} Hubungkan AI Assistant (Antigravity, Claude, Cursor, Copilot, Windsurf)")
         print(f" {BOLD}[0]{RESET} Keluar\n")
 
-        pilihan = input("Masukkan pilihan Anda [1/2/3/4/5/0]: ").strip()
+        pilihan = safe_input("Masukkan pilihan Anda [1/2/3/4/5/0]: ")
 
         if pilihan == "1":
             run_local_mode()
@@ -434,12 +625,11 @@ def interactive_menu():
             break
         elif pilihan == "3":
             setup_windows_startup()
-            input("\nTekan Enter untuk kembali ke menu...")
+            safe_input("\nTekan Enter untuk kembali ke menu...")
         elif pilihan == "4":
             manage_banks_menu()
         elif pilihan == "5":
-            configure_claude_desktop()
-            input("\nTekan Enter untuk kembali ke menu...")
+            manage_ai_menu()
         elif pilihan == "0":
             print("Keluar dari installer. Sampai jumpa!")
             break
@@ -451,9 +641,9 @@ def interactive_menu():
 def manage_banks_menu():
     """Sub-menu untuk melihat, menambah, atau menghapus kategori memory bank."""
     while True:
-        print(f"\n{CYAN}{'═' * 50}")
-        print("🏦 KELOLA KATEGORI MEMORY BANK (banks.json)")
-        print(f"{'═' * 50}{RESET}")
+        print(f"\n{CYAN}{BORDER_SUB}")
+        print(f"{SYM_BANKS} KELOLA KATEGORI MEMORY BANK (banks.json)")
+        print(f"{BORDER_SUB}{RESET}")
         banks = bank_manager.list_banks()
         for idx, b in enumerate(banks, 1):
             print(f" {idx}. {BOLD}{b['id']}{RESET}: {b['name']} ({b.get('description', '-')})")
@@ -461,34 +651,34 @@ def manage_banks_menu():
         print(" [D] Hapus Kategori Bank")
         print(" [B] Kembali ke Menu Utama")
 
-        act = input("\nPilih aksi [A/D/B]: ").strip().upper()
+        act = safe_input("\nPilih aksi [A/D/B]: ").upper()
         if act == "A":
-            bid = input("ID Bank (contoh: marketing, devops): ").strip()
-            name = input("Nama Kategori (contoh: Marketing Strategy): ").strip()
-            desc = input("Deskripsi: ").strip()
-            kw = input("Keywords (pisahkan koma): ").strip()
+            bid = safe_input("ID Bank (contoh: marketing, devops): ")
+            name = safe_input("Nama Kategori (contoh: Marketing Strategy): ")
+            desc = safe_input("Deskripsi: ")
+            kw = safe_input("Keywords (pisahkan koma): ")
             kw_list = [k.strip() for k in kw.split(",") if k.strip()]
             try:
                 bank_manager.add_bank(bid, name, desc, kw_list)
-                print(f"{GREEN}✅ Bank '{bid}' berhasil ditambahkan!{RESET}")
+                print(f"{GREEN}{SYM_OK} Bank '{bid}' berhasil ditambahkan!{RESET}")
             except Exception as e:
-                print(f"{RED}❌ Error: {e}{RESET}")
+                print(f"{RED}{SYM_FAIL} Error: {e}{RESET}")
         elif act == "D":
-            bid = input("Masukkan ID Bank yang ingin dihapus: ").strip()
+            bid = safe_input("Masukkan ID Bank yang ingin dihapus: ")
             try:
                 if bank_manager.remove_bank(bid):
-                    print(f"{GREEN}✅ Bank '{bid}' berhasil dihapus.{RESET}")
+                    print(f"{GREEN}{SYM_OK} Bank '{bid}' berhasil dihapus.{RESET}")
                 else:
-                    print(f"{YELLOW}⚠️ Bank '{bid}' tidak ditemukan.{RESET}")
+                    print(f"{YELLOW}{SYM_WARN} Bank '{bid}' tidak ditemukan.{RESET}")
             except Exception as e:
-                print(f"{RED}❌ Error: {e}{RESET}")
+                print(f"{RED}{SYM_FAIL} Error: {e}{RESET}")
         elif act == "B":
             break
 
 
 def main():
     parser = argparse.ArgumentParser(description=f"MemoriaGraph {VERSION} - Universal Installer")
-    parser.add_argument("--mode", choices=["local", "server", "claude", "tray", "banks"],
+    parser.add_argument("--mode", choices=["local", "server", "claude", "ai", "tray", "banks"],
                         help="Jalankan mode instalasi tertentu secara langsung")
     parser.add_argument("--dry-run", action="store_true", help="Uji coba instalasi tanpa mengubah konfigurasi sistem")
 
@@ -498,8 +688,8 @@ def main():
         run_local_mode(dry_run=args.dry_run)
     elif args.mode == "server":
         run_server_mode(dry_run=args.dry_run)
-    elif args.mode == "claude":
-        configure_claude_desktop(dry_run=args.dry_run)
+    elif args.mode in ("claude", "ai"):
+        manage_ai_menu(dry_run=args.dry_run)
     elif args.mode == "tray":
         setup_windows_startup(dry_run=args.dry_run)
     elif args.mode == "banks":

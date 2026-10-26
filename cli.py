@@ -209,9 +209,12 @@ def cmd_install():
         print("❌ installer.py tidak ditemukan.")
 
 def cmd_setup_claude():
+    cmd_setup_ai()
+
+def cmd_setup_ai():
     inst_script = BASE_DIR / "installer.py"
     if inst_script.exists():
-        subprocess.run([sys.executable, str(inst_script), "--mode", "claude"])
+        subprocess.run([sys.executable, str(inst_script), "--mode", "ai"])
     else:
         print("❌ installer.py tidak ditemukan.")
 
@@ -223,7 +226,8 @@ def main():
     subparsers.add_parser("episodes", help="Tampilkan daftar episode terbaru")
     subparsers.add_parser("benchmark", help="Jalankan full operational benchmark suite")
     subparsers.add_parser("install", help="Jalankan Universal Interactive Installer")
-    subparsers.add_parser("setup-claude", help="Konfigurasi Claude Desktop MCP secara otomatis")
+    subparsers.add_parser("setup-ai", help="Hubungkan ke AI Assistant (Antigravity, Claude, Cursor, Copilot, Windsurf)")
+    subparsers.add_parser("setup-claude", help="Konfigurasi Claude Desktop MCP secara otomatis (Alias setup-ai)")
 
     # Banks subcommand
     p_banks = subparsers.add_parser("banks", help="Kelola kategori Memory Bank dinamis")
@@ -275,8 +279,8 @@ def main():
         cmd_benchmark()
     elif args.command == "install":
         cmd_install()
-    elif args.command == "setup-claude":
-        cmd_setup_claude()
+    elif args.command in ("setup-ai", "setup-claude"):
+        cmd_setup_ai()
     else:
         cmd_dashboard()
 

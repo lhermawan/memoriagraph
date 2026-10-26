@@ -156,12 +156,74 @@ async def http_cockpit_data(request):
 async def root_redirect(request):
     return RedirectResponse(url="/cockpit")
 
+async def openapi_spec(request):
+    """OpenAPI 3.1 schema for ChatGPT Custom Actions and external agents."""
+    schema = {
+        "openapi": "3.1.0",
+        "info": {
+            "title": "MemoriaGraph Cognitive Memory API",
+            "version": "3.2.0",
+            "description": "Sovereign episodic memory and decision support system for AI agents and ChatGPT."
+        },
+        "servers": [{"url": "http://localhost:8085"}],
+        "paths": {
+            "/health": {
+                "get": {
+                    "summary": "Health Check",
+                    "operationId": "getHealth",
+                    "responses": {"200": {"description": "System health status"}}
+                }
+            },
+            "/recall": {
+                "get": {
+                    "summary": "Recall Memories and Past Precedents",
+                    "operationId": "recallMemory",
+                    "parameters": [
+                        {"name": "query", "in": "query", "required": True, "schema": {"type": "string"}},
+                        {"name": "bank_id", "in": "query", "required": False, "schema": {"type": "string", "default": "general"}},
+                        {"name": "limit", "in": "query", "required": False, "schema": {"type": "integer", "default": 5}},
+                        {"name": "compact", "in": "query", "required": False, "schema": {"type": "boolean", "default": True}}
+                    ],
+                    "responses": {"200": {"description": "Retrieved memory context"}}
+                }
+            },
+            "/retain": {
+                "post": {
+                    "summary": "Retain New Episode or Knowledge",
+                    "operationId": "retainMemory",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": ["content"],
+                                    "properties": {
+                                        "content": {"type": "string", "description": "Memory text or lesson learned"},
+                                        "bank_id": {"type": "string", "default": "general"},
+                                        "title": {"type": "string", "description": "Concise summary title"},
+                                        "category": {"type": "string", "default": "PROBLEM_SOLVING"},
+                                        "heuristic": {"type": "string"},
+                                        "decision": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {"200": {"description": "Ingestion confirmation"}}
+                }
+            }
+        }
+    }
+    return JSONResponse(schema)
+
 # Routes setup
 routes = [
     Route("/health", health),
     Route("/recall", http_recall),
     Route("/retain", http_retain, methods=["POST"]),
     Route("/api/graph/cockpit", http_cockpit_data),
+    Route("/openapi.json", openapi_spec),
 ]
 
 # Static mounting for Cockpit bundle

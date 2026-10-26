@@ -1,4 +1,4 @@
-﻿# MemoriaGraph 3.2.0 - 1-Click Windows PowerShell Installer
+# MemoriaGraph 3.2.0 - 1-Click Windows PowerShell Installer
 # Jalankan skrip ini dengan klik kanan -> "Run with PowerShell" atau jalankan .\install.ps1
 
 $ErrorActionPreference = "Stop"
@@ -12,8 +12,9 @@ try {
 
 $env:PYTHONIOENCODING = "utf-8"
 
-# Karakter dinamis tanpa ketergantungan encoding file
-$brain = try { [char]::ConvertFromUtf32(0x1F9E0) } catch { "[*]" }
+# Karakter dinamis: Gunakan emoji jika di Windows Terminal/VSCode, fallback ke [MG] di console klasik
+$isWT = [bool]$env:WT_SESSION -or ($env:TERM_PROGRAM -eq "vscode")
+$brain = if ($isWT) { try { [char]::ConvertFromUtf32(0x1F9E0) } catch { "[MG]" } } else { "[MG]" }
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "$brain MemoriaGraph 3.2.0 - Windows 1-Click Installer" -ForegroundColor Cyan

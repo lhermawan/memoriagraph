@@ -261,12 +261,12 @@ pip install -e ".[dev]"
 python src/schema_init.py
 ```
 
-#### 4. Connect to Claude Desktop
-Run the auto-configurator:
+#### 4. Connect to Universal AI Assistants & IDEs
+Connect all detected AI coding assistants (Google Antigravity, Claude Desktop, Cursor IDE, VS Code / GitHub Copilot, Windsurf) in 1 click:
 ```bash
-python cli.py setup-claude
+python cli.py setup-ai
 ```
-Or manually edit `%APPDATA%\Claude\claude_desktop_config.json`:
+Or manually configure your client's MCP configuration (`claude_desktop_config.json`, `~/.gemini/config/mcp_config.json`, `~/.cursor/mcp.json`, or `.vscode/mcp.json`):
 ```json
 {
   "mcpServers": {
@@ -284,6 +284,7 @@ Or manually edit `%APPDATA%\Claude\claude_desktop_config.json`:
   }
 }
 ```
+*(For ChatGPT / Custom GPTs, import `http://localhost:8085/openapi.json` into GPT Actions).*
 
 ---
 

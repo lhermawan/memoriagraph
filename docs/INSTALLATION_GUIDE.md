@@ -100,22 +100,38 @@ Jika Anda ingin menjalankan MemoriaGraph di server, VM headless (`vm-maskii`), a
 
 ---
 
-## 4. Menghubungkan ke Claude Desktop & AI Client
+## 4. Menghubungkan ke Universal AI Assistant & IDE
 
-### A. Otomatis (Direkomendasikan)
-Installer MemoriaGraph otomatis mendeteksi file konfigurasi Claude Desktop Anda di:
-* **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-* **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-* **Linux**: `~/.config/Claude/claude_desktop_config.json`
+MemoriaGraph v3.2.0 mendukung integrasi multi-AI secara universal tanpa perlu menyalin konfigurasi JSON manual satu per satu:
 
-Jika Anda ingin memperbarui atau memperbaiki konfigurasi ini kapan saja, cukup jalankan:
-```bash
-python cli.py setup-claude
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│               MEMORIAGRAPH UNIVERSAL MULTI-AI ECOSYSTEM                │
+├────────────────────────────────────────────────────────────────────────┤
+│ • Google Antigravity ➔ ~/.gemini/config/mcp_config.json                │
+│ • Claude Desktop     ➔ %APPDATA%/Claude/claude_desktop_config.json     │
+│ • Cursor IDE         ➔ ~/.cursor/mcp.json & .cursor/mcp.json           │
+│ • VS Code & Copilot  ➔ .vscode/mcp.json                                │
+│ • Windsurf IDE       ➔ ~/.codeium/windsurf/mcp_config.json             │
+│ • ChatGPT Custom GPT ➔ OpenAPI 3.1.0 (http://localhost:8085/openapi)   │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-### B. Manual (Jika Diperlukan)
-Jika Anda lebih suka menyalin konfigurasi secara manual ke `claude_desktop_config.json`:
+### A. Otomatis 1-Klik (Sangat Direkomendasikan)
+Cukup jalankan perintah CLI berikut:
+```bash
+python cli.py setup-ai
+```
+Atau melalui installer interaktif:
+* Pilih opsi **`[5] Hubungkan AI Assistant`**
+* Tekan **`[A]`** untuk **Hubungkan SEMUA Client Terdeteksi Sekaligus**. Installer akan memindai AI assistant yang terpasang di komputer Anda, membuat backup aman (`.bak.<timestamp>`), dan mendaftarkan `mcpServers.memoriagraph` secara otomatis.
 
+---
+
+### B. Konfigurasi Manual per AI Assistant
+
+#### 1. Google Antigravity
+File konfigurasi: `~/.gemini/config/mcp_config.json`
 ```json
 {
   "mcpServers": {
@@ -133,7 +149,38 @@ Jika Anda lebih suka menyalin konfigurasi secara manual ke `claude_desktop_confi
   }
 }
 ```
-*(Catatan untuk macOS/Linux: Ubah `command` menjadi `/path/to/memoriagraph/.venv/bin/python`)*
+
+#### 2. Anthropic Claude Desktop
+File konfigurasi:
+* **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+* **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+* **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+*(Format JSON sama dengan Antigravity di atas)*
+
+#### 3. Cursor IDE
+File konfigurasi: `~/.cursor/mcp.json` (Global) atau `.cursor/mcp.json` (Project)
+
+#### 4. VS Code & GitHub Copilot
+File konfigurasi: `.vscode/mcp.json` dalam workspace project Anda.
+
+#### 5. Windsurf IDE (Codeium)
+File konfigurasi: `~/.codeium/windsurf/mcp_config.json`
+
+---
+
+### C. ChatGPT Custom Actions & OpenAI REST Integration
+
+Untuk menghubungkan **ChatGPT Plus/Team/Enterprise** ke MemoriaGraph:
+1. Pastikan Server Mode atau HTTP service berjalan di port `8085` (`docker compose up -d` atau `python http_service.py`).
+2. Buka **ChatGPT** -> **Explore GPTs** -> **Create a GPT** -> Tab **Configure**.
+3. Gulir ke bawah ke bagian **Actions** -> Klik **Create new action**.
+4. Di bagian **Schema**, klik **Import from URL** lalu masukkan URL skema OpenAPI MemoriaGraph:
+   ```
+   http://localhost:8085/openapi.json
+   ```
+   *(Atau gunakan Tailscale / Domain URL publik jika diakses dari luar jaringan lokal)*.
+5. ChatGPT sekarang memiliki kemampuan kognitif `recall`, `retain`, dan `health` secara instan!
 
 ---
 
