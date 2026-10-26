@@ -38,6 +38,11 @@ export type WorkerInMessage =
       width: number;
       height: number;
     }
+  | {
+      type: 'UPDATE_DATA';
+      nodes: { id: string; val?: number; x?: number; y?: number }[];
+      links: { source: string; target: string; type?: string }[];
+    }
   | { type: 'UPDATE_PARAMS'; params: Partial<PhysicsParams> }
   | { type: 'DRAG_START'; id: string; x: number; y: number }
   | { type: 'DRAG_MOVE'; id: string; x: number; y: number }
@@ -175,11 +180,67 @@ function updateParams(params: Partial<PhysicsParams>) {
   simulation.alpha(0.3).restart();
 }
 
+function updateData(
+  rawNodes: { id: string; val?: number; x?: number; y?: number }[],
+  rawLinks: { source: string; target: string; type?: string }[]
+) {
+  if (!simulation) {
+    initSimulation(rawNodes, rawLinks, currentParams, centerWidth, centerHeight);
+    return;
+  }
+
+  const nextNodeMap = new Map<string, WorkerNode>();
+  const nextNodesList: WorkerNode[] = [];
+
+  rawNodes.forEach((n) => {
+    const existing = nodeMap.get(n.id);
+    if (existing) {
+      existing.val = n.val ?? existing.val;
+      existing.r = (6 + (existing.val ?? 10) * 0.35) * currentParams.nodeSizeMult;
+      nextNodeMap.set(n.id, existing);
+      nextNodesList.push(existing);
+    } else {
+      const newNode: WorkerNode = {
+        id: n.id,
+        x: n.x ?? centerWidth / 2 + (Math.random() - 0.5) * 80,
+        y: n.y ?? centerHeight / 2 + (Math.random() - 0.5) * 80,
+        val: n.val ?? 10,
+        r: (6 + (n.val ?? 10) * 0.35) * currentParams.nodeSizeMult,
+      };
+      nextNodeMap.set(n.id, newNode);
+      nextNodesList.push(newNode);
+    }
+  });
+
+  nodeMap = nextNodeMap;
+  nodesList = nextNodesList;
+
+  linksList = rawLinks.map((l) => ({
+    source: l.source,
+    target: l.target,
+    type: l.type,
+  }));
+
+  simulation.nodes(nodesList);
+
+  const linkForce = simulation.force('link') as ReturnType<typeof forceLink<WorkerNode, WorkerLink>>;
+  if (linkForce) {
+    linkForce.links(linksList);
+  }
+
+  // Gently reheat simulation with low alpha to settle new nodes without jarring flash
+  simulation.alpha(0.28).restart();
+}
+
 self.onmessage = (e: MessageEvent<WorkerInMessage>) => {
   const msg = e.data;
   switch (msg.type) {
     case 'INIT_GRAPH':
       initSimulation(msg.nodes, msg.links, msg.params, msg.width, msg.height);
+      break;
+
+    case 'UPDATE_DATA':
+      updateData(msg.nodes, msg.links);
       break;
 
     case 'UPDATE_PARAMS':

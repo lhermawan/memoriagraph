@@ -203,6 +203,15 @@ def retain(
         else:
             recall_engine.sync_vector_cache()
 
+    # Fire-and-forget real-time notification to Cockpit SSE gateway if active
+    try:
+        import urllib.request
+        http_port = os.getenv("MEMORIAGRAPH_HTTP_PORT", "8085")
+        req = urllib.request.Request(f"http://127.0.0.1:{http_port}/api/graph/notify", method="POST")
+        urllib.request.urlopen(req, timeout=0.25)
+    except Exception:
+        pass
+
     return f"💾 [Retain] Berhasil mencatat memori ke Bank '{bank}' [Type: {val.record_type}, Outcome: {final_outcome}]: '{title}' [ID: {ep_id}]."
 
 @mcp.tool()

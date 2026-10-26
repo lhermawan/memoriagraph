@@ -3,11 +3,13 @@ MemoriaGraph 3.2.0 - High Performance HTTP API Gateway (Port 8085)
 Serving 9Router Pre-Injection, AI-SRE Watchdog, and Cybernetic Cockpit Visualizer
 Protected by Tailscale Security Middleware (100.64.0.0/10 Mesh Only)
 """
+import asyncio
+import json
 import os
 import sys
 import ipaddress
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse, RedirectResponse
+from starlette.responses import JSONResponse, RedirectResponse, StreamingResponse
 from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from starlette.middleware import Middleware
@@ -138,14 +140,69 @@ async def http_retain(request):
             )
             if msg.startswith("🚫 [IngestionGate:"):
                 return JSONResponse({"status": "rejected", "error": msg}, status_code=422)
+            
+            # Broadcast real-time graph update event to Cockpit listeners
+            asyncio.create_task(broadcast_graph_event("graph_updated", {"bank": bank, "title": title}))
             return JSONResponse({"status": "success", "message": msg})
         else:
+            asyncio.create_task(broadcast_graph_event("graph_updated", {"bank": bank, "title": title}))
             return JSONResponse({
                 "status": "success", 
                 "message": f"✅ [Gateway Mock] Memori '{title or 'Baru'}' berhasil diterima di buffer memory bank {bank}."
             })
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+# Set of active SSE subscriber queues
+_sse_subscribers: set[asyncio.Queue] = set()
+
+async def broadcast_graph_event(event_type: str = "graph_updated", payload: dict | None = None):
+    """Mengirim sinyal event realtime ke seluruh client Cockpit yang terhubung via SSE."""
+    if not _sse_subscribers:
+        return
+    raw_payload = json.dumps(payload or {})
+    event_message = f"event: {event_type}\ndata: {raw_payload}\n\n"
+    for q in list(_sse_subscribers):
+        try:
+            q.put_nowait(event_message)
+        except Exception:
+            pass
+
+async def http_graph_events(request):
+    """Server-Sent Events (SSE) streaming endpoint untuk pembaruan realtime Cockpit tanpa delay."""
+    queue: asyncio.Queue = asyncio.Queue(maxsize=50)
+    _sse_subscribers.add(queue)
+
+    async def event_generator():
+        try:
+            # Kirim handshake awal saat client terkoneksi
+            yield f"event: connected\ndata: {json.dumps({'status': 'connected', 'service': 'MemoriaGraph 3.2.0'})}\n\n"
+            while True:
+                try:
+                    # Tunggu event dari queue atau kirim keepalive ping setiap 15 detik
+                    msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield msg
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            _sse_subscribers.discard(queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+async def http_notify_graph_update(request):
+    """Webhook/endpoint untuk mentrigger event pembaruan graf dari eksternal (misal MCP server.py)."""
+    asyncio.create_task(broadcast_graph_event("graph_updated", {"trigger": "external_notify"}))
+    return JSONResponse({"ok": True, "broadcasted_to": len(_sse_subscribers)})
 
 async def http_cockpit_data(request):
     bank = request.query_params.get("bank", None)
@@ -223,6 +280,8 @@ routes = [
     Route("/recall", http_recall),
     Route("/retain", http_retain, methods=["POST"]),
     Route("/api/graph/cockpit", http_cockpit_data),
+    Route("/api/graph/events", http_graph_events),
+    Route("/api/graph/notify", http_notify_graph_update, methods=["POST", "GET"]),
     Route("/openapi.json", openapi_spec),
 ]
 

@@ -40,15 +40,26 @@ export const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // Load Graph Data
+  // Ref to track last graph fingerprint to eliminate unnecessary re-renders when data is unchanged
+  const lastFingerprintRef = React.useRef<string>('');
+
+  // Load Graph Data with Smart Change Detection
   const loadData = useCallback(async (bank?: BankId | 'all', isManualRefresh = false) => {
     if (isManualRefresh) setIsRefreshing(true);
     try {
       const { data, isLive: liveStatus } = await fetchCockpitGraph(
         bank && bank !== 'all' ? bank : undefined
       );
-      setNodes(data.nodes);
-      setEdges(data.links);
+
+      // Fast structural fingerprint: nodeCount_linkCount_firstLastIds
+      const nodeIds = data.nodes.map((n) => n.id);
+      const fingerprint = `${data.nodes.length}_${data.links.length}_${nodeIds.slice(0, 5).join(',')}_${nodeIds.slice(-5).join(',')}`;
+
+      if (isManualRefresh || fingerprint !== lastFingerprintRef.current) {
+        lastFingerprintRef.current = fingerprint;
+        setNodes(data.nodes);
+        setEdges(data.links);
+      }
       setIsLive(liveStatus);
 
       // If selectedNode is no longer in nodes, deselect
@@ -67,6 +78,8 @@ export const App: React.FC = () => {
     let ignore = false;
     fetchCockpitGraph(selectedBank !== 'all' ? selectedBank : undefined).then(({ data, isLive: liveStatus }) => {
       if (!ignore) {
+        const nodeIds = data.nodes.map((n) => n.id);
+        lastFingerprintRef.current = `${data.nodes.length}_${data.links.length}_${nodeIds.slice(0, 5).join(',')}_${nodeIds.slice(-5).join(',')}`;
         setNodes(data.nodes);
         setEdges(data.links);
         setIsLive(liveStatus);
@@ -77,13 +90,39 @@ export const App: React.FC = () => {
     };
   }, [selectedBank]);
 
-  // Auto-Sync Polling setiap 12 detik jika Live
+  // Real-Time Server-Sent Events (SSE) Listener with Fallback Heartbeat Polling
   useEffect(() => {
     if (!autoSync || !isLive) return;
+
+    let eventSource: EventSource | null = null;
+    try {
+      // Connect to SSE stream on HTTP Gateway (port 8085 /api/graph/events)
+      const sseUrl = `${window.location.origin}/api/graph/events`;
+      eventSource = new EventSource(sseUrl);
+
+      eventSource.addEventListener('graph_updated', () => {
+        // Instant sub-100ms trigger whenever a new memory is ingested
+        loadData(selectedBank, false);
+      });
+
+      eventSource.onerror = () => {
+        // Quiet fallback if SSE is closed/proxy doesn't support streaming
+      };
+    } catch {
+      // Graceful fallback to heartbeat
+    }
+
+    // Quiet fallback heartbeat interval (30 seconds) to ensure eventual sync
     const interval = setInterval(() => {
       loadData(selectedBank, false);
-    }, 12000);
-    return () => clearInterval(interval);
+    }, 30000);
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      clearInterval(interval);
+    };
   }, [autoSync, isLive, selectedBank, loadData]);
 
   // Map of nodes for quick reference

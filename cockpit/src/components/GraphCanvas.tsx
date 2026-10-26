@@ -59,6 +59,19 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   const pulseGraphicsRef = useRef<Graphics | null>(null);
   const starfieldGraphicsRef = useRef<Graphics | null>(null);
   const edgeBadgesContainerRef = useRef<Container | null>(null);
+  const aurasContainerRef = useRef<Container | null>(null);
+  const nodesContainerRef = useRef<Container | null>(null);
+  const labelsContainerRef = useRef<Container | null>(null);
+  const circleTextureRef = useRef<Texture | null>(null);
+  const auraTextureRef = useRef<Texture | null>(null);
+  const isFirstMountRef = useRef<boolean>(true);
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+    edgesRef.current = edges;
+  }, [nodes, edges]);
 
   // Sprite & Label references by Node ID
   const nodeSpritesRef = useRef<Map<string, Sprite>>(new Map());
@@ -344,6 +357,129 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     return Texture.from(canvas);
   };
 
+  // Reusable node sprite & label creation helper
+  const createNodeVisuals = useCallback(
+    (
+      n: GraphNode,
+      deg: number,
+      circleTexture: Texture,
+      auraTexture: Texture,
+      viewport: Container,
+      worker: Worker,
+      aurasContainer: Container,
+      nodesContainer: Container,
+      labelsContainer: Container
+    ) => {
+      const radius = 6 + (n.val || 10) * 0.35;
+      const nodeColor = hexToNumber(n.color);
+      const isHub = deg >= 5 || (n.val || 10) >= 20;
+
+      // Aura Sprite
+      const auraSprite = new Sprite(auraTexture);
+      auraSprite.anchor.set(0.5);
+      auraSprite.tint = nodeColor;
+      auraSprite.width = radius * 3.8;
+      auraSprite.height = radius * 3.8;
+      auraSprite.alpha = isHub ? 0.55 : 0.22;
+      aurasContainer.addChild(auraSprite);
+
+      // Core Node Sprite
+      const sprite = new Sprite(circleTexture);
+      sprite.anchor.set(0.5);
+      sprite.tint = nodeColor;
+      sprite.width = radius * 2;
+      sprite.height = radius * 2;
+      sprite.eventMode = 'static';
+      sprite.cursor = 'pointer';
+
+      // Interactive Events
+      let isNodeDragging = false;
+
+      sprite.on('pointerover', () => {
+        hoveredNodeIdRef.current = n.id;
+        onHoverNode(n);
+        updateSpotlight();
+      });
+
+      sprite.on('pointerout', () => {
+        if (hoveredNodeIdRef.current === n.id) {
+          hoveredNodeIdRef.current = null;
+          onHoverNode(null);
+          updateSpotlight();
+        }
+      });
+
+      sprite.on('pointerdown', (e) => {
+        e.stopPropagation();
+        isNodeDragging = true;
+        onSelectNode(n);
+        updateSpotlight();
+
+        const localPos = viewport.toLocal(e.global);
+        worker.postMessage({
+          type: 'DRAG_START',
+          id: n.id,
+          x: localPos.x,
+          y: localPos.y,
+        } as WorkerInMessage);
+      });
+
+      const handleGlobalMove = (e: { global: { x: number; y: number } }) => {
+        if (!isNodeDragging) return;
+        const localPos = viewport.toLocal(e.global);
+        worker.postMessage({
+          type: 'DRAG_MOVE',
+          id: n.id,
+          x: localPos.x,
+          y: localPos.y,
+        } as WorkerInMessage);
+      };
+
+      const handleGlobalUp = () => {
+        if (!isNodeDragging) return;
+        isNodeDragging = false;
+        worker.postMessage({
+          type: 'DRAG_END',
+          id: n.id,
+        } as WorkerInMessage);
+      };
+
+      sprite.on('globalpointermove', handleGlobalMove);
+      sprite.on('pointerup', handleGlobalUp);
+      sprite.on('pointerupoutside', handleGlobalUp);
+
+      nodesContainer.addChild(sprite);
+
+      // High-Contrast Hierarchy Text Label with Protective Stroke Outline
+      const titleText = n.name.split(': ').slice(1).join(': ') || n.name;
+      const shortTitle = titleText.length > 28 ? titleText.slice(0, 26) + '…' : titleText;
+
+      const fontSize = isHub ? 11.5 : (deg >= 3 ? 10 : 9);
+      const fontWeight = isHub ? '700' : (deg >= 3 ? '600' : '500');
+
+      const label = new Text({
+        text: shortTitle,
+        style: new TextStyle({
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontSize,
+          fontWeight: fontWeight as TextStyle['fontWeight'],
+          fill: isDarkMode ? 0xf0f5ff : 0x0f172a,
+          stroke: {
+            color: isDarkMode ? 0x050811 : 0xffffff,
+            width: isDarkMode ? 3.6 : 3.0,
+            join: 'round',
+          },
+          align: 'center',
+        }),
+      });
+      label.anchor.set(0.5, 0);
+      labelsContainer.addChild(label);
+
+      return { auraSprite, sprite, label };
+    },
+    [isDarkMode, onHoverNode, onSelectNode, updateSpotlight]
+  );
+
   // 7. Initialize PixiJS Application, Web Worker, & 60 FPS Render Ticker
   useEffect(() => {
     const container = containerRef.current;
@@ -439,122 +575,35 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
       const labelsContainer = new Container();
       viewport.addChild(labelsContainer);
 
-      // Populate Node Sprites, Auras & High-Contrast Labels
+      aurasContainerRef.current = aurasContainer;
+      nodesContainerRef.current = nodesContainer;
+      labelsContainerRef.current = labelsContainer;
+      circleTextureRef.current = circleTexture;
+      auraTextureRef.current = auraTexture;
+
+      // Populate Initial Node Sprites, Auras & High-Contrast Labels
       const spritesMap = new Map<string, Sprite>();
       const aurasMap = new Map<string, Sprite>();
       const labelsMap = new Map<string, Text>();
       const posMap = new Map<string, { x: number; y: number }>();
 
-      nodes.forEach((n) => {
+      nodesRef.current.forEach((n) => {
         const degree = degreeMap.get(n.id) || 0;
-        const radius = 6 + (n.val || 10) * 0.35;
-        const nodeColor = hexToNumber(n.color);
-        const isHub = degree >= 5 || (n.val || 10) >= 20;
+        const { auraSprite, sprite, label } = createNodeVisuals(
+          n,
+          degree,
+          circleTexture!,
+          auraTexture!,
+          viewport,
+          worker,
+          aurasContainer,
+          nodesContainer,
+          labelsContainer
+        );
 
-        // Aura Sprite
-        const auraSprite = new Sprite(auraTexture!);
-        auraSprite.anchor.set(0.5);
-        auraSprite.tint = nodeColor;
-        auraSprite.width = radius * 3.8;
-        auraSprite.height = radius * 3.8;
-        auraSprite.alpha = isHub ? 0.55 : 0.22;
-        aurasContainer.addChild(auraSprite);
-        aurasMap.set(n.id, auraSprite);
-
-        // Core Node Sprite
-        const sprite = new Sprite(circleTexture!);
-        sprite.anchor.set(0.5);
-        sprite.tint = nodeColor;
-        sprite.width = radius * 2;
-        sprite.height = radius * 2;
-        sprite.eventMode = 'static';
-        sprite.cursor = 'pointer';
-
-        // Interactive Events
-        let isNodeDragging = false;
-
-        sprite.on('pointerover', () => {
-          hoveredNodeIdRef.current = n.id;
-          onHoverNode(n);
-          updateSpotlight();
-        });
-
-        sprite.on('pointerout', () => {
-          if (hoveredNodeIdRef.current === n.id) {
-            hoveredNodeIdRef.current = null;
-            onHoverNode(null);
-            updateSpotlight();
-          }
-        });
-
-        sprite.on('pointerdown', (e) => {
-          e.stopPropagation();
-          isNodeDragging = true;
-          onSelectNode(n);
-          updateSpotlight();
-
-          const localPos = viewport.toLocal(e.global);
-          worker.postMessage({
-            type: 'DRAG_START',
-            id: n.id,
-            x: localPos.x,
-            y: localPos.y,
-          } as WorkerInMessage);
-        });
-
-        const handleGlobalMove = (e: { global: { x: number; y: number } }) => {
-          if (!isNodeDragging) return;
-          const localPos = viewport.toLocal(e.global);
-          worker.postMessage({
-            type: 'DRAG_MOVE',
-            id: n.id,
-            x: localPos.x,
-            y: localPos.y,
-          } as WorkerInMessage);
-        };
-
-        const handleGlobalUp = () => {
-          if (!isNodeDragging) return;
-          isNodeDragging = false;
-          worker.postMessage({
-            type: 'DRAG_END',
-            id: n.id,
-          } as WorkerInMessage);
-        };
-
-        sprite.on('globalpointermove', handleGlobalMove);
-        sprite.on('pointerup', handleGlobalUp);
-        sprite.on('pointerupoutside', handleGlobalUp);
-
-        nodesContainer.addChild(sprite);
         spritesMap.set(n.id, sprite);
-
-        // High-Contrast Hierarchy Text Label with Protective Stroke Outline
-        const titleText = n.name.split(': ').slice(1).join(': ') || n.name;
-        const shortTitle = titleText.length > 28 ? titleText.slice(0, 26) + '…' : titleText;
-
-        const fontSize = isHub ? 11.5 : (degree >= 3 ? 10 : 9);
-        const fontWeight = isHub ? '700' : (degree >= 3 ? '600' : '500');
-
-        const label = new Text({
-          text: shortTitle,
-          style: new TextStyle({
-            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-            fontSize,
-            fontWeight: fontWeight as TextStyle['fontWeight'],
-            fill: isDarkMode ? 0xf0f5ff : 0x0f172a,
-            stroke: {
-              color: isDarkMode ? 0x050811 : 0xffffff,
-              width: isDarkMode ? 3.6 : 3.0,
-              join: 'round',
-            },
-            align: 'center',
-          }),
-        });
-        label.anchor.set(0.5, 0);
-        labelsContainer.addChild(label);
+        aurasMap.set(n.id, auraSprite);
         labelsMap.set(n.id, label);
-
         posMap.set(n.id, { x: 0, y: 0 });
       });
 
@@ -565,7 +614,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
 
       // Initialize Photons Pool for Edges
       const photons: EdgePhoton[] = [];
-      edges.forEach((edge) => {
+      edgesRef.current.forEach((edge) => {
         const count = Math.random() > 0.4 ? 2 : 1;
         for (let i = 0; i < count; i++) {
           photons.push({
@@ -585,10 +634,10 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         const msg = e.data;
         if (msg.type === 'TICK') {
           msg.positions.forEach((p) => {
-            const sprite = spritesMap.get(p.id);
-            const aura = aurasMap.get(p.id);
-            const label = labelsMap.get(p.id);
-            posMap.set(p.id, { x: p.x, y: p.y });
+            const sprite = nodeSpritesRef.current.get(p.id);
+            const aura = nodeAuraSpritesRef.current.get(p.id);
+            const label = labelTextsRef.current.get(p.id);
+            nodePositionsRef.current.set(p.id, { x: p.x, y: p.y });
 
             if (sprite) {
               sprite.position.set(p.x, p.y);
@@ -795,19 +844,142 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         workerRef.current = null;
       }
 
-      if (circleTexture) {
-        circleTexture.destroy(true);
+      if (circleTextureRef.current) {
+        circleTextureRef.current.destroy(true);
+        circleTextureRef.current = null;
       }
-      if (auraTexture) {
-        auraTexture.destroy(true);
+      if (auraTextureRef.current) {
+        auraTextureRef.current.destroy(true);
+        auraTextureRef.current = null;
       }
 
       if (appRef.current) {
         appRef.current.destroy(true, { children: true });
         appRef.current = null;
       }
+
+      aurasContainerRef.current = null;
+      nodesContainerRef.current = null;
+      labelsContainerRef.current = null;
+      isFirstMountRef.current = true;
     };
-  }, [nodes, edges, isDarkMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isDarkMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 8. Seamless Incremental Reconciliation when nodes/edges update (Zero-Blink)
+  useEffect(() => {
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      return;
+    }
+
+    const worker = workerRef.current;
+    const viewport = viewportRef.current;
+    const aurasContainer = aurasContainerRef.current;
+    const nodesContainer = nodesContainerRef.current;
+    const labelsContainer = labelsContainerRef.current;
+    const circleTexture = circleTextureRef.current;
+    const auraTexture = auraTextureRef.current;
+
+    if (!worker || !viewport || !aurasContainer || !nodesContainer || !labelsContainer || !circleTexture || !auraTexture) {
+      return;
+    }
+
+    const currentSprites = nodeSpritesRef.current;
+    const currentAuras = nodeAuraSpritesRef.current;
+    const currentLabels = labelTextsRef.current;
+    const currentPositions = nodePositionsRef.current;
+
+    const nextNodeIds = new Set(nodes.map((n) => n.id));
+
+    // A. Remove deleted nodes from Pixi stage and tracking maps
+    currentSprites.forEach((sprite, id) => {
+      if (!nextNodeIds.has(id)) {
+        nodesContainer.removeChild(sprite);
+        sprite.destroy();
+        currentSprites.delete(id);
+
+        const aura = currentAuras.get(id);
+        if (aura) {
+          aurasContainer.removeChild(aura);
+          aura.destroy();
+          currentAuras.delete(id);
+        }
+
+        const label = currentLabels.get(id);
+        if (label) {
+          labelsContainer.removeChild(label);
+          label.destroy();
+          currentLabels.delete(id);
+        }
+
+        currentPositions.delete(id);
+      }
+    });
+
+    // B. Add new nodes or update existing nodes without disturbing positions
+    nodes.forEach((n) => {
+      const deg = degreeMap.get(n.id) || 0;
+      if (!currentSprites.has(n.id)) {
+        const { auraSprite, sprite, label } = createNodeVisuals(
+          n,
+          deg,
+          circleTexture,
+          auraTexture,
+          viewport,
+          worker,
+          aurasContainer,
+          nodesContainer,
+          labelsContainer
+        );
+
+        currentAuras.set(n.id, auraSprite);
+        currentSprites.set(n.id, sprite);
+        currentLabels.set(n.id, label);
+
+        const initX = (Math.random() - 0.5) * 80;
+        const initY = (Math.random() - 0.5) * 80;
+        currentPositions.set(n.id, { x: initX, y: initY });
+        sprite.position.set(initX, initY);
+        auraSprite.position.set(initX, initY);
+        label.position.set(initX, initY + sprite.height / 2 + 3);
+      } else {
+        const sprite = currentSprites.get(n.id);
+        const aura = currentAuras.get(n.id);
+        const nodeColor = hexToNumber(n.color);
+        if (sprite) sprite.tint = nodeColor;
+        if (aura) aura.tint = nodeColor;
+      }
+    });
+
+    // C. Update edge photons pool
+    const nextPhotons: EdgePhoton[] = [];
+    edges.forEach((edge) => {
+      const count = Math.random() > 0.4 ? 2 : 1;
+      for (let i = 0; i < count; i++) {
+        nextPhotons.push({
+          sourceId: edge.source,
+          targetId: edge.target,
+          edgeType: edge.type || 'CONNECTS_TO',
+          progress: Math.random(),
+          speed: 0.18 + Math.random() * 0.26,
+          size: 1.8 + Math.random() * 1.4,
+        });
+      }
+    });
+    photonsRef.current = nextPhotons;
+
+    // D. Send incremental delta to Web Worker
+    worker.postMessage({
+      type: 'UPDATE_DATA',
+      nodes: nodes.map((n) => ({ id: n.id, val: n.val })),
+      links: edges.map((e) => ({ source: e.source, target: e.target, type: e.type })),
+    } as WorkerInMessage);
+
+    // E. Redraw base edges and update highlights seamlessly
+    drawEdges();
+    updateSpotlight();
+    updateLabelVisibility();
+  }, [nodes, edges, degreeMap, createNodeVisuals, drawEdges, updateSpotlight, updateLabelVisibility]);
 
   // 9. Update physics parameters in worker
   const handleUpdateParams = (newParams: Partial<PhysicsParams>) => {
