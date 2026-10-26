@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.1 - Shared Memory Ingestion Quality Gate
+MemoriaGraph 3.2.0 - Shared Memory Ingestion Quality Gate
 Reference: docs/research/MEMORIAGRAPH-MEMORY-INGESTION-QUALITY-STANDARD.md
 
 Gerbang validasi, normalisasi, dan proteksi tunggal untuk SEMUA write path:

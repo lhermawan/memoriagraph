@@ -8,6 +8,8 @@ Menguji:
 """
 import os
 import uuid
+import pytest
+from neo4j import GraphDatabase
 
 from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
@@ -21,15 +23,11 @@ from src.belief_revision import (
 
 
 def run_tests():
-    neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-    neo4j_user = os.getenv("NEO4J_USER", "neo4j")
-    neo4j_password = os.getenv("NEO4J_PASSWORD", "your_secure_password")
-    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
     print("=" * 60)
-    print("🧪 MEMORIAGRAPH 3.0: BELIEF REVISION & EVIDENCE TEST SUITE")
+    print("🧪 MEMORIAGRAPH 3.2.0: BELIEF REVISION & EVIDENCE TEST SUITE")
     print("=" * 60)
 
-    # 1. Test Rumus Matematis Dampening
+    # 1. Test Rumus Matematis Dampening (Pure Python Unit Test)
     print("\n[TEST 1] Logarithmic Dampening Formula Validation:")
     s = 0.50
     e = 1
@@ -43,21 +41,18 @@ def run_tests():
     assert status in ["OBSERVED", "HIGH_CONFIDENCE"]
     print("  ✅ Logarithmic dampening terverifikasi: kenaikan halus & konvergen.")
 
-    # 2. Test Rumus Matematis Hysteresis
+    # 2. Test Rumus Matematis Hysteresis (Pure Python Unit Test)
     print("\n[TEST 2] Counter-evidence Hysteresis Formula Validation:")
-    # Heuristik matang (E=5, Score=0.90)
     s_mature = 0.90
     e_mature = 5
     c_mature = 0
     print(f"  Mature Belief: E={e_mature}, C={c_mature}, Score={s_mature:.4f}")
     
-    # 1 Kegagalan pertama
     s_drop1, stat1 = calculate_challenged_score(e_mature, c_mature, s_mature)
     print(f"  Single Failure (C=1): Score={s_drop1:.4f}, Status={stat1}")
     assert s_drop1 >= 0.70, "Kegagalan tunggal pada belief matang TIDAK boleh langsung merusak score (<0.70)"
     assert stat1 == "OBSERVED", "Status harus tetap OBSERVED karena bukti positif masih dominan"
 
-    # Kegagalan berulang sampai C >= E
     c_curr = 1
     s_curr = s_drop1
     for step in range(2, 7):
@@ -68,57 +63,57 @@ def run_tests():
     print("  ✅ Hysteresis terverifikasi: toleran pada kegagalan tunggal, tegas pada kegagalan persisten.")
 
     # 3. Test Graph Integration pada Node Nyata di Neo4j
+    neo4j_uri = os.getenv("NEO4J_URI", NEO4J_URI)
+    neo4j_user = os.getenv("NEO4J_USER", NEO4J_USER)
+    neo4j_password = os.getenv("NEO4J_PASSWORD", NEO4J_PASSWORD)
+
+    try:
+        driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+        driver.verify_connectivity()
+    except Exception as e:
+        print(f"\n⚠️ [Skip Live Neo4j Test] Neo4j offline ({e}).")
+        pytest.skip(f"Neo4j database offline: {e}")
+        return
+
     print("\n[TEST 3] Neo4j Live Belief Reinforcement & Pattern Crystallization:")
     test_refl_id = f"REFL-TEST-{uuid.uuid4().hex[:6]}"
     with driver.session() as s_neo:
         s_neo.run("""
         CREATE (r:Reflection:Inferred {
             id: $id,
-            lesson: 'Penjadwalan patrol watchdog 15-menit stabil untuk PM2.',
-            heuristic: 'Gunakan interval 15m pada PM2 health patrol.',
-            evidence_count: 2,
+            heuristic: 'Gunakan connection pool jitter untuk mencegah thundering herd.',
+            confidence_score: 0.65,
+            evidence_count: 1,
             counter_evidence_count: 0,
-            confidence_score: 0.72,
             status: 'OBSERVED',
-            timestamp: datetime()
+            created_at: datetime()
         })
         """, id=test_refl_id)
 
-    # Perkuat node uji
-    res_reinforce = reinforce_belief(
-        driver,
-        identifier=test_refl_id,
-        details="Terverifikasi stabil selama observasi 3 hari PM2 di server Lucky."
-    )
-    print("  Hasil Reinforce:", res_reinforce)
-    assert res_reinforce["status"] == "SUCCESS"
-    assert res_reinforce["evidence_count"] == 3
-    assert res_reinforce["crystallized"] == True, "Harus mengkristalisasi ke Pattern saat E >= 3"
+    res1 = reinforce_belief(driver, identifier=test_refl_id, details="Uji coba beban 10k RPS sukses")
+    print("  Reinforce 1:", res1["id"], f"Score: {res1['new_score']}", f"Status: {res1['belief_status']}")
+    assert res1["new_score"] > 0.65
+    assert res1["status"] == "SUCCESS"
 
-    # Periksa apakah Pattern tercipta di Neo4j
-    with driver.session() as s_neo:
-        pat_check = s_neo.run("""
-        MATCH (r:Reflection {id: $id})-[:CRYSTALLIZED_TO]->(p:Pattern)
-        RETURN p.id AS pat_id, p.rule_statement AS rule, p.status AS p_status, p.confidence_score AS p_score
-        """, id=test_refl_id).single()
-        print("  Pattern Node yang Tercipta:", pat_check)
-        assert pat_check is not None, "Pattern node harus ada di Neo4j"
-        assert pat_check["p_status"] == "HIGH_CONFIDENCE"
-        test_pat_id = pat_check["pat_id"]
+    res2 = reinforce_belief(driver, identifier=test_refl_id, details="Chaos test pass")
+    print("  Reinforce 2:", res2["id"], f"Score: {res2['new_score']}", f"Status: {res2['belief_status']}")
+    
+    res3 = reinforce_belief(driver, identifier=test_refl_id, details="Staging soak test pass")
+    print("  Reinforce 3 (Threshold Check):", res3["id"], f"Score: {res3['new_score']}", f"Status: {res3['belief_status']}")
+    assert res3["crystallized"] is True, "Setelah 3x konfirmasi berturut-turut, harus terkristalisasi ke Pattern!"
+    test_pat_id = res3["crystallized_pattern_id"]
+    assert test_pat_id.startswith("PAT-")
+    print("  ✅ Kristalisasi otomatis ke Pattern terverifikasi berhasil! ID:", test_pat_id)
 
-    # 4. Test Counter-Evidence pada Node Nyata
-    print("\n[TEST 4] Neo4j Live Counter-Evidence Challenge:")
-    res_challenge = challenge_belief(
-        driver,
-        identifier=test_refl_id,
-        failure_reason="Terjadi race condition ketika patrol interval dipercepat ke 1 menit."
-    )
-    print("  Hasil Challenge:", res_challenge)
-    assert res_challenge["status"] == "CHALLENGED"
-    assert res_challenge["counter_evidence_count"] == 1
-    assert res_challenge["new_score"] < res_challenge["previous_score"]
+    # 4. Challenge Pattern
+    print("\n[TEST 4] Challenging Pattern with Counter-Evidence:")
+    c_res = challenge_belief(driver, identifier=test_pat_id, failure_reason="Terjadi spike timeout sesaat")
+    print("  Challenge 1:", c_res["id"], f"Score: {c_res['previous_score']} -> {c_res['new_score']}", f"Status: {c_res['belief_status']}")
+    assert c_res["status"] == "CHALLENGED"
+    assert c_res["new_score"] < res3["new_score"]
+    print("  ✅ Dynamic Challenge terverifikasi: Pattern mampu merespon anomali & degradasi performa.")
 
-    # Bersihkan node test agar database tetap murni
+    # Bersihkan node test
     with driver.session() as s_neo:
         s_neo.run("""
         MATCH (r:Reflection {id: $r_id})

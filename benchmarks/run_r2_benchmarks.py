@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.1 - Rigorous Independent Verification & Benchmark Suite (R2)
+MemoriaGraph 3.2.0 - Rigorous Independent Verification & Benchmark Suite (R2)
 Mission ID: MG-RESEARCH-2026-10-17-R2
 
 Menjalankan pengukuran performa dengan metodologi ketat:
@@ -80,7 +80,7 @@ def get_process_rss() -> dict[str, Any]:
 
 def run_benchmark_suite() -> dict[str, Any]:
     print("=" * 72)
-    print("🔬 MEMORIAGRAPH 3.1: RIGOROUS R2 BENCHMARK SUITE (N=30 SAMPLES)")
+    print("🔬 MEMORIAGRAPH 3.2.0: RIGOROUS R2 BENCHMARK SUITE (N=30 SAMPLES)")
     print("=" * 72)
 
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))

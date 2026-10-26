@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.1.2 - High Performance HTTP API Gateway (Port 8085)
+MemoriaGraph 3.2.0 - High Performance HTTP API Gateway (Port 8085)
 Serving 9Router Pre-Injection, AI-SRE Watchdog, and Cybernetic Cockpit Visualizer
 Protected by Tailscale Security Middleware (100.64.0.0/10 Mesh Only)
 """
@@ -84,7 +84,7 @@ class AdaptiveSecurityMiddleware:
 async def health(request):
     return JSONResponse({
         "status": "healthy",
-        "service": "MemoriaGraph 3.1.2",
+        "service": "MemoriaGraph 3.2.0",
         "engine": "4-Way Hybrid Recall (RRF) with LRU Cache",
         "security": "Tailscale Mesh Protected (100.64.0.0/10)",
         "has_mcp_server": server is not None,

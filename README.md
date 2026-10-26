@@ -41,15 +41,18 @@ flowchart LR
 
 ## 🚀 What's New in v3.2.0
 
-MemoriaGraph **v3.2.0** brings **Universal Portability, Zero-Infra Decoupling, and One-Click Containerization**:
+MemoriaGraph **v3.2.0** brings **Dynamic Memory Banks, Universal Modular Installer, and Zero-Friction Desktop Integration**:
 
 | Feature / Upgrade | Description | Impact |
 | :--- | :--- | :--- |
+| **Dynamic Memory Bank Registry** | Dynamic bank definitions via `banks.json` and CLI management (`python cli.py banks add/list/remove`). Replaced hardcoded private domain partitions with universal categories (`general`, `codebase`, `operations`, `research`). | Users and teams can freely define, customize, and isolate their own project memory domains. |
+| **Modular Cross-Platform Installer** | Interactive 1-click wizard (`install.ps1`, `scripts/install.sh`, `installer.py`) with explicit **Local Mode** (Host Python + Neo4j Docker + Claude MCP) and **Server Mode** (Full Docker Compose). | Zero confusion between local workstation setup and server deployment; non-technical users can install in minutes. |
+| **Silent Windows Tray Companion & Startup** | Native system tray companion (`scripts/cockpit_tray.py` + VBScript silent runner) with optional Windows Startup shortcut. | Cybernetic Cockpit runs quietly in the taskbar without keeping a terminal window open. |
+| **Windows UTF-8 Stream Hardening** | Defensive `sys.stdout`/`sys.stderr` UTF-8 re-encoding in `src/config.py` and `PYTHONIOENCODING=utf-8` injection in MCP config. | Eliminates Windows `cp1252` encoding crashes (`UnicodeEncodeError`) under Claude Desktop STDIO. |
 | **Dynamic Root Path Decoupling** | Centralized in `src/config.py` using `Path(__file__)` resolution. All hardcoded static server paths (`/opt/memoriagraph`) are completely removed. | 100% portable out-of-the-box across Linux, macOS, Windows, and container environments. |
 | **Adaptive Security Network Gateway** | Upgraded `http_service.py` with `AdaptiveSecurityMiddleware` controlled by `SECURITY_NETWORK_MODE` (`private`, `tailscale`, `all`). | Automatic support for Docker bridge networks (`172.16.0.0/12`) and local LANs (`192.168.x.x`), eliminating 403 Forbidden blocks for developers. |
 | **One-Click Docker Compose Ecosystem** | Packaged `Dockerfile` and `docker-compose.yml` orchestrating Neo4j 5 Community (with APOC & healthcheck) and MemoriaGraph Microservice. | Developers can launch the entire cognitive memory stack and Cockpit UI with a single command: `docker compose up -d`. |
 | **Pre-Baked ONNX Model Image** | Quantized Int8 FastEmbed model (`BAAI/bge-small-en-v1.5`) is pre-warmed during Docker build. | Zero startup latency; no downloading models during first container boot. |
-| **Relative MCP Presets** | Updated `server.json` and client presets to dynamic execution (`python -m server`). | Seamless one-step pairing with Claude Desktop, Cursor IDE, Windsurf, and VS Code. |
 
 ---
 
@@ -94,7 +97,7 @@ In version **3.1.0**, MemoriaGraph solves the fundamental challenge of autonomou
 
 ---
 
-## 📊 MemoriaGraph 3.1 vs. Vanilla AI: Comparative Evaluation
+## 📊 MemoriaGraph vs. Vanilla AI: Comparative Evaluation
 
 Large Language Models (LLMs) are fundamentally **stateless and amnesic**. When a context window truncates or a new session starts, the AI loses all knowledge of previous engineering decisions and ongoing tasks.
 
@@ -110,7 +113,7 @@ flowchart TD
         V_User --> V_Prompt --> V_LLM --> V_Resp
     end
 
-    subgraph MemoriaGraphAI["🟢 AI WITH MEMORIAGRAPH 3.1"]
+    subgraph MemoriaGraphAI["🟢 AI WITH MEMORIAGRAPH"]
         M_User["User: 'Continue the last agenda from today'"]
         M_Recall["4-Way Hybrid Recall (RRF):
 BM25 + Graph Traversal + Temporal (Today) + Vector"]
@@ -131,7 +134,7 @@ Starting Agenda 3: 5 Pillars Overhead Elimination!'"]
 
 ### 📋 Technical Comparison Matrix
 
-| Evaluation Dimension | 🔴 Vanilla LLM (Stateless) | 🟢 MemoriaGraph 3.1 (Turbo) | Impact / Advantage |
+| Evaluation Dimension | 🔴 Vanilla LLM (Stateless) | 🟢 MemoriaGraph (Turbo) | Impact / Advantage |
 | :--- | :--- | :--- | :--- |
 | **Memory Continuity** | Isolated sessions. 100% amnesia on window close or compaction. | Persistent cognitive graph across all machines and sessions. | **Infinite Horizon Memory** |
 | **Retrieval Architecture** | Flat vector similarity or manual re-prompting. | **4-Way Hybrid Recall (RRF)**: BM25 + Multi-Hop + Temporal + Dense Vector. | **94.6% Retrieval Accuracy (LongMemEval SOTA)** |
@@ -147,7 +150,7 @@ Starting Agenda 3: 5 Pillars Overhead Elimination!'"]
 ## 🏛️ System Architecture
 
 ```
-                       MEMORIAGRAPH 3.1 ARCHITECTURE
+                       MEMORIAGRAPH COGNITIVE ARCHITECTURE
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                            CANONICAL API FACADE                             │
 │       client.retain()      │      client.recall()     │   client.reflect()  │
@@ -155,11 +158,11 @@ Starting Agenda 3: 5 Pillars Overhead Elimination!'"]
                │                           │                          │
                ▼                           ▼                          │
 ┌──────────────────────────────┐ ┌──────────────────────────────────┐ │
-│     BIOMIMETIC MEMORY BANKS  │ │    4-WAY HYBRID RECALL ENGINE    │ │
-│  • bank: "infra-sre"         │ │  1. Fulltext Index (BM25)        │ │
-│  • bank: "ai-hud"            │ │  2. Graph Traversal (Cypher)     │ │
-│  • bank: "research-personal" │ │  3. Temporal Window Slicing      │ │
-│  • bank: "csirt-security"    │ │  4. Dense Semantic Vector        │ │
+│     DYNAMIC MEMORY BANKS     │ │    4-WAY HYBRID RECALL ENGINE    │ │
+│  • bank: "general"           │ │  1. Fulltext Index (BM25)        │ │
+│  • bank: "codebase"          │ │  2. Graph Traversal (Cypher)     │ │
+│  • bank: "operations"        │ │  3. Temporal Window Slicing      │ │
+│  • bank: "research"          │ │  4. Dense Semantic Vector        │ │
 └──────────────┬───────────────┘ └─────────────────┬────────────────┘ │
                │                                   ▼                  │
                │                    ┌───────────────────────────────┐ │
@@ -180,70 +183,167 @@ Starting Agenda 3: 5 Pillars Overhead Elimination!'"]
 
 ## 🚀 Quickstart & Setup Guide
 
-### Method 1: One-Line Docker Deployment (Recommended)
+> 📖 **Looking for a complete step-by-step walkthrough?** See the full [Installation & Deployment Guide](docs/INSTALLATION_GUIDE.md) for architecture deep dives, headless servers, and troubleshooting.
 
-Get MemoriaGraph and Neo4j running in under 60 seconds with Docker Compose:
+### The Universal 1-Click Installer (Recommended)
+
+MemoriaGraph provides an automated, interactive setup wizard that configures everything for your environment:
 
 ```bash
-# Clone and launch all services with healthchecks
+# Clone the repository
 git clone https://github.com/lhermawan/memoriagraph.git
 cd memoriagraph
+
+# On Windows (PowerShell):
+.\install.ps1
+
+# On Linux / macOS:
+bash scripts/install.sh
+
+# Or directly with Python:
+python installer.py
+```
+
+The installer lets you pick your target topology:
+
+```text
+======================================================================
+  🧠 MEMORIAGRAPH v3.2.0 — UNIVERSAL MODULAR INSTALLER
+======================================================================
+  [1] LOCAL WORKSTATION MODE (Claude Desktop / Cursor + Neo4j Docker)
+  [2] SERVER / TEAM HUB MODE (Full Docker Compose Stack)
+  [3] SYSTEM TRAY & AUTO-START (Windows Taskbar Companion)
+  [4] MANAGE MEMORY BANKS (List, Add, Remove Knowledge Domains)
+  [5] REPAIR CLAUDE CONFIG (Auto-Detect and Fix MCP Path)
+  [0] Exit
+======================================================================
+```
+
+---
+
+### Which Mode Should You Choose?
+
+| Goal | Recommended Mode | Architecture |
+| :--- | :--- | :--- |
+| **Claude Desktop / Cursor / Local IDE** | **Mode 1: Local Workstation** | Neo4j runs in Docker (`memoriagraph-neo4j`), MemoriaGraph runs directly in host Python via STDIO for zero-latency MCP communication. |
+| **Headless Server / n8n / Multi-Agent Hub** | **Mode 2: Server Mode** | Both Neo4j and MemoriaGraph HTTP Microservice run in full Docker Compose stack (`port 8085` & `7687`). |
+
+---
+
+### 🖥️ Option 1: Local Workstation (Claude Desktop / Cursor)
+
+If you prefer setting up manually without the interactive wizard:
+
+#### 1. Start Neo4j in Docker
+```bash
+docker run -d \
+  --name memoriagraph-neo4j \
+  -p 7687:7687 -p 7474:7474 \
+  -e NEO4J_AUTH=neo4j/memoriagraph_pass \
+  -e NEO4J_PLUGINS='["apoc"]' \
+  -v memoriagraph_neo4j_data:/data \
+  neo4j:5-community
+```
+
+#### 2. Setup Python Virtual Environment
+```bash
+python -m venv .venv
+# Windows:
+.\.venv\Scripts\Activate.ps1
+# Linux/macOS:
+source .venv/bin/activate
+
+pip install -e ".[dev]"
+```
+
+#### 3. Initialize Graph Schema
+```bash
+python src/schema_init.py
+```
+
+#### 4. Connect to Claude Desktop
+Run the auto-configurator:
+```bash
+python cli.py setup-claude
+```
+Or manually edit `%APPDATA%\Claude\claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "memoriagraph": {
+      "command": "C:\\path\\to\\memoriagraph\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "server"],
+      "cwd": "C:\\path\\to\\memoriagraph",
+      "env": {
+        "NEO4J_URI": "bolt://127.0.0.1:7687",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "memoriagraph_pass",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 🌐 Option 2: Server / Team Hub (Full Docker Compose)
+
+For multi-agent networks, n8n automations, or shared team hubs:
+
+```bash
 docker compose up -d
 ```
 
-That's it!
 * 🌐 **Cybernetic Cockpit & REST API**: [http://localhost:8085](http://localhost:8085)
 * 🗄️ **Neo4j Browser UI**: [http://localhost:7474](http://localhost:7474) (`user: neo4j`, `pass: memoriagraph_pass`)
 
 ---
 
-### Method 2: Local Python & Virtualenv Setup
+### 🗂️ Dynamic Memory Bank Management
 
-#### 1. Prerequisites
-- **Python**: 3.10, 3.11, or 3.12.
-- **Neo4j Database**: Local, remote, or containerized (`bolt://127.0.0.1:7687`).
-- **Hardware Acceleration**: Zero GPU required (FastEmbed runs quantized Int8 ONNX natively on CPU).
+MemoriaGraph v3.2.0 eliminates hardcoded memory partitions. You can dynamically inspect, create, and remove memory banks directly via CLI:
 
-#### 2. Clone & Setup Virtualenv
 ```bash
-git clone https://github.com/lhermawan/memoriagraph.git
-cd memoriagraph
+# List all registered memory banks
+python cli.py banks list
 
-# Create and activate Python virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\Activate.ps1
+# Add a custom memory bank
+python cli.py banks add devsecops \
+  --name "DevSecOps & Threat Intel" \
+  --desc "Vulnerabilities, CVEs, and compliance rules" \
+  --color "#ff0055"
 
-# Install package in editable mode
-pip install -e ".[dev]"
+# Remove an unneeded memory bank (safe non-destructive fallback)
+python cli.py banks remove devsecops
 ```
 
-#### 3. Configure Environment
+Default universal banks included:
+* `general`: Cross-domain fallback and general engineering notes (`#ffaa00`).
+* `codebase`: Architecture, refactors, AST analysis, and patterns (`#00f0ff`).
+* `operations`: SRE, deployments, incidents, and infrastructure (`#00ff88`).
+* `research`: AI research, prototypes, papers, and exploration (`#b000ff`).
+
+---
+
+### 🪟 Windows Taskbar Tray Companion (Silent Background Cockpit)
+
+Access the Cybernetic Cockpit anytime without keeping a command prompt or terminal window open:
+
 ```bash
-cp .env.example .env
-```
-Edit `.env` to match your Neo4j credentials:
-```env
-NEO4J_URI=bolt://127.0.0.1:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_secure_password
-SECURITY_NETWORK_MODE=private
-```
+# Register to Windows Startup (auto-starts silently on user login)
+python installer.py --mode tray
 
-#### 4. Initialize Schema & Indexes
-```bash
-python src/schema_init.py
+# Launch immediately in the background
+wscript.exe scripts/start_cockpit_silent.vbs
 ```
-
-#### 5. Verify Installation
-```bash
-pytest tests/
-```
+* Right-click the brain icon in your Windows taskbar tray to open Cockpit in your browser, check status, restart, or exit.
 
 ---
 
 ## 🧩 The 3 Canonical Facades
 
-MemoriaGraph 3.1 exposes three streamlined canonical interfaces designed for human engineers and autonomous LLMs:
+MemoriaGraph 3.2.0 exposes three streamlined canonical interfaces designed for human engineers and autonomous LLMs:
 
 ### 1. `retain()` — Unified Ingestion
 Store memories, problem-solving episodes, facts, and decisions into domain-isolated memory banks.
@@ -251,7 +351,7 @@ Store memories, problem-solving episodes, facts, and decisions into domain-isola
 ```python
 retain(
     content="Patched race condition in connection pool by adding exponential backoff.",
-    bank_id="infra-sre",                # Target memory bank
+    bank_id="operations",              # Target memory bank
     category="PROBLEM_SOLVING",         # Episode category
     title="Fix Connection Pool Race",   # Concise title
     heuristic="Always apply jittered backoff to avoid thundering herd.",
@@ -268,7 +368,7 @@ Retrieve relevant memories using Reciprocal Rank Fusion blending lexical, struct
 results = recall(
     query="connection pool timeout error",
     limit=5,
-    bank_id="infra-sre",
+    bank_id="operations",
     mode="hybrid",                      # Options: 'hybrid', 'context', 'dss', 'beliefs'
     compact=True                        # Token-saving dense format (Pillar 3)
 )
@@ -293,7 +393,7 @@ Synthesize lessons, review patterns, and dynamically calibrate heuristics based 
 # Synthesize past solutions and crystallized patterns
 synthesis = reflect(
     question="How do we handle graceful database failover under high concurrency?",
-    bank_id="infra-sre",
+    bank_id="operations",
     action="reflect"
 )
 
@@ -372,7 +472,7 @@ pm2 save
 #### Health Check
 ```bash
 curl http://127.0.0.1:8085/health
-# {"status":"healthy","service":"MemoriaGraph 3.1","engine":"4-Way Hybrid Recall (RRF) with LRU Cache"}
+# {"status":"healthy","service":"MemoriaGraph 3.2.0","engine":"4-Way Hybrid Recall (RRF) with LRU Cache"}
 ```
 
 #### Fast Recall Query
@@ -382,9 +482,11 @@ curl "http://127.0.0.1:8085/recall?query=database+timeout&limit=3&compact=true"
 
 #### Async Memory Ingestion
 ```bash
-curl -X POST http://127.0.0.1:8085/retain   -H "Content-Type: application/json"   -d '{
+curl -X POST http://127.0.0.1:8085/retain \
+  -H "Content-Type: application/json" \
+  -d '{
     "content": "Migrated auth service to Redis session tokens",
-    "bank_id": "infra-sre",
+    "bank_id": "operations",
     "title": "Redis Auth Migration"
   }'
 ```

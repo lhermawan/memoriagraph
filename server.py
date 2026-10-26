@@ -16,6 +16,7 @@ from src.sanitizer import sanitize_data
 from src.semantic_sanitizer import strip_conversational_fluff, slugify_bank_id
 from src.harvester import harvester
 from src.ingestion_gate import ingestion_gate, detect_critical_secrets
+from src.bank_manager import bank_manager
 
 from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
@@ -24,14 +25,14 @@ mcp = MCPServer("MemoriaGraph")
 try:
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     driver.verify_connectivity()
-    print("MemoriaGraph 3.1.2: Berhasil terhubung ke database Neo4j!", file=sys.stderr)
+    print("MemoriaGraph 3.2.0: Berhasil terhubung ke database Neo4j!", file=sys.stderr)
 except Exception as e:
     print(f"Warning: Tidak bisa terhubung ke Neo4j. Error: {e}", file=sys.stderr)
     driver = None
 
 try:
     recall_engine = HybridRecallEngine(k_rrf=60)
-    print("MemoriaGraph 3.1.2: Hybrid Recall Engine (4-Way RRF) aktif!", file=sys.stderr)
+    print("MemoriaGraph 3.2.0: Hybrid Recall Engine (4-Way RRF) aktif!", file=sys.stderr)
 except Exception as e:
     print(f"Warning: Gagal inisialisasi HybridRecallEngine: {e}", file=sys.stderr)
     recall_engine = None
@@ -102,15 +103,12 @@ def retain(
     async_mode: bool = True
 ) -> str:
     """
-    [MemoriaGraph 3.1.2 Facade] Menyimpan unit memori/pengetahuan/episode ke Memory Bank spesifik.
-    Bank: 'infra-sre', 'ai-hud', 'research-personal', 'csirt-security', 'general'.
+    [MemoriaGraph 3.2.0 Facade] Menyimpan unit memori/pengetahuan/episode ke Memory Bank spesifik.
+    Bank aktif: 'general', 'codebase', 'operations', 'research' (atau kategori custom via banks.json).
     Outcome status: 'SUCCESS', 'FAILURE', 'PARTIAL', 'UNKNOWN'.
     Mendukung async background harvesting (Pilar 2) untuk inferensi ultra-cepat.
     """
-    if not driver:
-        return "Error: Database Neo4j offline."
-
-    # Shared Memory Ingestion Quality Gate
+    # Shared Memory Ingestion Quality Gate (Security-First Guardrail)
     val = ingestion_gate.validate(
         content=content,
         title=title,
@@ -125,6 +123,9 @@ def retain(
 
     if not val.valid:
         return f"🚫 [IngestionGate: {val.status.value}] {', '.join(val.errors)}"
+
+    if not driver:
+        return "Error: Database Neo4j offline."
 
     bank = val.bank
     clean_content = val.sanitized_content
@@ -208,7 +209,7 @@ def recall(
     compact: bool = True
 ) -> str:
     """
-    [MemoriaGraph 3.1 Facade] 4-Way Hybrid Recall Engine dengan RRF, Context Isolation, & Result Pruning.
+    [MemoriaGraph 3.2.0 Facade] 4-Way Hybrid Recall Engine dengan RRF, Context Isolation, & Result Pruning.
     Mode:
     - 'hybrid': 4-Way BM25 + Graph + Temporal + Vector RRF (Pilar 3: Kompresi Hemat Token).
     - 'context': Graph topic context traversal (pengganti get_context).
@@ -276,7 +277,7 @@ def reflect(
     reason: str = ""
 ) -> str:
     """
-    [MemoriaGraph 3.1 Facade] Refleksi kognitif & kalibrasi keyakinan/heuristik.
+    [MemoriaGraph 3.2.0 Facade] Refleksi kognitif & kalibrasi keyakinan/heuristik.
     Action:
     - 'reflect' (default): Sintesis solusi masa lalu & pola berpikir terkristalisasi.
     - 'reinforce': Memperkuat heuristik/keyakinan (target_id diisi ID/teks keyakinan).
@@ -514,13 +515,12 @@ def list_cognitive_beliefs(status_filter: str = "") -> str:
 
 @legacy_tool()
 def add_entity(name: str, entity_type: str, description: str = "") -> str:
-    """[Legacy Compatibility] Menambahkan entitas generik ke dalam MemoriaGraph."""
-    if not driver:
-        return "Error: Tidak terhubung ke Neo4j."
     # Cek kredensial kritis sebelum DB write (Guardrail)
     sec = detect_critical_secrets(f"{name} {description}")
     if sec:
         return f"🚫 [IngestionGate: QUARANTINED] Entitas ditolak: Terdeteksi kredensial sensitif: {', '.join(sec)}."
+    if not driver:
+        return "Error: Tidak terhubung ke Neo4j."
     clean_desc = sanitize_data(description)
     query = """
     MERGE (n:Entity {name: $name})
@@ -667,7 +667,7 @@ def start_http_background_server():
         async def health(request):
             return JSONResponse({
                 "status": "healthy",
-                "service": "MemoriaGraph 3.1.2",
+                "service": "MemoriaGraph 3.2.0",
                 "engine": "4-Way Hybrid Recall (RRF)",
                 "pid": os.getpid()
             })

@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.0 - Testbed Benchmark 4-Way Hybrid Recall
+MemoriaGraph 3.2.0 - Testbed Benchmark 4-Way Hybrid Recall
 Menguji akurasi dan latensi pencarian pada kata-kata kunci sulit:
 1. 'friday-hologram-hud' (compound token & hyphen)
 2. 'agenda besok senin 28 september' (temporal + entity match)
@@ -18,7 +18,7 @@ from src.hybrid_recall import HybridRecallEngine
 
 def run_benchmarks():
     print("=" * 70)
-    print("🧪 [BENCHMARK] MEMORIAGRAPH 3.0: 4-WAY HYBRID RECALL (RRF k=60)")
+    print("🧪 [BENCHMARK] MEMORIAGRAPH 3.2.0: 4-WAY HYBRID RECALL (RRF k=60)")
     print("=" * 70)
     
     engine = HybridRecallEngine(k_rrf=60)

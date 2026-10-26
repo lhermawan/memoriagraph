@@ -1,5 +1,5 @@
 """
-MemoriaGraph 2.0 - Legacy Data Analyzer, Cleaner & Cognitive Migrator
+MemoriaGraph 3.2.0 - Legacy Data Analyzer, Cleaner & Cognitive Migrator
 1. Melakukan backup data mentah sebelum perubahan.
 2. Membersihkan noise (HubPatrolLog, conversational raw chats, test probes).
 3. Melakukan sanitasi rahasia pada seluruh node eksisting.

@@ -1,12 +1,7 @@
 """
-MemoriaGraph 3.0 - 3D Holographic Graph Bridge (Friday HUD & Three.js WebGL)
+MemoriaGraph 3.2.0 - 3D Holographic Graph Bridge (Friday HUD & Three.js WebGL)
 Mengekspor struktur graf kognitif (nodes & links) ke format yang kompatibel dengan Three.js / Force-Graph 3D.
-Menyediakan pewarnaan cluster biomimetic bank:
-- ai-hud           : #00f0ff (Cyan Arc Reactor)
-- infra-sre        : #00ff88 (Emerald SRE)
-- csirt-security   : #ff0055 (Crimson Security)
-- research-personal: #b000ff (Purple Curiosity)
-- general          : #ffaa00 (Amber Core)
+Menyediakan pewarnaan cluster dinamis dari registry Memory Bank (banks.json).
 """
 
 import os
@@ -19,14 +14,22 @@ except ImportError:
     GraphDatabase = None
 
 from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+from src.bank_manager import bank_manager
 
-BANK_COLORS = {
-    "ai-hud": "#00f0ff",
-    "infra-sre": "#00ff88",
-    "csirt-security": "#ff0055",
-    "research-personal": "#b000ff",
-    "general": "#ffaa00",
-}
+def get_bank_colors() -> dict[str, str]:
+    colors = {b_id: info.get("color", "#ffaa00") for b_id, info in bank_manager.list_banks().items()}
+    legacy_fallbacks = {
+        "ai-hud": "#00f0ff",
+        "infra-sre": "#00ff88",
+        "csirt-security": "#ff0055",
+        "research-personal": "#b000ff",
+        "general": "#ffaa00",
+    }
+    for k, v in legacy_fallbacks.items():
+        colors.setdefault(k, v)
+    return colors
+
+BANK_COLORS = get_bank_colors()
 
 LABEL_WEIGHTS = {
     "Project": 10,
@@ -49,7 +52,7 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = No
     try:
         driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
         with driver.session() as s:
-            # 1. Ambil simpul (Nodes) dengan atribut MemoriaGraph 3.1.2
+            # 1. Ambil simpul (Nodes) dengan atribut MemoriaGraph 3.2.0
             node_query = """
             MATCH (n)
             WHERE (n:Entity OR n:Episode OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern OR n:Curiosity OR n:Prototype OR n:Project OR n:Attempt)
@@ -92,7 +95,7 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = No
         return {
             "ok": False,
             "error": str(e),
-            "service": "MemoriaGraph 3.1.2",
+            "service": "MemoriaGraph 3.2.0",
             "total_nodes": 0,
             "total_links": 0,
             "bank_filter": bank_filter or "all",
@@ -146,7 +149,7 @@ def export_graph_for_3d_hud(limit_nodes: int = 150, bank_filter: str | None = No
 
     return {
         "ok": True,
-        "service": "MemoriaGraph 3.1.2",
+        "service": "MemoriaGraph 3.2.0",
         "total_nodes": len(formatted_nodes),
         "total_links": len(formatted_links),
         "bank_filter": bank_filter or "all",

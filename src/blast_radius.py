@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.0 - Git Blast-Radius Mapping (Codebase-Memory Pillar)
+MemoriaGraph 3.2.0 - Git Blast-Radius Mapping (Codebase-Memory Pillar)
 Menganalisis dampak perubahan kode/skrip secara otomatis dari git diff/status
 dan memproyeksikannya ke node :Action di graph kognitif.
 """

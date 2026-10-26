@@ -1,12 +1,14 @@
 """
-MemoriaGraph 2.0 - Schema Initializer & Migration
+MemoriaGraph 3.2.0 - Schema Initializer & Migration
 Mengonfigurasi constraints dan indexes di Neo4j untuk integritas & performa graph kognitif.
+Mendukung partisi Biomimetic Memory Banks universal berbasis banks.json.
 """
 import os
 import sys
 
 from neo4j import GraphDatabase
 from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+from src.bank_manager import bank_manager
 
 CONSTRAINTS = [
     ("Episode_id", "CREATE CONSTRAINT episode_id_unique IF NOT EXISTS FOR (e:Episode) REQUIRE e.id IS UNIQUE"),
@@ -47,55 +49,36 @@ INDEXES = [
 ]
 
 def migrate_memory_banks(session):
-    print("  🏦 Menjalankan partisi Biomimetic Memory Banks (bank_id)...")
-    session.run("""
-    MATCH (n)
-    WHERE (n:Episode OR n:Entity OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern OR n:Curiosity OR n:Prototype OR n:Project)
-      AND (toLower(coalesce(n.title, '')) =~ '.*(hud|hologram|three\\\\.js|arc reactor|webgl|voice).*'
-        OR toLower(coalesce(n.name, '')) =~ '.*(hud|hologram|three\\\\.js|arc reactor|webgl|voice).*'
-        OR toLower(coalesce(n.description, '')) =~ '.*(hud|hologram|three\\\\.js|arc reactor|webgl|voice).*')
-    SET n.bank_id = 'ai-hud'
-    """)
-
-    session.run("""
-    MATCH (n)
-    WHERE (n:Episode OR n:Entity OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern)
-      AND (toLower(coalesce(n.title, '')) =~ '.*(strix|pentest|kali|cve|exploit|csirt|security).*'
-        OR toLower(coalesce(n.name, '')) =~ '.*(strix|pentest|kali|cve|exploit|csirt|security).*')
-    SET n.bank_id = 'csirt-security'
-    """)
-
-    session.run("""
-    MATCH (n)
-    WHERE (n:Episode OR n:Entity OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern OR n:Curiosity OR n:Prototype OR n:Project)
-      AND (toLower(coalesce(n.title, '')) =~ '.*(clipper|youtube|kimi|memoriagraph).*'
-        OR toLower(coalesce(n.name, '')) =~ '.*(clipper|youtube|kimi|memoriagraph).*')
-      AND n.bank_id IS NULL
-    SET n.bank_id = 'research-personal'
-    """)
-
-    session.run("""
-    MATCH (n)
-    WHERE (n:Episode OR n:Entity OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern)
-      AND (toLower(coalesce(n.title, '')) =~ '.*(pm2|watchdog|production|worker|server|sre|patrol|ram|memory leak|tailscale).*'
-        OR toLower(coalesce(n.name, '')) =~ '.*(pm2|watchdog|production|worker|server|sre|patrol|ram|memory leak|tailscale).*')
-      AND n.bank_id IS NULL
-    SET n.bank_id = 'infra-sre'
-    """)
-
+    """
+    Memastikan semua node di Neo4j memiliki bank_id yang valid secara non-destruktif.
+    Node tanpa bank_id akan di-assign ke bank 'general' atau konteks asalnya.
+    """
+    print("  🏦 Menjalankan verifikasi partisi Biomimetic Memory Banks (bank_id)...")
+    
+    # 1. Jika node memiliki property context yang valid, gunakan sebagai bank_id jika bank_id masih null
     session.run("""
     MATCH (n)
     WHERE (n:Episode OR n:Entity OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern OR n:Curiosity OR n:Prototype OR n:Project)
       AND n.bank_id IS NULL
+      AND n.context IS NOT NULL
+      AND trim(n.context) <> ''
+    SET n.bank_id = toLower(trim(n.context))
+    """)
+
+    # 2. Sisanya yang masih null fallback ke 'general'
+    session.run("""
+    MATCH (n)
+    WHERE (n:Episode OR n:Entity OR n:Problem OR n:Decision OR n:Reflection OR n:Pattern OR n:Curiosity OR n:Prototype OR n:Project)
+      AND (n.bank_id IS NULL OR trim(n.bank_id) = '')
     SET n.bank_id = 'general'
     """)
-    print("  ✅ Partisi memory bank selesai diaplikasikan ke seluruh simpul graph.")
+    print("  ✅ Partisi memory bank terverifikasi konsisten di seluruh simpul graph.")
 
 def init_schema():
     from src.belief_revision import migrate_existing_beliefs
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     driver.verify_connectivity()
-    print("🚀 [MemoriaGraph 2.0 / 3.0] Menginisialisasi Skema Database Neo4j...")
+    print("🚀 [MemoriaGraph 3.2.0] Menginisialisasi Skema Database Neo4j...")
     
     with driver.session() as session:
         # Terapkan Constraints
@@ -130,7 +113,7 @@ def init_schema():
     migrate_existing_beliefs(driver)
         
     driver.close()
-    print("✨ [MemoriaGraph 2.0 / 3.0] Skema Neo4j berhasil dikonfigurasi!")
+    print("✨ [MemoriaGraph 3.2.0] Skema Neo4j berhasil dikonfigurasi!")
 
 if __name__ == "__main__":
     init_schema()

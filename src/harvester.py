@@ -6,7 +6,7 @@ from typing import Callable, Any
 
 class BackgroundHarvester:
     """
-    MemoriaGraph 3.0 Async Background Harvester (Pilar 2)
+    MemoriaGraph 3.2.0 Async Background Harvester (Pilar 2)
     Memindahkan tugas berat (vector cache sync, graph clustering, deep re-ranking)
     ke background queue agar eksekusi MCP tool selesai dalam <15ms.
     """

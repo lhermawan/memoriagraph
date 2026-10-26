@@ -251,6 +251,8 @@ class TestServerRetainIngestionGateIntegration:
 
     def test_retain_auto_neutralizes_plan_outcomes(self):
         import server
+        if not server.driver:
+            pytest.skip("Neo4j offline - skipping live server write test")
         msg = server.retain(
             content="Rencana implementasi zero trust mesh VPN minggu depan.",
             title="Rencana Mesh VPN Zero Trust",
@@ -263,6 +265,8 @@ class TestServerRetainIngestionGateIntegration:
 
     def test_retain_downgrades_unverified_task_success(self):
         import server
+        if not server.driver:
+            pytest.skip("Neo4j offline - skipping live server write test")
         msg = server.retain(
             content="Saya sudah memperbaiki bug memory leak tadi pagi.",
             title="Fix Memory Leak",
@@ -275,6 +279,8 @@ class TestServerRetainIngestionGateIntegration:
 
     def test_retain_preserves_verified_task_success(self):
         import server
+        if not server.driver:
+            pytest.skip("Neo4j offline - skipping live server write test")
         msg = server.retain(
             content="Troubleshooting memory leak selesai. Fix confirmed via commit a1b2c3d, exit code 0, status 200 OK.",
             title="Fix Memory Leak Verified",
@@ -297,9 +303,10 @@ class TestServerRetainIngestionGateIntegration:
         )
         assert "🚫 [IngestionGate: QUARANTINED]" in msg
         # Pastikan tidak ada episode dengan title ini di graph
-        with server.driver.session() as s:
-            rec = s.run("MATCH (e:Episode {title: $t}) RETURN count(e) as c", t=unique_title).single()
-            assert rec["c"] == 0
+        if server.driver:
+            with server.driver.session() as s:
+                rec = s.run("MATCH (e:Episode {title: $t}) RETURN count(e) as c", t=unique_title).single()
+                assert rec["c"] == 0
 
     def test_unresolvable_evidence_reference_downgraded_to_unknown(self, gate):
         """Acceptance Test 12: Vague claims like 'verified on staging' without anchors are unverified."""
@@ -385,6 +392,8 @@ class TestIngestionGateV312Hardening:
     def test_end_to_end_retain_idempotency_reuses_existing_episode(self):
         import server
         import uuid
+        if not server.driver:
+            pytest.skip("Neo4j offline - skipping live server write test")
         unique_title = f"Idempotency Test Case Marker {uuid.uuid4().hex[:8]}"
         content = "Konfigurasi idempotency check. Evidence: commit a1b2c3d, exit code 0, status 200 OK."
         
@@ -424,6 +433,7 @@ class TestIngestionGateV312Hardening:
             description=f"Secret credentials: {secret_key}"
         )
         assert "🚫 [IngestionGate: QUARANTINED]" in res
-        with server.driver.session() as s:
-            rec = s.run("MATCH (n:Entity {name: 'CompromisedKey'}) RETURN count(n) as c").single()
-            assert rec["c"] == 0
+        if server.driver:
+            with server.driver.session() as s:
+                rec = s.run("MATCH (n:Entity {name: 'CompromisedKey'}) RETURN count(n) as c").single()
+                assert rec["c"] == 0

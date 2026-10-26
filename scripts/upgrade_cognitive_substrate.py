@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MemoriaGraph 3.0 - Cognitive Substrate Upgrade & Enrichment Script
+MemoriaGraph 3.2.0 - Cognitive Substrate Upgrade & Enrichment Script
 Mengintegrasikan aturan Tri-Repo (Graphify, Ponytail, Agent Skills) ke dalam Neo4j:
 1. Registrasi Pattern kognitif baru (Anti-bloat, Graph navigation, Evidence-based verification).
 2. Retroactive quality tagging pada episode yang ada (evidence_status, anti_bloat_aligned).
@@ -16,10 +16,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
+from neo4j import GraphDatabase
 from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 
 def upgrade_memoriagraph():
-    print("🚀 Memulai pembaruan dan pengayaan kognitif MemoriaGraph 3.0...")
+    print("🚀 Memulai pembaruan dan pengayaan kognitif MemoriaGraph 3.2.0...")
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     now_iso = datetime.now(timezone.utc).isoformat()
 
@@ -94,7 +95,7 @@ def upgrade_memoriagraph():
             print(f"  ℹ️ Sanitasi entitas: {err}")
 
     driver.close()
-    print("\n✨ Pembaruan kognitif MemoriaGraph 3.0 selesai dengan sukses!\n")
+    print("\n✨ Pembaruan kognitif MemoriaGraph 3.2.0 selesai dengan sukses!\n")
 
 if __name__ == "__main__":
     upgrade_memoriagraph()

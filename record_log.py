@@ -1,5 +1,5 @@
 """
-MemoriaGraph 2.0 - Record Log Bridge
+MemoriaGraph 3.2.0 - Record Log Bridge
 Menerima payload log dari AI-SRE hub, melakukan sanitasi rahasia, mencatat ke event stream, dan menghubungkan ke Neo4j.
 """
 import json

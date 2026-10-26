@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-MemoriaGraph 3.1.2 - Command Line Interface (CLI)
-Pusat kendali kognitif mandiri untuk Cognitive Dashboard, DSS, Beliefs, dan Hybrid Recall.
+MemoriaGraph 3.2.0 - Command Line Interface (CLI)
+Pusat kendali kognitif mandiri untuk Cognitive Dashboard, DSS, Beliefs, Hybrid Recall, dan Dynamic Bank Manager.
 """
 import argparse
 import os
@@ -13,9 +13,8 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-import dotenv
-
-dotenv.load_dotenv(BASE_DIR / ".env")
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+from src.bank_manager import bank_manager
 
 from neo4j import GraphDatabase
 
@@ -23,17 +22,13 @@ from src.belief_revision import list_beliefs
 from src.dss_engine import get_cognitive_metrics, query_personal_dss
 from src.hybrid_recall import HybridRecallEngine
 
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "your_secure_password")
-
 def cmd_dashboard():
     m = get_cognitive_metrics()
     constraints = m.get("top_decision_constraints", [])
     c_str = ", ".join([f"{c['constraint_name']} ({c['frequency']}x)" for c in constraints]) if constraints else "Belum cukup data"
     exp = m.get("exploration_pipeline", {})
 
-    print("\n🧠 \033[1;36mMEMORIAGRAPH 3.1.2 - COGNITIVE DASHBOARD & SUBSTRATE\033[0m")
+    print("\n🧠 \033[1;36mMEMORIAGRAPH 3.2.0 - COGNITIVE DASHBOARD & SUBSTRATE\033[0m")
     print("━" * 65)
     print(f"📊 Total Episode Kognitif      : \033[1;32m{m.get('total_episodes', 0)}\033[0m episode")
     print(f"🎯 Tingkat Keberhasilan Solusi : \033[1;32m{m.get('success_rate_percent', 0)}%\033[0m")
@@ -41,16 +36,19 @@ def cmd_dashboard():
     print(f"⚖️ Faktor Keputusan Dominan    : \033[1;35m{c_str}\033[0m")
     print(f"🚀 Exploration Pipeline        : {exp.get('curiosity_count', 0)} Ide ➔ {exp.get('prototype_count', 0)} Prototype ➔ \033[1;32m{exp.get('graduated_projects', 0)} Project\033[0m")
     
+    # Active memory banks
+    active_banks = bank_manager.list_banks()
+    print(f"🏦 Memory Banks Aktif          : \033[1;36m{len(active_banks)}\033[0m kategori ({', '.join([b['id'] for b in active_banks])})")
+
     # Active beliefs count
-    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     try:
+        driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
         beliefs = list_beliefs(driver, limit=5)
         high_conf = [b for b in beliefs if b.get('status') == 'HIGH_CONFIDENCE']
         print(f"💎 Cognitive Beliefs Aktif     : \033[1;36m{len(beliefs)}\033[0m terdaftar (\033[1;32m{len(high_conf)} High-Confidence\033[0m)")
+        driver.close()
     except Exception:
         pass
-    finally:
-        driver.close()
 
     print("━" * 65)
     print("💡 \033[0;90mStatistik observasi kognitif dihitung otomatis dari Neo4j lokal.\033[0m\n")
@@ -59,7 +57,7 @@ def cmd_beliefs(status_filter: str = None, limit: int = 15):
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
     try:
         records = list_beliefs(driver, status_filter=status_filter, limit=limit)
-        print("\n🧠 \033[1;36mMEMORIAGRAPH 3.1: ACTIVE COGNITIVE BELIEFS & HEURISTICS\033[0m")
+        print("\n🧠 \033[1;36mMEMORIAGRAPH 3.2.0: ACTIVE COGNITIVE BELIEFS & HEURISTICS\033[0m")
         print("━" * 70)
         if not records:
             print("Belum ada keyakinan yang tercatat.")
@@ -151,19 +149,50 @@ def cmd_episodes():
         rows = s.run("""
         MATCH (e:Episode)
         OPTIONAL MATCH (e)-[:PRODUCED_OUTCOME]->(o:Outcome)
-        RETURN e.id AS id, e.title AS title, e.category AS category, e.status AS status, o.status AS outcome
+        RETURN e.id AS id, e.title AS title, e.category AS category, e.status AS status, o.status AS outcome, coalesce(e.bank_id, 'general') AS bank
         ORDER BY e.timestamp_start DESC
         LIMIT 10
         """).data()
     driver.close()
 
     print("\n📋 \033[1;36mDAFTAR EPISODE TERBARU MEMORIAGRAPH\033[0m")
-    print("━" * 70)
+    print("━" * 75)
     for r in rows:
         out = r['outcome'] or 'IN_PROGRESS'
         color = "\033[1;32m" if out == "SUCCESS" else "\033[1;33m"
-        print(f"• [{r['id']}] {color}{out:<10}\033[0m | {r['category']:<16} | {r['title']}")
+        print(f"• [{r['id']}] {color}{out:<10}\033[0m | [{r['bank']:<10}] | {r['category']:<14} | {r['title']}")
+    print("━" * 75 + "\n")
+
+def cmd_banks_list():
+    banks = bank_manager.list_banks()
+    print("\n🏦 \033[1;36mMEMORIAGRAPH 3.2.0 - REGISTERED MEMORY BANKS\033[0m")
+    print("━" * 70)
+    for b in banks:
+        print(f"• \033[1;32m{b['id']}\033[0m: \033[1;37m{b['name']}\033[0m")
+        print(f"  Deskripsi: {b.get('description', '-')}")
+        if b.get('keywords'):
+            print(f"  Keywords : {', '.join(b['keywords'])}")
+        print()
+    print(f"Total: {len(banks)} memory bank terdaftar.")
     print("━" * 70 + "\n")
+
+def cmd_banks_add(bank_id: str, name: str, description: str, keywords: str):
+    kw_list = [k.strip() for k in keywords.split(",")] if keywords else []
+    try:
+        new_b = bank_manager.add_bank(bank_id, name, description, kw_list)
+        print(f"✅ Memory Bank '{new_b['id']}' ({new_b['name']}) berhasil didaftarkan ke banks.json!")
+    except Exception as e:
+        print(f"❌ Gagal menambahkan memory bank: {e}")
+
+def cmd_banks_remove(bank_id: str):
+    try:
+        success = bank_manager.remove_bank(bank_id)
+        if success:
+            print(f"✅ Memory Bank '{bank_id}' berhasil dihapus dari registry!")
+        else:
+            print(f"⚠️ Memory Bank '{bank_id}' tidak ditemukan.")
+    except Exception as e:
+        print(f"❌ Gagal menghapus memory bank: {e}")
 
 def cmd_benchmark():
     bench_script = BASE_DIR / "benchmark_v3.py"
@@ -172,13 +201,43 @@ def cmd_benchmark():
     else:
         print("❌ benchmark_v3.py tidak ditemukan.")
 
+def cmd_install():
+    inst_script = BASE_DIR / "installer.py"
+    if inst_script.exists():
+        subprocess.run([sys.executable, str(inst_script)])
+    else:
+        print("❌ installer.py tidak ditemukan.")
+
+def cmd_setup_claude():
+    inst_script = BASE_DIR / "installer.py"
+    if inst_script.exists():
+        subprocess.run([sys.executable, str(inst_script), "--mode", "claude"])
+    else:
+        print("❌ installer.py tidak ditemukan.")
+
 def main():
-    parser = argparse.ArgumentParser(description="MemoriaGraph 3.1.2 - Cognitive Substrate CLI")
+    parser = argparse.ArgumentParser(description="MemoriaGraph 3.2.0 - Cognitive Substrate CLI")
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser("dashboard", help="Tampilkan Personal Cognitive Dashboard")
     subparsers.add_parser("episodes", help="Tampilkan daftar episode terbaru")
     subparsers.add_parser("benchmark", help="Jalankan full operational benchmark suite")
+    subparsers.add_parser("install", help="Jalankan Universal Interactive Installer")
+    subparsers.add_parser("setup-claude", help="Konfigurasi Claude Desktop MCP secara otomatis")
+
+    # Banks subcommand
+    p_banks = subparsers.add_parser("banks", help="Kelola kategori Memory Bank dinamis")
+    p_banks_sub = p_banks.add_subparsers(dest="bank_action")
+    p_banks_sub.add_parser("list", help="Lihat semua memory bank aktif")
+    
+    p_b_add = p_banks_sub.add_parser("add", help="Tambah memory bank baru")
+    p_b_add.add_argument("id", type=str, help="Identifier unik bank (contoh: marketing, devops)")
+    p_b_add.add_argument("--name", type=str, default="", help="Nama lengkap kategori bank")
+    p_b_add.add_argument("--desc", type=str, default="", help="Deskripsi ruang lingkup bank")
+    p_b_add.add_argument("--keywords", type=str, default="", help="Kata kunci pencarian dipisah koma")
+
+    p_b_rm = p_banks_sub.add_parser("remove", help="Hapus memory bank kustom")
+    p_b_rm.add_argument("id", type=str, help="ID bank yang ingin dihapus")
 
     p_beliefs = subparsers.add_parser("beliefs", help="Tampilkan active cognitive beliefs & heuristik")
     p_beliefs.add_argument("--status", type=str, default=None, help="Filter status: CANDIDATE, OBSERVED, HIGH_CONFIDENCE")
@@ -197,6 +256,13 @@ def main():
 
     if args.command == "dashboard":
         cmd_dashboard()
+    elif args.command == "banks":
+        if args.bank_action == "add":
+            cmd_banks_add(args.id, args.name, args.desc, args.keywords)
+        elif args.bank_action == "remove":
+            cmd_banks_remove(args.id)
+        else:
+            cmd_banks_list()
     elif args.command == "beliefs":
         cmd_beliefs(status_filter=args.status, limit=args.limit)
     elif args.command == "dss":
@@ -207,6 +273,10 @@ def main():
         cmd_episodes()
     elif args.command == "benchmark":
         cmd_benchmark()
+    elif args.command == "install":
+        cmd_install()
+    elif args.command == "setup-claude":
+        cmd_setup_claude()
     else:
         cmd_dashboard()
 

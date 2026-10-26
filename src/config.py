@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.2 - Centralized Portable Configuration
+MemoriaGraph 3.2.0 - Centralized Portable Configuration
 Decouples repository and runtime paths from static infrastructure (/opt/memoriagraph)
 Supports Linux, macOS, Windows, and Docker environments seamlessly.
 """
@@ -7,6 +7,17 @@ import os
 import sys
 from pathlib import Path
 import dotenv
+
+VERSION = "3.2.0"
+
+# Defensive Windows console UTF-8 reconfiguration to prevent charmap UnicodeEncodeError on emojis
+if sys.platform == "win32":
+    for stream in (sys.stdout, sys.stderr):
+        if stream and hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
 
 # Dynamically resolve repository root (directory containing server.py, src/, etc.)
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -38,6 +49,9 @@ VECTOR_CACHE_FILE = os.getenv("VECTOR_CACHE_FILE", str(MEMORIAGRAPH_HOME / ".vec
 EVENTS_DIR = os.getenv("EVENTS_DIR", str(MEMORIAGRAPH_HOME / "events"))
 LOGS_DIR = os.getenv("LOGS_DIR", str(MEMORIAGRAPH_HOME / "logs"))
 BACKUPS_DIR = os.getenv("BACKUPS_DIR", str(MEMORIAGRAPH_HOME / "backups"))
+
+# Dynamic Memory Bank Registry file
+BANKS_FILE = os.getenv("BANKS_FILE", str(MEMORIAGRAPH_HOME / "banks.json"))
 
 # Security Gateway Configuration
 # Options: 'private' (default - allows loopback, Tailscale, & RFC1918 private subnets/Docker),

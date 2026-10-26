@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.0 - 4-Way Hybrid Recall Engine with Reciprocal Rank Fusion (RRF)
+MemoriaGraph 3.2.0 - 4-Way Hybrid Recall Engine with Reciprocal Rank Fusion (RRF)
 Mengintegrasikan:
 1. BM25 Fulltext Index (Lucene via Neo4j cognitive_fulltext_idx)
 2. Multi-Hop Graph Traversal

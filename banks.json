@@ -1,0 +1,67 @@
+{
+  "version": "3.2.0",
+  "default_bank": "general",
+  "banks": [
+    {
+      "id": "general",
+      "name": "General Knowledge",
+      "description": "General domain knowledge, freeform dialogue context, and miscellaneous notes",
+      "keywords": [
+        "general",
+        "notes",
+        "misc",
+        "summary",
+        "conversation"
+      ]
+    },
+    {
+      "id": "codebase",
+      "name": "Codebase & Architecture",
+      "description": "Software architecture, bug fixes, refactoring, algorithms, and git code changes",
+      "keywords": [
+        "code",
+        "refactor",
+        "bug",
+        "architecture",
+        "git",
+        "api",
+        "function",
+        "class",
+        "patch"
+      ]
+    },
+    {
+      "id": "operations",
+      "name": "Operations & Infrastructure",
+      "description": "DevOps, containerization, deployment, servers, networking, and system monitoring",
+      "keywords": [
+        "devops",
+        "docker",
+        "server",
+        "deploy",
+        "nginx",
+        "k8s",
+        "pm2",
+        "service",
+        "systemd",
+        "tailscale",
+        "monitoring"
+      ]
+    },
+    {
+      "id": "research",
+      "name": "Research & Prototypes",
+      "description": "Exploratory technical research, paper evaluations, prototypes, and benchmark studies",
+      "keywords": [
+        "research",
+        "paper",
+        "experiment",
+        "benchmark",
+        "learning",
+        "prototype",
+        "evaluation",
+        "testbed"
+      ]
+    }
+  ]
+}

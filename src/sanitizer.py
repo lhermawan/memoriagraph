@@ -1,5 +1,5 @@
 """
-MemoriaGraph 2.0 - Secret Sanitizer Engine
+MemoriaGraph 3.2.0 - Secret Sanitizer Engine
 Melindungi graph memory dari kebocoran token, private key, dan kredensial rahasia.
 """
 import re

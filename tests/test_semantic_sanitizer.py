@@ -23,7 +23,7 @@ from src.semantic_sanitizer import (
 
 def run_tests():
     print("=" * 60)
-    print("🧪 MEMORIAGRAPH 3.0: SEMANTIC SANITIZER & ANTI-SLOP TEST SUITE")
+    print("🧪 MEMORIAGRAPH 3.2.0: SEMANTIC SANITIZER & ANTI-SLOP TEST SUITE")
     print("=" * 60)
 
     # 1. Test Penghapusan Basa-Basi

@@ -1,6 +1,6 @@
 """
-MemoriaGraph 3.1 - Comprehensive Operational Latency & Integrity Benchmark (Fase 7)
-Mengukur latency end-to-end dari setiap subsistem MemoriaGraph 3.1:
+MemoriaGraph 3.2.0 - Comprehensive Operational Latency & Integrity Benchmark
+Mengukur latency end-to-end dari setiap subsistem MemoriaGraph 3.2.0:
 1. 4-Way Hybrid Recall (RRF)
 2. Personal DSS Query
 3. Belief Revision & Evidence Listing
@@ -12,12 +12,15 @@ import os
 import statistics
 import sys
 import time
+from pathlib import Path
 
 from neo4j import GraphDatabase
 
-if "/opt/memoriagraph" not in sys.path:
-    sys.path.insert(0, "/opt/memoriagraph")
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
+from src.config import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
 from src.belief_revision import list_beliefs
 from src.dss_engine import query_personal_dss
 from src.graph_visualizer import export_graph_for_3d_hud
@@ -27,7 +30,7 @@ from src.semantic_sanitizer import clean_cognitive_payload
 
 def run_benchmarks():
     print("=" * 70)
-    print("⚡ MEMORIAGRAPH 3.1: COMPREHENSIVE PRODUCTION BENCHMARK & DRIFT AUDIT")
+    print("⚡ MEMORIAGRAPH 3.2.0: COMPREHENSIVE PRODUCTION BENCHMARK & DRIFT AUDIT")
     print("=" * 70)
 
     neo4j_uri = os.getenv("NEO4J_URI", "bolt://127.0.0.1:7687")
@@ -112,7 +115,7 @@ def run_benchmarks():
     print(f"4. 3D WebGL Graph Exporter      : {dt_vis:6.2f} ms [INSTAN]")
     print(f"5. Anti-Slop Quality Gate       : {dt_clean:6.3f} ms [ULTRA-LOW LATENCY]")
     print("=" * 70)
-    print("✨ MEMORIAGRAPH 3.1 PRODUCTION READY 100%!")
+    print("✨ MEMORIAGRAPH 3.2.0 PRODUCTION READY 100%!")
 
     recall_engine.close()
     driver.close()

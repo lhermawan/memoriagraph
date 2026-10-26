@@ -1,5 +1,5 @@
 """
-MemoriaGraph 2.0 - Event Logger Engine
+MemoriaGraph 3.2.0 - Event Logger Engine
 Menyimpan event mentah ke append-only JSONL stream dan memproyeksikannya ke Neo4j.
 """
 import datetime

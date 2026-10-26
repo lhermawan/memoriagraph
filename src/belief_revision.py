@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.0 - Dynamic Belief Revision & Evidence Engine (Hindsight Pillar)
+MemoriaGraph 3.2.0 - Dynamic Belief Revision & Evidence Engine (Hindsight Pillar)
 Menerapkan pembaruan keyakinan dinamis dengan Logarithmic Dampening dan Hysteresis.
 Mengelola status epistemik: CANDIDATE -> OBSERVED -> HIGH_CONFIDENCE (atau CONTESTED / DEPRECATED).
 """

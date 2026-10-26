@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.0 - Semantic Quality Gate & Anti-Slop Sanitizer (Anti-Slop Pillar)
+MemoriaGraph 3.2.0 - Semantic Quality Gate & Anti-Slop Sanitizer (Anti-Slop Pillar)
 Mencegah memori kognitif tercemar oleh:
 1. Klise / basa-basi percakapan LLM (AI throat-clearing & concluding fluff).
 2. Tautologi & ringkasan melingkar (circular summaries).

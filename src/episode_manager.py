@@ -1,5 +1,5 @@
 """
-MemoriaGraph 2.0 - Cognitive Episode Manager
+MemoriaGraph 3.2.0 - Cognitive Episode Manager
 Membangun dan menghubungkan struktur kognitif lengkap (Problem, Hypothesis, Attempt, Decision, Outcome, Reflection).
 """
 import datetime

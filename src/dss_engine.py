@@ -1,5 +1,5 @@
 """
-MemoriaGraph 2.0 - Personal Decision Support System (DSS) & Cognitive Analytics Engine
+MemoriaGraph 3.2.0 - Personal Decision Support System (DSS) & Cognitive Analytics Engine
 Menyediakan pencarian bukti historis obyektif (Historical Retrieval & Evidence Matching).
 """
 import os

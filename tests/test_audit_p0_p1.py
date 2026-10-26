@@ -1,5 +1,5 @@
 """
-MemoriaGraph 3.1 - Comprehensive Audit & Regression Test Suite (MG-RESEARCH-2026-10-17)
+MemoriaGraph 3.2.0 - Comprehensive Audit & Regression Test Suite (MG-RESEARCH-2026-10-17)
 Memvalidasi perbaikan P0 dan P1:
 1. Episode Outcome Classification & Non-Bias Ingestion (P0-1)
 2. Vector Cache Atomicity, Corruption Auto-Recovery & Stale Pruning (P0-2)

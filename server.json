@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/specification/main/schema/server.json",
   "name": "memoriagraph",
-  "title": "MemoriaGraph 3.1.2",
+  "title": "MemoriaGraph 3.2.0",
   "description": "Biomimetic Cognitive Substrate for AI Pair Programmers. Features 3 Canonical Facades (retain, recall, reflect), 4-Way Hybrid Recall with RRF, Dynamic Belief Revision, Async Background Harvester, and 9Router Pre-Injection Gateway.",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/lhermawan/memoriagraph"

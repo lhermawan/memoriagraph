@@ -22,14 +22,22 @@ from src.hybrid_recall import HybridRecallEngine
 
 
 def run_tests():
+    import pytest
     neo4j_uri = NEO4J_URI
     neo4j_user = NEO4J_USER
     neo4j_password = NEO4J_PASSWORD
-    driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+    try:
+        driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+        driver.verify_connectivity()
+    except Exception as e:
+        print(f"⚠️ [Skip Live Neo4j Test] Neo4j offline ({e}).")
+        pytest.skip(f"Neo4j database offline: {e}")
+        return
+
     engine = HybridRecallEngine(auto_sync_vectors=False)
 
     print("=" * 60)
-    print("🧪 MEMORIAGRAPH 3.0: MEMORY BANKS & FACADE API TEST SUITE")
+    print("🧪 MEMORIAGRAPH 3.2.0: MEMORY BANKS & FACADE API TEST SUITE")
     print("=" * 60)
 
     # Bersihkan sisa artefak uji lama sebelum mulai
