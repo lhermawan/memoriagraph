@@ -10,7 +10,7 @@ import dotenv
 
 VERSION = "3.2.0"
 
-# Defensive Windows console UTF-8 reconfiguration to prevent charmap UnicodeEncodeError on emojis
+# Defensive Windows console UTF-8 reconfiguration & Virtual Terminal (VT100) initialization
 if sys.platform == "win32":
     for stream in (sys.stdout, sys.stderr):
         if stream and hasattr(stream, "reconfigure"):
@@ -18,6 +18,19 @@ if sys.platform == "win32":
                 stream.reconfigure(encoding="utf-8", errors="replace")
             except Exception:
                 pass
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        hStdOut = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+        mode = ctypes.c_ulong()
+        if kernel32.GetConsoleMode(hStdOut, ctypes.byref(mode)):
+            kernel32.SetConsoleMode(hStdOut, mode.value | 0x0004)
+    except Exception:
+        pass
+    try:
+        os.system("")
+    except Exception:
+        pass
 
 # Dynamically resolve repository root (directory containing server.py, src/, etc.)
 ROOT_DIR = Path(__file__).resolve().parent.parent

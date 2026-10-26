@@ -34,13 +34,53 @@ from src.bank_manager import bank_manager
 
 VERSION = "3.2.0"
 
-# Colors for terminal output
-CYAN = "\033[1;36m"
-GREEN = "\033[1;32m"
-YELLOW = "\033[1;33m"
-RED = "\033[1;31m"
-RESET = "\033[0m"
-BOLD = "\033[1m"
+def init_terminal_colors():
+    """
+    Mengaktifkan Windows Virtual Terminal Processing untuk ANSI colors.
+    Jika terminal tidak mendukung ANSI escape sequence, warna dinonaktifkan
+    secara elegan agar tidak mencetak karakter mentah seperti '[1;36m'.
+    """
+    c_cyan = "\033[1;36m"
+    c_green = "\033[1;32m"
+    c_yellow = "\033[1;33m"
+    c_red = "\033[1;31m"
+    c_reset = "\033[0m"
+    c_bold = "\033[1m"
+
+    if os.environ.get("NO_COLOR"):
+        return "", "", "", "", "", ""
+
+    if hasattr(sys.stdout, "isatty") and not sys.stdout.isatty():
+        return "", "", "", "", "", ""
+
+    if sys.platform == "win32":
+        vt_ok = False
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            hStdOut = kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
+            mode = ctypes.c_ulong()
+            if kernel32.GetConsoleMode(hStdOut, ctypes.byref(mode)):
+                if kernel32.SetConsoleMode(hStdOut, mode.value | 0x0004):
+                    vt_ok = True
+        except Exception:
+            pass
+
+        try:
+            os.system("")
+            vt_ok = True
+        except Exception:
+            pass
+
+        if any(k in os.environ for k in ("WT_SESSION", "TERM_PROGRAM", "ANSICON", "ConEmuANSI")):
+            vt_ok = True
+
+        if not vt_ok:
+            return "", "", "", "", "", ""
+
+    return c_cyan, c_green, c_yellow, c_red, c_reset, c_bold
+
+CYAN, GREEN, YELLOW, RED, RESET, BOLD = init_terminal_colors()
 
 
 def print_banner():
@@ -213,7 +253,7 @@ def configure_claude_desktop(dry_run: bool = False, uri: str = "bolt://127.0.0.1
         }
     }
 
-    print(f"\n🤖 \033[1mKonfigurasi Claude Desktop MCP:\033[0m")
+    print(f"\n🤖 {BOLD}Konfigurasi Claude Desktop MCP:{RESET}")
     print(f"  File Target: {cfg_path}")
     print(f"  Executable : {venv_py}")
     print(f"  Working Dir: {repo_dir}")
@@ -372,11 +412,11 @@ def interactive_menu():
     while True:
         print_banner()
         print("Pilih tipe instalasi yang Anda butuhkan:\n")
-        print(f" {BOLD}[1]{RESET} 💻 \033[1;32mLOCAL MODE (Rekomendasi Laptop/PC)\033[0m")
+        print(f" {BOLD}[1]{RESET} 💻 {GREEN}LOCAL MODE (Rekomendasi Laptop/PC){RESET}")
         print("     -> Untuk Claude Desktop, Cursor IDE & Taskbar Tray.")
         print("     -> Neo4j di Docker, MemoriaGraph di Host.")
         print("     -> Otomatis hubungkan ke Claude tanpa edit JSON!\n")
-        print(f" {BOLD}[2]{RESET} 🌐 \033[1;36mSERVER MODE (Production / Headless)\033[0m")
+        print(f" {BOLD}[2]{RESET} 🌐 {CYAN}SERVER MODE (Production / Headless){RESET}")
         print("     -> Untuk Server, VM, n8n, Multi-Agent & Web Cockpit.")
         print("     -> Menjalankan Neo4j + MemoriaGraph HTTP di Docker Compose.\n")
         print(f" {BOLD}[3]{RESET} 🖥️  Setup Taskbar Tray & Auto-Startup Windows Saja")
